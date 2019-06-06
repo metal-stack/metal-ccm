@@ -44,10 +44,10 @@ Under General you will see "Project ID". Once you have this information you will
 
 #### Create config
 
-Copy [v0.0.4/secret.yaml](v0.0.4/secret.yaml) to releases/metal-cloud-config.yaml:
+Copy [v0.0.1/secret.yaml](v0.0.1/secret.yaml) to releases/metal-cloud-config.yaml:
 
 ```bash
-cp v0.0.4/secret.yaml ./metal-cloud-config.yaml
+cp v0.0.1/secret.yaml ./metal-cloud-config.yaml
 ```
 
 Replace the placeholder in the copy with your token. When you're done, the metal-cloud-config.yaml should look something like this:
@@ -82,5 +82,5 @@ metal-cloud-config   Opaque                                1         2m
 You can apply the rest of the CCM by running:
 
 ```bash
-kubectl apply -f v0.0.4/deployment.yaml
+kubectl apply -f v0.0.1/deployment.yaml
 ```
