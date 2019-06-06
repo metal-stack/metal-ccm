@@ -1,0 +1,161 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metal-cloud-controller-manager
+  namespace: kube-system
+  labels:
+    app: metal-cloud-controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metal-cloud-controller-manager
+  template:
+    metadata:
+      labels:
+        app: metal-cloud-controller-manager
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      dnsPolicy: Default
+      hostNetwork: true
+      serviceAccountName: cloud-controller-manager
+      tolerations:
+        # this taint is set by all kubelets running `--cloud-provider=external`
+        # so we should tolerate it to schedule the metal ccm
+        - key: "node.cloudprovider.kubernetes.io/uninitialized"
+          value: "true"
+          effect: "NoSchedule"
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
+        # cloud controller manager should be able to run on masters
+        - key: "node-role.kubernetes.io/master"
+          effect: NoSchedule
+      containers:
+      # FIXME image
+      - image: metal-pod/metal-ccm:v0.0.1
+        name: metal-cloud-controller-manager
+        command:
+          - "./metal-cloud-controller-manager"
+          - "--cloud-provider=metal"
+          - "--leader-elect=false"
+          - "--allow-untagged-cloud=true"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+          limits:
+            cpu: 250m
+            memory: 100Mi
+        env:
+          - name: metal_API_URL
+            valueFrom:
+              secretKeyRef:
+                name: metal-cloud-config
+                key: apiUrl
+          - name: metal_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: metal-cloud-config
+                key: apiKey
+          - name: metal_AUTH_HMAC
+            valueFrom:
+              secretKeyRef:
+                name: metal-cloud-config
+                key: apiHmac
+          - name: metal_PROJECT_ID
+            valueFrom:
+              secretKeyRef:
+                name: metal-cloud-config
+                key: projectID
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloud-controller-manager
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  name: system:cloud-controller-manager
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - nodes/status
+  verbs:
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services/status
+  verbs:
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: system:cloud-controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:cloud-controller-manager
+subjects:
+- kind: ServiceAccount
+  name: cloud-controller-manager
+  namespace: kube-system
