@@ -6,7 +6,6 @@ VERSION := $(or ${VERSION},devel)
 GO := go
 GOSRC = $(shell find . -not \( -path vendor -prune \) -type f -name '*.go')
 
-export GOPROXY := https://gomods.fi-ts.io
 export GO111MODULE := on
 export CGO_ENABLED := 0
 
