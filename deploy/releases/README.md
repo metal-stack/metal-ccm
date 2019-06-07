@@ -59,6 +59,8 @@ metadata:
   name: metal-cloud-config
   namespace: kube-system
 stringData:
+  apiUrl: "https://metal....."
+  apiHMAC: "adslkfjasldkfj"
   apiKey: "abc123abc123abc123"
   projectID: "abc123abc123abc123"
 ```

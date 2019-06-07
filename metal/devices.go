@@ -7,7 +7,7 @@ import (
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/pkg/errors"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 )
@@ -93,7 +93,7 @@ func (i *instances) InstanceTypeByProviderID(_ context.Context, providerID strin
 		return "", err
 	}
 
-	return  *device.Machine.Size.ID, nil
+	return *device.Machine.Size.ID, nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
@@ -126,25 +126,25 @@ func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID s
 		return false, err
 	}
 
-	return *device.Machine.Liveliness != "Waiting", nil
+	return *device.Machine.Liveliness != "Phoned Home", nil
 }
 
 func deviceByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse, error) {
-	device,  err := client.MachineGet(string(id))
+	device, err := client.MachineGet(string(id))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return device, nil
 }
 
 // deviceByName returns an instance thats hostname matches the kubernetes node.Name
 func deviceByName(client *metalgo.Driver, projectID string, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
-	device,  err := client.MachineGet(string(nodeName))
+	device, err := client.MachineGet(string(nodeName))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return device, nil
 }
 

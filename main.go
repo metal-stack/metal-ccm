@@ -14,6 +14,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/version/prometheus"        // for version metric registration
 
 	_ "github.com/metal-pod/metal-ccm/metal"
+	"github.com/metal-pod/v"
 	"github.com/spf13/pflag"
 )
 
@@ -27,6 +28,8 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
+
+	fmt.Printf("metal-ccm version:%s\n", v.V)
 
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

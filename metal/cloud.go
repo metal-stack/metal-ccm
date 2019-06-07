@@ -67,7 +67,7 @@ func (c *cloud) Initialize(_ controller.ControllerClientBuilder) {
 }
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
-// TODO unimplemented
+// FIXME implement
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return nil, false
 }
