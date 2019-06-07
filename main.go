@@ -28,8 +28,8 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-
-	fmt.Printf("metal-ccm version:%s\n", v.V)
+	logger := logs.NewLogger("metal-ccm")
+	logger.Printf(" starting version:%s", v.V)
 
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
