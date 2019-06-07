@@ -7,8 +7,7 @@ import (
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/pkg/errors"
 
-	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/controller"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 const (
@@ -35,7 +34,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("environment variable %q is required", metalAPIUrlEnvVar)
 	}
 
-	if token == "" || hmac == "" {
+	if token == "" && hmac == "" {
 		return nil, errors.Errorf("environment variable %q or %q is required", metalAuthTokenEnvVar, metalAuthHMACEnvVar)
 	}
 
@@ -63,8 +62,8 @@ func init() {
 
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping activities within the cloud provider.
-func (c *cloud) Initialize(_ controller.ControllerClientBuilder) {
-}
+func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+} 
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
 // FIXME implement
