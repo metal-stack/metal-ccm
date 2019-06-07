@@ -34,4 +34,4 @@ clean:
 
 .PHONY: dockerimage
 dockerimage:
-	docker build -t metal-pod/metal-ccm .
+	docker build --no-cache -t metal-pod/metal-ccm .

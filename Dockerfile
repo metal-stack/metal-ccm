@@ -1,8 +1,5 @@
 FROM golang:1.12-stretch as builder
 WORKDIR /work
-COPY go.mod .
-RUN go mod download
-
 COPY . .
 RUN make all
 
