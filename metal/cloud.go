@@ -42,7 +42,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("environment variable %q is required", metalProjectIDEnvVar)
 	}
 
-	client, err := metalgo.NewDriver("", token, hmac)
+	client, err := metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
 	}
