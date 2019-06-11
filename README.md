@@ -27,7 +27,7 @@ make build LOCALBUILD=true
 To build a docker image, run:
 
 ```bash
-make image
+make dockerimage
 ```
 
 The image will be tagged with `:latest`
