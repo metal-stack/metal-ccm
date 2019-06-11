@@ -34,7 +34,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("environment variable %q is required", metalAPIUrlEnvVar)
 	}
 
-	if token == "" && hmac == "" {
+	if (token == "") == (hmac == "") {
 		return nil, errors.Errorf("environment variable %q or %q is required", metalAuthTokenEnvVar, metalAuthHMACEnvVar)
 	}
 
