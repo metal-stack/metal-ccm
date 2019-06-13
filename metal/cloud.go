@@ -3,6 +3,7 @@ package metal
 import (
 	"io"
 	"os"
+	"k8s.io/component-base/logs"
 
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ type cloud struct {
 }
 
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
+	logger := logs.NewLogger("metal-ccm")
 	url := os.Getenv(metalAPIUrlEnvVar)
 	token := os.Getenv(metalAuthTokenEnvVar)
 	hmac := os.Getenv(metalAuthHMACEnvVar)
@@ -47,6 +49,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
 	}
 
+	logger.Print("metal-ccm initialized")
 	return &cloud{
 		client:    client,
 		instances: newInstances(client, project),

@@ -1,12 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
 	"time"
-	"flag"
- 
+
 	"k8s.io/component-base/logs"
 	"k8s.io/kubernetes/cmd/cloud-controller-manager/app"
 
@@ -19,7 +19,7 @@ import (
 	_ "github.com/metal-pod/metal-ccm/metal"
 	"github.com/metal-pod/v"
 )
- 
+
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 

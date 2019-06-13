@@ -23,7 +23,7 @@ func newInstances(client *metalgo.Driver, projectID string) cloudprovider.Instan
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	device, err := deviceByName(i.client, i.project, name)
+	device, err := deviceByName(i.client, name)
 	if err != nil {
 		return nil, err
 	}
@@ -47,28 +47,23 @@ func (i *instances) NodeAddressesByProviderID(_ context.Context, providerID stri
 
 func nodeAddresses(device *metalgo.MachineGetResponse) ([]v1.NodeAddress, error) {
 	var addresses []v1.NodeAddress
-	// addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: device.Machine.Allocation.Networks[0].})
-
 	for _, nw := range device.Machine.Allocation.Networks {
 		if *nw.Primary {
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: nw.Ips[0]})
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: nw.Ips[0]})
+		} else {
+			for _, ip := range nw.Ips {
+				addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: ip})
+			}
 		}
 	}
-
-	// FIXME PublicIP
-	// if publicIP == "" {
-	// 	return nil, errors.New("could not get public ip")
-	// }
-	// addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: publicIP})
-
 	return addresses, nil
 }
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound)
 func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
-	device, err := deviceByName(i.client, i.project, nodeName)
+	device, err := deviceByName(i.client, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +73,7 @@ func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (stri
 
 // InstanceType returns the type of the specified instance.
 func (i *instances) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
-	device, err := deviceByName(i.client, i.project, nodeName)
+	device, err := deviceByName(i.client, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -108,14 +103,16 @@ func (i *instances) CurrentNodeName(_ context.Context, nodeName string) (types.N
 	return types.NodeName(nodeName), nil
 }
 
-// InstanceExistsByProviderID returns true if the instance for the given provider id still is running.
+// InstanceExistsByProviderID returns true if the instance for the given provider exists.
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
+// This method should still return true for instances that exist but are stopped/sleeping.
 func (i *instances) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
 	_, err := i.deviceFromProviderID(providerID)
 	if err != nil {
 		return false, err
 	}
 
+	// FIXME: do we need to decide based on the state of the machine what to return, e.g. false with no error.
 	return true, nil
 }
 
@@ -138,8 +135,8 @@ func deviceByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse,
 	return device, nil
 }
 
-// deviceByName returns an instance thats hostname matches the kubernetes node.Name
-func deviceByName(client *metalgo.Driver, projectID string, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
+// deviceByName returns an instance where hostname matches the kubernetes node.Name
+func deviceByName(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
 	device, err := client.MachineGet(string(nodeName))
 	if err != nil {
 		return nil, err

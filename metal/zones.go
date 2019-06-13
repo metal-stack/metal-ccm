@@ -25,8 +25,8 @@ func (z zones) GetZone(_ context.Context) (cloudprovider.Zone, error) {
 	return cloudprovider.Zone{}, cloudprovider.NotImplemented
 }
 
-// GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by providerId
-// This method is particularly used in the context of external cloud providers where node initialization must be down
+// GetZoneByProviderID returns the Zone containing the current zone and locality region of the node specified by providerID
+// This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z zones) GetZoneByProviderID(_ context.Context, providerID string) (cloudprovider.Zone, error) {
 	id, err := deviceIDFromProviderID(providerID)
@@ -39,17 +39,25 @@ func (z zones) GetZoneByProviderID(_ context.Context, providerID string) (cloudp
 		return cloudprovider.Zone{}, err
 	}
 
-	return cloudprovider.Zone{Region: *device.Machine.Partition.ID}, nil
+	// TODO: check if failureDomain == Partition
+	return cloudprovider.Zone{
+		FailureDomain: *device.Machine.Partition.ID,
+		Region:        *device.Machine.Partition.ID,
+	}, nil
 }
 
 // GetZoneByNodeName returns the Zone containing the current zone and locality region of the node specified by node name
-// This method is particularly used in the context of external cloud providers where node initialization must be down
+// This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z zones) GetZoneByNodeName(_ context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	device, err := deviceByName(z.client, z.project, nodeName)
+	device, err := deviceByName(z.client, nodeName)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
 
-	return cloudprovider.Zone{Region: *device.Machine.Partition.ID}, nil
+	// TODO: check if failureDomain == Partition
+	return cloudprovider.Zone{
+		FailureDomain: *device.Machine.Partition.ID,
+		Region:        *device.Machine.Partition.ID,
+	}, nil
 }
