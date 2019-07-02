@@ -2,6 +2,7 @@ package metal
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	metalgo "github.com/metal-pod/metal-go"
@@ -107,13 +108,15 @@ func (i *instances) CurrentNodeName(_ context.Context, nodeName string) (types.N
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 // This method should still return true for instances that exist but are stopped/sleeping.
 func (i *instances) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
-	_, err := i.deviceFromProviderID(providerID)
+	machine, err := i.deviceFromProviderID(providerID)
 	if err != nil {
 		return false, err
 	}
 
-	// FIXME: do we need to decide based on the state of the machine what to return, e.g. false with no error.
-	return true, nil
+	if machine.Machine.Allocation != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
@@ -122,8 +125,14 @@ func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID s
 	if err != nil {
 		return false, err
 	}
-
-	return *device.Machine.Liveliness != "Phoned Home", nil
+	if device.Machine.Allocation == nil {
+		return true, nil
+	}
+	if device.Machine.Events != nil && device.Machine.Events.Log != nil && len(device.Machine.Events.Log) > 0 {
+		lastEvent := device.Machine.Events.Log[0].Event
+		return *lastEvent != "Phoned Home", nil
+	}
+	return false, nil
 }
 
 func deviceByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse, error) {
@@ -137,12 +146,25 @@ func deviceByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse,
 
 // deviceByName returns an instance where hostname matches the kubernetes node.Name
 func deviceByName(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
-	device, err := client.MachineGet(string(nodeName))
+	machineName := string(nodeName)
+	mfr := &metalgo.MachineFindRequest{
+		AllocationName: &machineName,
+	}
+	machines, err := client.MachineFind(mfr)
 	if err != nil {
 		return nil, err
 	}
+	if len(machines.Machines) == 0 {
+		return nil, fmt.Errorf("no machine with name:%s found", nodeName)
+	}
+	if len(machines.Machines) > 1 {
+		return nil, fmt.Errorf("more than one (%d) machine with name:%s found", len(machines.Machines), nodeName)
+	}
 
-	return device, nil
+	response := &metalgo.MachineGetResponse{
+		Machine: machines.Machines[0],
+	}
+	return response, nil
 }
 
 // deviceIDFromProviderID returns a device's ID from providerID.
