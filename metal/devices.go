@@ -3,6 +3,7 @@ package metal
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	metalgo "github.com/metal-pod/metal-go"
@@ -24,6 +25,7 @@ func newInstances(client *metalgo.Driver, projectID string) cloudprovider.Instan
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
+	log.Printf("nodeaddress:%s", name)
 	device, err := deviceByName(i.client, name)
 	if err != nil {
 		return nil, err
@@ -38,6 +40,7 @@ func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.
 // from the node whose nodeaddresses are being queried. i.e. local metadata
 // services cannot be used in this method to obtain nodeaddresses
 func (i *instances) NodeAddressesByProviderID(_ context.Context, providerID string) ([]v1.NodeAddress, error) {
+	log.Printf("nodeaddress providerID:%s", providerID)
 	device, err := i.deviceFromProviderID(providerID)
 	if err != nil {
 		return nil, err
@@ -64,6 +67,7 @@ func nodeAddresses(device *metalgo.MachineGetResponse) ([]v1.NodeAddress, error)
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound)
 func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
+	log.Printf("instanceID:%s", nodeName)
 	device, err := deviceByName(i.client, nodeName)
 	if err != nil {
 		return "", err
@@ -74,6 +78,7 @@ func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (stri
 
 // InstanceType returns the type of the specified instance.
 func (i *instances) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
+	log.Printf("instanceType:%s", nodeName)
 	device, err := deviceByName(i.client, nodeName)
 	if err != nil {
 		return "", err
@@ -84,6 +89,7 @@ func (i *instances) InstanceType(_ context.Context, nodeName types.NodeName) (st
 
 // InstanceTypeByProviderID returns the type of the specified instance.
 func (i *instances) InstanceTypeByProviderID(_ context.Context, providerID string) (string, error) {
+	log.Printf("instanceType providerID:%s", providerID)
 	device, err := i.deviceFromProviderID(providerID)
 	if err != nil {
 		return "", err
@@ -101,6 +107,7 @@ func (i *instances) AddSSHKeyToAllInstances(_ context.Context, user string, keyD
 // CurrentNodeName returns the name of the node we are currently running on
 // On most clouds (e.g. GCE) this is the hostname, so we provide the hostname
 func (i *instances) CurrentNodeName(_ context.Context, nodeName string) (types.NodeName, error) {
+	log.Printf("currentNodeName:%s", nodeName)
 	return types.NodeName(nodeName), nil
 }
 
@@ -108,6 +115,7 @@ func (i *instances) CurrentNodeName(_ context.Context, nodeName string) (types.N
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 // This method should still return true for instances that exist but are stopped/sleeping.
 func (i *instances) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
+	log.Printf("instanceExists providerID:%s", providerID)
 	machine, err := i.deviceFromProviderID(providerID)
 	if err != nil {
 		return false, err
@@ -121,6 +129,7 @@ func (i *instances) InstanceExistsByProviderID(_ context.Context, providerID str
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
 func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
+	log.Printf("instanceShutdown providerID:%s", providerID)
 	device, err := i.deviceFromProviderID(providerID)
 	if err != nil {
 		return false, err
@@ -136,6 +145,7 @@ func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID s
 }
 
 func deviceByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse, error) {
+	log.Printf("deviceByID :%s", id)
 	device, err := client.MachineGet(string(id))
 	if err != nil {
 		return nil, err
@@ -146,6 +156,7 @@ func deviceByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse,
 
 // deviceByName returns an instance where hostname matches the kubernetes node.Name
 func deviceByName(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
+	log.Printf("deviceByName:%s", nodeName)
 	machineName := string(nodeName)
 	mfr := &metalgo.MachineFindRequest{
 		AllocationName: &machineName,
@@ -172,6 +183,7 @@ func deviceByName(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.Mac
 // The providerID spec should be retrievable from the Kubernetes
 // node object. The expected format is: metal://device-id
 func deviceIDFromProviderID(providerID string) (string, error) {
+	log.Printf("deviceFromProvider:%s", providerID)
 	if providerID == "" {
 		return "", errors.New("providerID cannot be empty string")
 	}
