@@ -21,8 +21,8 @@ bin/$(BINARY): $(GOSRC)
 		-ldflags \
 			"-X 'github.com/metal-pod/v.Version=$(VERSION)' \
 			-X 'github.com/metal-pod/v.Revision=$(GITVERSION)' \
-			-X 'github.com/metal-pod/v.Gitsha1=$(SHA)' \
-			-X 'github.com/metal-pod/v.Builddate=$(BUILDDATE)'" \
+			-X 'github.com/metal-pod/v.GitSHA1=$(SHA)' \
+			-X 'github.com/metal-pod/v.BuildDate=$(BUILDDATE)'" \
 		-o bin/$(BINARY) \
 		$(MAINMODULE)
 	strip bin/$(BINARY)

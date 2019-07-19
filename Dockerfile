@@ -3,7 +3,7 @@ WORKDIR /work
 COPY . .
 RUN make all
 
-FROM alpine:3.9
+FROM alpine:3.10
 RUN apk --update add ca-certificates
 ARG BINARY=metal-cloud-controller-manager
 
