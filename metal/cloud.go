@@ -3,10 +3,11 @@ package metal
 import (
 	"io"
 	"os"
-	"k8s.io/component-base/logs"
 
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/pkg/errors"
+	"k8s.io/client-go/informers"
+	"k8s.io/component-base/logs"
 
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -23,6 +24,7 @@ type cloud struct {
 	client    *metalgo.Driver
 	instances cloudprovider.Instances
 	zones     cloudprovider.Zones
+	resources *resources
 }
 
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
@@ -49,11 +51,15 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
 	}
 
-	logger.Print("metal-ccm initialized")
+	is := newInstances(client, project)
+	resources := newResources(client, &instances{client: client, project: project})
+	zones := newZones(client, project)
+	logger.Printf("metal-ccm initialized for project:%s", project)
 	return &cloud{
 		client:    client,
-		instances: newInstances(client, project),
-		zones:     newZones(client, project),
+		instances: is,
+		zones:     zones,
+		resources: resources,
 	}, nil
 }
 
@@ -66,7 +72,16 @@ func init() {
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
-} 
+	clientset := clientBuilder.ClientOrDie("cloud-controller-manager-nodelister")
+	sharedInformer := informers.NewSharedInformerFactory(clientset, 0)
+	nodeInformer := sharedInformer.Core().V1().Nodes()
+
+	res := NewResourcesController(c.resources, nodeInformer, clientset)
+
+	sharedInformer.Start(nil)
+	sharedInformer.WaitForCacheSync(nil)
+	go res.Run(stop)
+}
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
 // FIXME implement

@@ -54,7 +54,7 @@ require (
 	go.uber.org/zap v0.0.0-20180814183419-67bc79d13d15 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
-	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421 // indirect
+	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/appengine v1.5.0 // indirect
@@ -68,10 +68,10 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8 // indirect
 	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
 	k8s.io/apiserver v0.0.0-20190409021813-1ec86e4da56c // indirect
-	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible // indirect
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/cloud-provider v0.0.0-20190409023720-1bc0c81fa51d
 	k8s.io/component-base v0.0.0-20190409093041-e34633071963
-	k8s.io/klog v0.2.0 // indirect
+	k8s.io/klog v0.2.0
 	k8s.io/kube-controller-manager v0.0.0-20190409093943-63563cf7ef9a // indirect
 	k8s.io/kube-openapi v0.0.0-20190401085232-94e1e7b7574c // indirect
 	k8s.io/kubernetes v1.14.1

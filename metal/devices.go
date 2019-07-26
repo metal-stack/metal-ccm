@@ -9,11 +9,14 @@ import (
 	"k8s.io/component-base/logs"
 
 	metalgo "github.com/metal-pod/metal-go"
+	"github.com/metal-pod/metal-go/api/models"
+
 	"github.com/pkg/errors"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog"
 )
 
 type instances struct {
@@ -27,6 +30,19 @@ func newInstances(client *metalgo.Driver, projectID string) cloudprovider.Instan
 	logger := logs.NewLogger("metal-ccm instances")
 
 	return &instances{client, projectID, logger}
+}
+
+func (i *instances) allMachinesOfProject() ([]*models.V1MachineResponse, error) {
+	mfr := &metalgo.MachineFindRequest{
+		AllocationProject: &i.project,
+	}
+	klog.Infof("search machines for project:%s", i.project)
+	m, err := i.client.MachineFind(mfr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to find all machines for project:%s %v", i.project, err)
+	}
+	klog.Infof("machines in project:%s %d", i.project, len(m.Machines))
+	return m.Machines, nil
 }
 
 // NodeAddresses returns the addresses of the specified instance.
