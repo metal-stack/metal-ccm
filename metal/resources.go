@@ -128,6 +128,11 @@ func (r *ResourcesController) sync() error {
 		return err
 	}
 
+	err = r.syncMetalLBConfig()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
