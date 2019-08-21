@@ -4,20 +4,20 @@ import (
 	"io"
 	"os"
 
-	metalgo "github.com/metal-pod/metal-go"
+	"github.com/metal-pod/metal-go"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/informers"
 	"k8s.io/component-base/logs"
 
-	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/cloud-provider"
 )
 
 const (
-	metalAPIUrlEnvVar    string = "METAL_API_URL"
-	metalAuthTokenEnvVar string = "METAL_AUTH_TOKEN"
-	metalAuthHMACEnvVar  string = "METAL_AUTH_HMAC"
-	metalProjectIDEnvVar string = "METAL_PROJECT_ID"
-	providerName         string = "metal"
+	metalAPIUrlEnvVar    = "METAL_API_URL"
+	metalAuthTokenEnvVar = "METAL_AUTH_TOKEN"
+	metalAuthHMACEnvVar  = "METAL_AUTH_HMAC"
+	metalProjectIDEnvVar = "METAL_PROJECT_ID"
+	providerName         = "metal"
 )
 
 type cloud struct {
@@ -25,9 +25,10 @@ type cloud struct {
 	instances cloudprovider.Instances
 	zones     cloudprovider.Zones
 	resources *resources
+	stop      <-chan struct{}
 }
 
-func newCloud(config io.Reader) (cloudprovider.Interface, error) {
+func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	logger := logs.NewLogger("metal-ccm")
 	url := os.Getenv(metalAPIUrlEnvVar)
 	token := os.Getenv(metalAuthTokenEnvVar)
@@ -80,7 +81,9 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	sharedInformer.Start(nil)
 	sharedInformer.WaitForCacheSync(nil)
-	go res.Run(stop)
+
+	c.stop = stop
+	go res.Run(c.stop)
 }
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.

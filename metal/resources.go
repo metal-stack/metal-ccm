@@ -18,18 +18,19 @@ package metal
 
 import (
 	"fmt"
+	"k8s.io/api/core/v1"
 	"strings"
 	"sync"
 	"time"
 
-	metalgo "github.com/metal-pod/metal-go"
+	"github.com/metal-pod/metal-go"
 	"k8s.io/apimachinery/pkg/labels"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	v1informers "k8s.io/client-go/informers/core/v1"
+	v1informer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	v1lister "k8s.io/client-go/listers/core/v1"
-	clientretry "k8s.io/client-go/util/retry"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 )
 
@@ -93,7 +94,7 @@ func (s *tickerSyncer) Sync(name string, period time.Duration, stopCh <-chan str
 	}
 }
 
-// ResourcesController is responsible for managing DigitalOcean cloud
+// ResourcesController is responsible for managing metal cloud
 // resources. It maintains a local state of the resources and
 // synchronizes when needed.
 type ResourcesController struct {
@@ -105,7 +106,7 @@ type ResourcesController struct {
 }
 
 // NewResourcesController returns a new resource controller.
-func NewResourcesController(r *resources, inf v1informers.NodeInformer, client kubernetes.Interface) *ResourcesController {
+func NewResourcesController(r *resources, inf v1informer.NodeInformer, client kubernetes.Interface) *ResourcesController {
 	r.kclient = client
 	return &ResourcesController{
 		resources:  r,
@@ -117,64 +118,93 @@ func NewResourcesController(r *resources, inf v1informers.NodeInformer, client k
 
 // Run starts the resources controller loop.
 func (r *ResourcesController) Run(stopCh <-chan struct{}) {
-	go r.syncer.Sync("tags syncer", controllerSyncTagsPeriod, stopCh, r.syncMachineTagsToNodeLabels)
+	r.syncer.Sync("tags syncer", controllerSyncTagsPeriod, stopCh, r.sync)
 }
 
-// syncTags synchronizes tags of machines in this project to labels of that node.
-func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
-	// get all machine of this project
-	machines, err := r.resources.instances.allMachinesOfProject()
+// sync synchronizes all metal resources periodically.
+func (r *ResourcesController) sync() error {
+	err := r.syncMachineTagsToNodeLabels()
 	if err != nil {
-		return fmt.Errorf("failed to list machines: %s", err)
-	}
-	machineIDToTags := make(map[string][]string)
-	for _, m := range machines {
-		hostname := *m.Allocation.Hostname
-		machineIDToTags[hostname] = m.Tags
-		klog.Infof("machine %s ", hostname)
+		return err
 	}
 
-	// Get all nodes of this cluster
+	return nil
+}
+
+// getMachineTags returns all machine tags of this project.
+func (r *ResourcesController) getMachineTags() (map[string][]string, error) {
+	machines, err := r.resources.instances.allMachinesOfProject()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list machines: %s", err)
+	}
+	machineTags := make(map[string][]string)
+	for _, m := range machines {
+		hostname := *m.Allocation.Hostname
+		machineTags[hostname] = m.Tags
+		klog.Infof("machine %s ", hostname)
+	}
+	return machineTags, nil
+}
+
+// getNodes returns all nodes of this cluster.
+func (r *ResourcesController) getNodes() ([]*v1.Node, error) {
 	nodes, err := r.nodeLister.List(labels.Everything())
 	if err != err {
-		return fmt.Errorf("failed to list nodes: %s", err)
+		return nil, fmt.Errorf("failed to list nodes: %s", err)
 	}
+	return nodes, nil
+}
+
+// syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
+func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
+	nodes, err := r.getNodes()
+	if err != nil {
+		return err
+	}
+
+	machineTags, err := r.getMachineTags()
+	if err != nil {
+		return err
+	}
+
 	// klog.Infof("nodes: %s", nodes)
 	for _, n := range nodes {
-		nodeName := n.GetObjectMeta().GetName()
-		tags, ok := machineIDToTags[nodeName]
+		nodeName := n.GetName()
+		tags, ok := machineTags[nodeName]
 		if !ok {
 			klog.Warningf("node:%s not a machine", nodeName)
 			continue
 		}
-		labels := buildLabels(tags)
+		ll := buildLabels(tags)
 
-		for key, value := range labels {
+		for key, value := range ll {
 			klog.Infof("machine label: %s value:%s", key, value)
 			_, ok := n.Labels[key]
 			if ok {
-				klog.Infof("skip exisiting node label:%s", key)
+				klog.Infof("skip existing node label:%s", key)
 				continue
 			}
 			klog.Infof("adding node label from metal: %s=%s to node:%s", key, value, nodeName)
-			n.ObjectMeta.Labels[key] = value
+			n.Labels[key] = value
 		}
-
 	}
+
+	r.update(nodes)
+
+	return nil
+}
+
+// update updates given nodes.
+func (r *ResourcesController) update(nodes []*v1.Node) {
 	for _, n := range nodes {
-		err := clientretry.RetryOnConflict(updateNodeSpecBackoff, func() error {
+		err := retry.RetryOnConflict(updateNodeSpecBackoff, func() error {
 			_, err := r.kclient.CoreV1().Nodes().Update(n)
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		})
 		if err != nil {
-			utilruntime.HandleError(err)
-			continue
+			runtime.HandleError(err)
 		}
 	}
-	return nil
 }
 
 func buildLabels(tags []string) map[string]string {
@@ -189,7 +219,7 @@ func buildLabels(tags []string) map[string]string {
 		// 	result[parts[0]] = ""
 		// }
 		if len(parts) >= 2 {
-			result[parts[0]] = strings.Join(parts[1:], "")
+			result[parts[0]] = strings.Join(parts[1:], "=")
 		}
 	}
 	return result

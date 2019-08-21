@@ -34,7 +34,7 @@ spec:
           effect: NoSchedule
       containers:
       # FIXME image
-      - image: metal-pod/metal-ccm:v0.0.1
+      - image: metalpod/metal-ccm:v0.0.1
         name: metal-cloud-controller-manager
         command:
           - "./metal-cloud-controller-manager"
