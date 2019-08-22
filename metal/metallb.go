@@ -198,7 +198,7 @@ func createAddressPool(machine *models.V1MachineResponse) *AddressPool {
 	}
 
 	return &AddressPool{
-		Name:      "default",
+		Name:      *machine.Allocation.Hostname,
 		Protocol:  "bgp",
 		Addresses: addresses,
 	}
