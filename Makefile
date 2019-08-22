@@ -24,8 +24,8 @@ bin/$(BINARY): $(GOSRC)
 			-X 'github.com/metal-pod/v.GitSHA1=$(SHA)' \
 			-X 'github.com/metal-pod/v.BuildDate=$(BUILDDATE)'" \
 		-o bin/$(BINARY) \
-		$(MAINMODULE)
-	strip bin/$(BINARY)
+		$(MAINMODULE) \
+	&& strip bin/$(BINARY)
 
 .PHONY: clean
 clean:
