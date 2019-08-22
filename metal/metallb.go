@@ -1,12 +1,20 @@
 package metal
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/metal-pod/metal-go/api/models"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/util/retry"
 	"net"
+)
+
+const (
+	metallbNamespace     = "metallb-system"
+	metallbConfigMapName = "config"
 )
 
 type MatchExpression struct {
@@ -44,49 +52,92 @@ func (r *ResourcesController) syncMetalLBConfig() error {
 		return err
 	}
 
-	for _, n := range nodes {
-		resp, err := machineByName(r.resources.client, types.NodeName(n.GetName()))
+	config := &MetallbConfig{}
+
+	for _, node := range nodes {
+		resp, err := machineByName(r.resources.client, types.NodeName(node.GetName()))
 		if err != nil {
 			runtime.HandleError(err)
 			continue
 		}
 
-		peers, err := createPeers(n, resp.Machine)
+		peer, err := createPeer(node, resp.Machine)
 		if err != nil {
 			runtime.HandleError(err)
 			continue
 		}
 
-		addressPools := createAddressPools(resp.Machine)
+		addressPool := createAddressPool(resp.Machine)
 
-		config := &MetallbConfig{
-			Peers:        peers,
-			AddressPools: addressPools,
-		}
-
-		_ = config //TODO: Handle config
+		config.Peers = append(config.Peers, peer)
+		config.AddressPools = append(config.AddressPools, addressPool)
 	}
 
-	r.update(nodes)
-
-	return nil
+	return r.updateMetalLBConfig(config)
 }
 
-func createPeers(node *v1.Node, machine *models.V1MachineResponse) ([]*Peer, error) {
-	if machine.Allocation == nil {
-		return nil, fmt.Errorf("machine %q is not allocated", *machine.ID)
-	}
-	peer, err := createPeer(node, machine)
+// updateMetalLBConfig updates given metalLB config.
+func (r *ResourcesController) updateMetalLBConfig(config *MetallbConfig) error {
+	var configMap map[string]string
+	marshalledConfig, err := json.Marshal(config)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	peers := []*Peer{
-		peer,
+
+	err = json.Unmarshal(marshalledConfig, &configMap)
+	if err != nil {
+		return err
 	}
-	return peers, nil
+
+	return r.upsertConfigMap(metallbNamespace, metallbConfigMapName, configMap)
+}
+
+// upsertConfigMap inserts or updates given config map.
+func (r *ResourcesController) upsertConfigMap(namespace, name string, configMap map[string]string) error {
+	binaryConfigMap := make(map[string][]byte, len(configMap))
+	for k, v := range configMap {
+		binaryConfigMap[k] = []byte(v)
+	}
+
+	err := retry.RetryOnConflict(updateNodeSpecBackoff, func() error {
+		cmi := r.kclient.CoreV1().ConfigMaps(namespace)
+		cm, err := cmi.Get(name, metav1.GetOptions{})
+		if err == nil {
+			cm.Data = configMap
+			cm.BinaryData = binaryConfigMap
+
+			_, err = cmi.Update(cm)
+			return err
+		}
+
+		cm = &v1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:                       name,
+				Namespace:                  namespace,
+				DeletionGracePeriodSeconds: nil,
+				Labels:                     nil,
+				Annotations:                nil,
+			},
+			Data:       configMap,
+			BinaryData: binaryConfigMap,
+		}
+
+		_, err = cmi.Create(cm)
+		return err
+	})
+
+	return err
 }
 
 func createPeer(node *v1.Node, machine *models.V1MachineResponse) (*Peer, error) {
+	if machine.Allocation == nil {
+		return nil, fmt.Errorf("machine %q is not allocated", *machine.ID)
+	}
+
 	alloc := machine.Allocation
 	hostname := *alloc.Hostname
 	if len(hostname) == 0 {
@@ -118,7 +169,7 @@ func createPeer(node *v1.Node, machine *models.V1MachineResponse) (*Peer, error)
 	}
 	address := string(ip[3] + 1)
 
-	peer := &Peer{
+	return &Peer{
 		MyASN:   asn,
 		ASN:     asn,
 		Address: address,
@@ -129,25 +180,16 @@ func createPeer(node *v1.Node, machine *models.V1MachineResponse) (*Peer, error)
 				},
 			},
 		},
-	}
-
-	return peer, nil
+	}, nil
 }
 
-func createAddressPools(machine *models.V1MachineResponse) []*AddressPool {
+func createAddressPool(machine *models.V1MachineResponse) *AddressPool {
 	if machine.Allocation == nil || len(*machine.Allocation.Hostname) == 0 {
 		return nil
 	}
-	addressPool := createAddressPool(machine.Allocation.Networks)
-	addressPools := []*AddressPool{
-		addressPool,
-	}
-	return addressPools
-}
 
-func createAddressPool(networks []*models.V1MachineNetwork) *AddressPool {
 	var addresses []string
-	for _, nw := range networks {
+	for _, nw := range machine.Allocation.Networks {
 		if *nw.Primary {
 			addresses = append(addresses, nw.Ips[0])
 			continue
@@ -155,10 +197,9 @@ func createAddressPool(networks []*models.V1MachineNetwork) *AddressPool {
 		addresses = append(addresses, nw.Ips...)
 	}
 
-	addressPool := &AddressPool{
+	return &AddressPool{
 		Name:      "default",
 		Protocol:  "bgp",
 		Addresses: addresses,
 	}
-	return addressPool
 }
