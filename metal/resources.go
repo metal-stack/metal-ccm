@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"k8s.io/api/core/v1"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/metal-pod/metal-go"
@@ -50,8 +49,6 @@ type resources struct {
 	client    *metalgo.Driver
 	kclient   kubernetes.Interface
 	instances *instances
-
-	mutex sync.RWMutex
 }
 
 // newResources initializes a new resources instance.
@@ -103,37 +100,25 @@ type ResourcesController struct {
 
 	resources *resources
 	syncer    syncer
+
+	metalLBConfig *MetalLBConfig
 }
 
 // NewResourcesController returns a new resource controller.
 func NewResourcesController(r *resources, inf v1informer.NodeInformer, client kubernetes.Interface) *ResourcesController {
 	r.kclient = client
 	return &ResourcesController{
-		resources:  r,
-		kclient:    client,
-		nodeLister: inf.Lister(),
-		syncer:     &tickerSyncer{},
+		resources:     r,
+		kclient:       client,
+		nodeLister:    inf.Lister(),
+		syncer:        &tickerSyncer{},
+		metalLBConfig: &MetalLBConfig{},
 	}
 }
 
 // Run starts the resources controller loop.
 func (r *ResourcesController) Run(stopCh <-chan struct{}) {
-	r.syncer.Sync("tags syncer", controllerSyncTagsPeriod, stopCh, r.sync)
-}
-
-// sync synchronizes all metal resources periodically.
-func (r *ResourcesController) sync() error {
-	err := r.syncMachineTagsToNodeLabels()
-	if err != nil {
-		return err
-	}
-
-	err = r.syncMetalLBConfig()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	r.syncer.Sync("tags syncer", controllerSyncTagsPeriod, stopCh, r.syncMachineTagsToNodeLabels)
 }
 
 // getMachineTags returns all machine tags of this project.
@@ -154,7 +139,7 @@ func (r *ResourcesController) getMachineTags() (map[string][]string, error) {
 // getNodes returns all nodes of this cluster.
 func (r *ResourcesController) getNodes() ([]*v1.Node, error) {
 	nodes, err := r.nodeLister.List(labels.Everything())
-	if err != err {
+	if err != nil {
 		return nil, fmt.Errorf("failed to list nodes: %s", err)
 	}
 	return nodes, nil

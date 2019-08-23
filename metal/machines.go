@@ -48,7 +48,7 @@ func (i *instances) allMachinesOfProject() ([]*models.V1MachineResponse, error) 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
 	i.logger.Printf("nodeaddress:%s", name)
-	machine, err := machineByName(i.client, name)
+	machine, err := machineByHostname(i.client, name)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.
 // The instance is specified using the providerID of the node. The
 // ProviderID is a unique identifier of the node. This will not be called
 // from the node whose nodeaddresses are being queried. i.e. local metadata
-// services cannot be used in this method to obtain nodeaddresses
+// services cannot be used in this method to obtain nodeaddresses.
 func (i *instances) NodeAddressesByProviderID(_ context.Context, providerID string) ([]v1.NodeAddress, error) {
 	i.logger.Printf("nodeaddress providerID:%s", providerID)
 	machine, err := i.machineFromProviderID(providerID)
@@ -74,7 +74,7 @@ func (i *instances) NodeAddressesByProviderID(_ context.Context, providerID stri
 func nodeAddresses(machine *metalgo.MachineGetResponse) ([]v1.NodeAddress, error) {
 	var addresses []v1.NodeAddress
 	for _, nw := range machine.Machine.Allocation.Networks {
-		if *nw.Primary {
+		if *nw.Private {
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: nw.Ips[0]})
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: nw.Ips[0]})
 		} else {
@@ -87,10 +87,10 @@ func nodeAddresses(machine *metalgo.MachineGetResponse) ([]v1.NodeAddress, error
 }
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
-// Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound)
+// Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound).
 func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
 	i.logger.Printf("instanceID:%s", nodeName)
-	machine, err := machineByName(i.client, nodeName)
+	machine, err := machineByHostname(i.client, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -101,7 +101,7 @@ func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (stri
 // InstanceType returns the type of the specified instance.
 func (i *instances) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
 	i.logger.Printf("instanceType:%s", nodeName)
-	machine, err := machineByName(i.client, nodeName)
+	machine, err := machineByHostname(i.client, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -120,14 +120,14 @@ func (i *instances) InstanceTypeByProviderID(_ context.Context, providerID strin
 	return *machine.Machine.Size.ID, nil
 }
 
-// AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
-// expected format for the key is standard ssh-keygen format: <protocol> <blob>
+// AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances.
+// Expected format for the key is standard ssh-keygen format: <protocol> <blob>.
 func (i *instances) AddSSHKeyToAllInstances(_ context.Context, user string, keyData []byte) error {
 	return cloudprovider.NotImplemented
 }
 
-// CurrentNodeName returns the name of the node we are currently running on
-// On most clouds (e.g. GCE) this is the hostname, so we provide the hostname
+// CurrentNodeName returns the name of the node we are currently running on.
+// On most clouds (e.g. GCE) this is the hostname, so we provide the hostname.
 func (i *instances) CurrentNodeName(_ context.Context, nodeName string) (types.NodeName, error) {
 	i.logger.Printf("currentNodeName:%s", nodeName)
 	return types.NodeName(nodeName), nil
@@ -149,7 +149,7 @@ func (i *instances) InstanceExistsByProviderID(_ context.Context, providerID str
 	return false, nil
 }
 
-// InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider
+// InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider.
 func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
 	i.logger.Printf("instanceShutdown providerID:%s", providerID)
 	machine, err := i.machineFromProviderID(providerID)
@@ -172,11 +172,11 @@ func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse
 	return machine, nil
 }
 
-// machineByName returns an instance where hostname matches the kubernetes node.Name
-func machineByName(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
-	machineName := string(nodeName)
+// machineByHostname returns an instance where hostname matches the kubernetes node.Name.
+func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
+	machineHostname := string(nodeName)
 	mfr := &metalgo.MachineFindRequest{
-		AllocationName: &machineName,
+		AllocationHostname: &machineHostname,
 	}
 	machines, err := client.MachineFind(mfr)
 	if err != nil {
@@ -198,7 +198,7 @@ func machineByName(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.Ma
 // machineIDFromProviderID returns a machine's ID from providerID.
 //
 // The providerID spec should be retrievable from the Kubernetes
-// node object. The expected format is: metal://machine-id
+// node object. The expected format is: metal://machine-id.
 func machineIDFromProviderID(providerID string) (string, error) {
 	if providerID == "" {
 		return "", errors.New("providerID cannot be empty string")
@@ -216,7 +216,7 @@ func machineIDFromProviderID(providerID string) (string, error) {
 	return split[1], nil
 }
 
-// machineFromProviderID uses providerID to get the machine id and return the machine
+// machineFromProviderID uses providerID to get the machine id and return the machine.
 func (i *instances) machineFromProviderID(providerID string) (*metalgo.MachineGetResponse, error) {
 	id, err := machineIDFromProviderID(providerID)
 	if err != nil {

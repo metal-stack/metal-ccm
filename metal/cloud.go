@@ -2,6 +2,7 @@ package metal
 
 import (
 	"io"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 
 	"github.com/metal-pod/metal-go"
@@ -21,11 +22,12 @@ const (
 )
 
 type cloud struct {
-	client    *metalgo.Driver
-	instances cloudprovider.Instances
-	zones     cloudprovider.Zones
-	resources *resources
-	stop      <-chan struct{}
+	client       *metalgo.Driver
+	instances    cloudprovider.Instances
+	zones        cloudprovider.Zones
+	resources    *resources
+	stop         <-chan struct{}
+	loadBalancer cloudprovider.LoadBalancer
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
@@ -53,14 +55,16 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	is := newInstances(client, project)
-	resources := newResources(client, &instances{client: client, project: project})
 	zones := newZones(client, project)
+	resources := newResources(client, &instances{client: client, project: project})
+	//loadBalancer := newLoadBalancer(resources, project, logger)
 	logger.Printf("metal-ccm initialized for project:%s", project)
 	return &cloud{
 		client:    client,
 		instances: is,
 		zones:     zones,
 		resources: resources,
+		//loadBalancer: loadBalancer,
 	}, nil
 }
 
@@ -78,6 +82,14 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	nodeInformer := sharedInformer.Core().V1().Nodes()
 
 	res := NewResourcesController(c.resources, nodeInformer, clientset)
+	err := res.AddFirewallNetworkAddressPools()
+	if err != nil {
+		runtime.HandleError(err)
+	}
+	err = res.SyncMetalLBConfig()
+	if err != nil {
+		runtime.HandleError(err)
+	}
 
 	sharedInformer.Start(nil)
 	sharedInformer.WaitForCacheSync(nil)
@@ -87,9 +99,8 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 }
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
-// FIXME implement
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return nil, false
+	return c.loadBalancer, true
 }
 
 // Instances returns an instances interface. Also returns true if the interface is supported, false otherwise.
@@ -117,7 +128,7 @@ func (c *cloud) ProviderName() string {
 	return providerName
 }
 
-// HasClusterID returns true if a ClusterID is required and set
+// HasClusterID returns true if a ClusterID is required and set.
 func (c *cloud) HasClusterID() bool {
 	return false
 }

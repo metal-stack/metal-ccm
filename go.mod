@@ -22,6 +22,7 @@ require (
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
@@ -33,7 +34,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
-	github.com/metal-pod/metal-go v0.0.0-20190719070030-811f1ffbb531
+	github.com/metal-pod/metal-go v0.0.0-20190822222222-e13fc770f44b
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
