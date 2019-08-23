@@ -17,7 +17,6 @@ const (
 	metalAPIUrlEnvVar    = "METAL_API_URL"
 	metalAuthTokenEnvVar = "METAL_AUTH_TOKEN"
 	metalAuthHMACEnvVar  = "METAL_AUTH_HMAC"
-	metalProjectIDEnvVar = "METAL_PROJECT_ID"
 	providerName         = "metal"
 )
 
@@ -35,7 +34,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	url := os.Getenv(metalAPIUrlEnvVar)
 	token := os.Getenv(metalAuthTokenEnvVar)
 	hmac := os.Getenv(metalAuthHMACEnvVar)
-	project := os.Getenv(metalProjectIDEnvVar)
 
 	if url == "" {
 		return nil, errors.Errorf("environment variable %q is required", metalAPIUrlEnvVar)
@@ -45,20 +43,16 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("environment variable %q or %q is required", metalAuthTokenEnvVar, metalAuthHMACEnvVar)
 	}
 
-	if project == "" {
-		return nil, errors.Errorf("environment variable %q is required", metalProjectIDEnvVar)
-	}
-
 	client, err := metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
 	}
 
-	is := newInstances(client, project)
-	zones := newZones(client, project)
-	resources := newResources(client, &instances{client: client, project: project})
-	//loadBalancer := newLoadBalancer(resources, project, logger)
-	logger.Printf("metal-ccm initialized for project:%s", project)
+	is := newInstances(client)
+	zones := newZones(client)
+	resources := newResources(client, &instances{client: client})
+	//loadBalancer := newLoadBalancer(resources, logger)
+	logger.Printf("metal-ccm initialized")
 	return &cloud{
 		client:    client,
 		instances: is,

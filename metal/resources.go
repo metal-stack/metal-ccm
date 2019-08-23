@@ -121,12 +121,9 @@ func (r *ResourcesController) Run(stopCh <-chan struct{}) {
 	r.syncer.Sync("tags syncer", controllerSyncTagsPeriod, stopCh, r.syncMachineTagsToNodeLabels)
 }
 
-// getMachineTags returns all machine tags of this project.
-func (r *ResourcesController) getMachineTags() (map[string][]string, error) {
-	machines, err := r.resources.instances.allMachinesOfProject()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list machines: %s", err)
-	}
+// getMachineTags returns all machine tags within the shoot.
+func (r *ResourcesController) getMachineTags(nodes []*v1.Node) (map[string][]string, error) {
+	machines := r.resources.instances.getMachines(nodes)
 	machineTags := make(map[string][]string)
 	for _, m := range machines {
 		hostname := *m.Allocation.Hostname
@@ -152,7 +149,7 @@ func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
 		return err
 	}
 
-	machineTags, err := r.getMachineTags()
+	machineTags, err := r.getMachineTags(nodes)
 	if err != nil {
 		return err
 	}

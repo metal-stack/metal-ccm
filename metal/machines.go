@@ -3,6 +3,7 @@ package metal
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"log"
 	"strings"
 
@@ -16,33 +17,32 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cloud-provider"
-	"k8s.io/klog"
 )
 
 type instances struct {
 	client  *metalgo.Driver
-	project string
 	logger  *log.Logger
 }
 
-func newInstances(client *metalgo.Driver, projectID string) cloudprovider.Instances {
+func newInstances(client *metalgo.Driver) cloudprovider.Instances {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm instances")
 
-	return &instances{client, projectID, logger}
+	return &instances{client, logger}
 }
 
-func (i *instances) allMachinesOfProject() ([]*models.V1MachineResponse, error) {
-	mfr := &metalgo.MachineFindRequest{
-		AllocationProject: &i.project,
+func (i *instances) getMachines(nodes []*v1.Node) []*models.V1MachineResponse {
+	var mm []*models.V1MachineResponse
+	for _, n := range nodes {
+		m, err := machineByHostname(i.client, types.NodeName(n.Name))
+		if err != nil {
+			runtime.HandleError(err)
+			continue
+		}
+		mm = append(mm, m.Machine)
 	}
-	klog.Infof("search machines for project:%s", i.project)
-	m, err := i.client.MachineFind(mfr)
-	if err != nil {
-		return nil, fmt.Errorf("unable to find all machines for project:%s %v", i.project, err)
-	}
-	klog.Infof("machines in project:%s %d", i.project, len(m.Machines))
-	return m.Machines, nil
+
+	return mm
 }
 
 // NodeAddresses returns the addresses of the specified instance.

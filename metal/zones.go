@@ -10,15 +10,14 @@ import (
 
 type zones struct {
 	client  *metalgo.Driver
-	project string
 }
 
 var (
 	noZone = cloudprovider.Zone{}
 )
 
-func newZones(client *metalgo.Driver, project string) cloudprovider.Zones {
-	return zones{client, project}
+func newZones(client *metalgo.Driver) cloudprovider.Zones {
+	return zones{client}
 }
 
 // GetZone returns the Zone containing the current failure zone and locality region that the program is running in.
