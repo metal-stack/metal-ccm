@@ -13,6 +13,7 @@ require (
 	github.com/docker/distribution v0.0.0-20170726174610-edc3ab29cdff // indirect
 	github.com/docker/docker v0.0.0-20180612054059-a9fbbdc8dd87 // indirect
 	github.com/evanphx/json-patch v4.1.1-0.20190203023257-5858425f7550+incompatible // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/analysis v0.19.4 // indirect
 	github.com/go-openapi/runtime v0.19.3 // indirect
 	github.com/go-openapi/strfmt v0.19.2 // indirect

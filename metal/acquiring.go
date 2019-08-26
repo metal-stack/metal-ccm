@@ -43,7 +43,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) err
 		ips = append(ips, *ip.IP.Ipaddress)
 	}
 
-	r.metallb.announceIPs(network, ips...)
+	r.metallbConfig.announceIPs(network, ips...)
 
 	return r.upsertMetalLBConfig()
 }

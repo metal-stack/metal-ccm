@@ -5,9 +5,12 @@ function finish {
   cd ${CURR_DIR}
 }
 trap finish EXIT
-TEST_DIR=$( dirname ${BASH_SOURCE[0]} )
-cd $TEST_DIR
-cd ..
+TEST_DIR=$( dirname $(readlink -f ${BASH_SOURCE[0]} ))
+
+if [[ ! -z ${GOPATH} ]]; then
+  cd ${GOPATH}
+  go get sigs.k8s.io/kind@v0.5.0
+fi
 
 METAL_API_URL=${METAL_API_URL}
 if [[ -z ${METAL_API_URL} ]]; then
@@ -19,12 +22,11 @@ if [[ -z ${METAL_API_HMAC} ]]; then
   METAL_API_HMAC=${METALCTL_HMAC-metal-test-admin}
 fi
 
-git checkout go.mod
-git checkout go.sum
+cd ${TEST_DIR}
+cd ..
+
 make clean gofmt bin/metal-cloud-controller-manager
 docker build -f Dockerfile.local --no-cache -t metalpod/metal-ccm:v0.0.1 .
-
-go get sigs.k8s.io/kind@v0.5.0
 
 kind delete cluster 2>/dev/null
 docker rm -f kind-control-plane 2>/dev/null

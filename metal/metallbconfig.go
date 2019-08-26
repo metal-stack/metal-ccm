@@ -1,33 +1,27 @@
 package metal
 
 import (
-	"encoding/json"
+	"github.com/ghodss/yaml"
 	"github.com/metal-pod/metal-go/api/models"
 )
 
-type Config struct {
+type LBConfig struct {
 	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
-type LB struct {
-	Config *Config `json:"config,omitempty" yaml:"config,omitempty"`
-}
-
-func newLB() *LB {
-	return &LB{
-		Config: &Config{},
-	}
+func newLBConfig() *LBConfig {
+	return &LBConfig{}
 }
 
 // getPeer returns the peer of the given CIDR if existent.
-func (mlb *LB) getPeer(cidr string) (*Peer, error) {
+func (cfg *LBConfig) getPeer(cidr string) (*Peer, error) {
 	ip, err := computeGateway(cidr)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, p := range mlb.Config.Peers {
+	for _, p := range cfg.Peers {
 		if p.IP == ip {
 			return p, nil
 		}
@@ -38,21 +32,21 @@ func (mlb *LB) getPeer(cidr string) (*Peer, error) {
 
 // getAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (mlb *LB) getAddressPool(networkID string) *AddressPool {
-	for _, pool := range mlb.Config.AddressPools {
+func (cfg *LBConfig) getAddressPool(networkID string) *AddressPool {
+	for _, pool := range cfg.AddressPools {
 		if pool.NetworkID == networkID {
 			return pool
 		}
 	}
 
 	pool := NewBGPAddressPool(networkID)
-	mlb.Config.AddressPools = append(mlb.Config.AddressPools, pool)
+	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
 }
 
 // announceMachineIPs appends the allocated IPs of the given machine to their corresponding address pools.
-func (mlb *LB) announceMachineIPs(machine *models.V1MachineResponse) {
+func (cfg *LBConfig) announceMachineIPs(machine *models.V1MachineResponse) {
 	if machine.Allocation == nil {
 		return
 	}
@@ -62,30 +56,21 @@ func (mlb *LB) announceMachineIPs(machine *models.V1MachineResponse) {
 			continue
 		}
 
-		mlb.announceIPs(*nw.Networkid, nw.Ips...)
+		cfg.announceIPs(*nw.Networkid, nw.Ips...)
 	}
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (mlb *LB) announceIPs(network string, ips ...string) {
-	pool := mlb.getAddressPool(network)
+func (cfg *LBConfig) announceIPs(network string, ips ...string) {
+	pool := cfg.getAddressPool(network)
 	pool.AppendIPs(ips...)
 }
 
-// Json return this config as a JSON byte array.
-func (mlb *LB) Json() ([]byte, error) {
-	bb, err := json.Marshal(mlb)
+// ToYAML returns this config in YAML format.
+func (cfg *LBConfig) ToYAML() (string, error) {
+	bb, err := yaml.Marshal(cfg)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return bb, nil
-}
-
-// String returns this config as a prettified JSON string.
-func (mlb *LB) String() string {
-	bb, err := json.MarshalIndent(mlb, "", "    ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bb)
+	return string(bb), nil
 }

@@ -1,7 +1,6 @@
 package metal
 
 import (
-	"encoding/json"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -40,7 +39,7 @@ func (r *ResourcesController) AddFirewallNetworkAddressPools() error {
 
 			if !existent {
 				networkIDs = append(networkIDs, *nw.Networkid)
-				r.metallb.Config.AddressPools = append(r.metallb.Config.AddressPools, NewBGPAddressPool(*nw.Networkid))
+				r.metallbConfig.AddressPools = append(r.metallbConfig.AddressPools, NewBGPAddressPool(*nw.Networkid))
 			}
 		}
 	}
@@ -64,10 +63,10 @@ func (r *ResourcesController) SyncMetalLBConfig() error {
 		}
 
 		machine := resp.Machine
-		r.metallb.announceMachineIPs(machine)
+		r.metallbConfig.announceMachineIPs(machine)
 
 		podCIDR := node.Spec.PodCIDR
-		peer, err := r.metallb.getPeer(podCIDR)
+		peer, err := r.metallbConfig.getPeer(podCIDR)
 		if err != nil {
 			runtime.HandleError(err)
 			continue
@@ -82,7 +81,7 @@ func (r *ResourcesController) SyncMetalLBConfig() error {
 			runtime.HandleError(err)
 			continue
 		}
-		r.metallb.Config.Peers = append(r.metallb.Config.Peers, peer)
+		r.metallbConfig.Peers = append(r.metallbConfig.Peers, peer)
 	}
 
 	return r.upsertMetalLBConfig()
@@ -90,16 +89,13 @@ func (r *ResourcesController) SyncMetalLBConfig() error {
 
 // upsertMetalLBConfig inserts or updates Metal-LB config.
 func (r *ResourcesController) upsertMetalLBConfig() error {
-	bb, err := r.metallb.Json()
+	yaml, err := r.metallbConfig.ToYAML()
 	if err != nil {
 		return nil
 	}
 
-	var configMap map[string]interface{}
-	err = json.Unmarshal(bb, &configMap)
-	if err != nil {
-		return err
-	}
+	cm := make(map[string]string, 1)
+	cm["config"] = yaml
 
-	return r.upsertConfigMap(namespace, configMapName, configMap)
+	return r.upsertConfigMap(namespace, configMapName, cm)
 }
