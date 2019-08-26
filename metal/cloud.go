@@ -51,14 +51,14 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	is := newInstances(client)
 	zones := newZones(client)
 	resources := newResources(client, &instances{client: client})
-	//loadBalancer := newLoadBalancer(resources, logger)
+	loadBalancer := newLoadBalancer(resources, logger)
 	logger.Println(" initialized")
 	return &cloud{
-		client:    client,
-		instances: is,
-		zones:     zones,
-		resources: resources,
-		//loadBalancer: loadBalancer,
+		client:       client,
+		instances:    is,
+		zones:        zones,
+		resources:    resources,
+		loadBalancer: loadBalancer,
 	}, nil
 }
 
@@ -94,7 +94,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return nil, false
+	return c.loadBalancer, true
 }
 
 // Instances returns an instances interface. Also returns true if the interface is supported, false otherwise.
