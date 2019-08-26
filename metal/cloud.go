@@ -30,7 +30,7 @@ type cloud struct {
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
-	logger := logs.NewLogger("metal-ccm")
+	logger := logs.NewLogger("metal-ccm: ")
 	url := os.Getenv(metalAPIUrlEnvVar)
 	token := os.Getenv(metalAuthTokenEnvVar)
 	hmac := os.Getenv(metalAuthHMACEnvVar)
@@ -52,7 +52,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	zones := newZones(client)
 	resources := newResources(client, &instances{client: client})
 	loadBalancer := newLoadBalancer(resources, logger)
-	logger.Println(" initialized")
+	logger.Println("initialized")
 	return &cloud{
 		client:       client,
 		instances:    is,
