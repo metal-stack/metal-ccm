@@ -29,7 +29,6 @@ make clean gofmt bin/metal-cloud-controller-manager
 docker build -f Dockerfile.local --no-cache -t metalpod/metal-ccm:v0.0.1 .
 
 kind delete cluster 2>/dev/null
-docker rm -f kind-control-plane 2>/dev/null
 
 kind create cluster
 export KUBECONFIG=$(kind get kubeconfig-path --name=kind)
