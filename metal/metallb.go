@@ -9,6 +9,7 @@ const (
 	prefix        = "metallb-"
 	namespace     = "metallb-system"
 	configMapName = "config"
+	configMapKey  = "config"
 )
 
 // AddFirewallNetworkAddressPools creates and adds empty address pools for all non-private and non-underlay firewall networks.
@@ -95,7 +96,7 @@ func (r *ResourcesController) upsertMetalLBConfig() error {
 	}
 
 	cm := make(map[string]string, 1)
-	cm["config"] = yaml
+	cm[configMapKey] = yaml
 
 	return r.upsertConfigMap(namespace, configMapName, cm)
 }
