@@ -9,7 +9,7 @@ import (
 )
 
 type zones struct {
-	client  *metalgo.Driver
+	client *metalgo.Driver
 }
 
 var (

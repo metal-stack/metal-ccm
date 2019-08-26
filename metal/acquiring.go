@@ -8,9 +8,7 @@ import (
 )
 
 // AcquireIPs acquires given count of IPs within the given network.
-func (r *ResourcesController) AcquireIPs(network string, count int) error {
-	project := r.resources.instances.project
-
+func (r *ResourcesController) AcquireIPs(project, network string, count int) error {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &project,
 		NetworkID: &network,
@@ -45,7 +43,7 @@ func (r *ResourcesController) AcquireIPs(network string, count int) error {
 		ips = append(ips, *ip.IP.Ipaddress)
 	}
 
-	r.metalLBConfig.announceIPs(network, ips...)
+	r.metallb.announceIPs(network, ips...)
 
 	return r.upsertMetalLBConfig()
 }

@@ -19,17 +19,29 @@ func (r *ResourcesController) AddFirewallNetworkAddressPools() error {
 		return err
 	}
 
+	var networkIDs []string
 	for _, fw := range resp.Firewalls {
 		if fw == nil || fw.Allocation == nil {
 			continue
 		}
 
 		for _, nw := range fw.Allocation.Networks {
-			if *nw.Private || *nw.Underlay {
+			if nw == nil || (nw.Private != nil && *nw.Private) || (nw.Underlay != nil && *nw.Underlay) || nw.Networkid == nil || len(*nw.Networkid) == 0 {
 				continue
 			}
 
-			r.metalLBConfig.AddressPools = append(r.metalLBConfig.AddressPools, NewBGPAddressPool(*nw.Networkid))
+			existent := false
+			for _, id := range networkIDs {
+				if id == *nw.Networkid {
+					existent = true
+					break
+				}
+			}
+
+			if !existent {
+				networkIDs = append(networkIDs, *nw.Networkid)
+				r.metallb.Config.AddressPools = append(r.metallb.Config.AddressPools, NewBGPAddressPool(*nw.Networkid))
+			}
 		}
 	}
 
@@ -52,10 +64,10 @@ func (r *ResourcesController) SyncMetalLBConfig() error {
 		}
 
 		machine := resp.Machine
-		r.metalLBConfig.announceMachineIPs(machine)
+		r.metallb.announceMachineIPs(machine)
 
 		podCIDR := node.Spec.PodCIDR
-		peer, err := r.metalLBConfig.getPeer(podCIDR)
+		peer, err := r.metallb.getPeer(podCIDR)
 		if err != nil {
 			runtime.HandleError(err)
 			continue
@@ -70,7 +82,7 @@ func (r *ResourcesController) SyncMetalLBConfig() error {
 			runtime.HandleError(err)
 			continue
 		}
-		r.metalLBConfig.Peers = append(r.metalLBConfig.Peers, peer)
+		r.metallb.Config.Peers = append(r.metallb.Config.Peers, peer)
 	}
 
 	return r.upsertMetalLBConfig()
@@ -78,13 +90,13 @@ func (r *ResourcesController) SyncMetalLBConfig() error {
 
 // upsertMetalLBConfig inserts or updates Metal-LB config.
 func (r *ResourcesController) upsertMetalLBConfig() error {
-	var configMap map[string]string
-	marshalledConfig, err := json.Marshal(r.metalLBConfig)
+	bb, err := r.metallb.Json()
 	if err != nil {
-		return err
+		return nil
 	}
 
-	err = json.Unmarshal(marshalledConfig, &configMap)
+	var configMap map[string]interface{}
+	err = json.Unmarshal(bb, &configMap)
 	if err != nil {
 		return err
 	}

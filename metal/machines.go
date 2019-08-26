@@ -20,8 +20,8 @@ import (
 )
 
 type instances struct {
-	client  *metalgo.Driver
-	logger  *log.Logger
+	client *metalgo.Driver
+	logger *log.Logger
 }
 
 func newInstances(client *metalgo.Driver) cloudprovider.Instances {
@@ -74,7 +74,7 @@ func (i *instances) NodeAddressesByProviderID(_ context.Context, providerID stri
 func nodeAddresses(machine *metalgo.MachineGetResponse) ([]v1.NodeAddress, error) {
 	var addresses []v1.NodeAddress
 	for _, nw := range machine.Machine.Allocation.Networks {
-		if *nw.Private {
+		if nw == nil || (nw.Private != nil && *nw.Private) {
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: nw.Ips[0]})
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: nw.Ips[0]})
 		} else {

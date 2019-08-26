@@ -101,18 +101,18 @@ type ResourcesController struct {
 	resources *resources
 	syncer    syncer
 
-	metalLBConfig *MetalLBConfig
+	metallb *LB
 }
 
 // NewResourcesController returns a new resource controller.
 func NewResourcesController(r *resources, inf v1informer.NodeInformer, client kubernetes.Interface) *ResourcesController {
 	r.kclient = client
 	return &ResourcesController{
-		resources:     r,
-		kclient:       client,
-		nodeLister:    inf.Lister(),
-		syncer:        &tickerSyncer{},
-		metalLBConfig: &MetalLBConfig{},
+		resources:  r,
+		kclient:    client,
+		nodeLister: inf.Lister(),
+		syncer:     &tickerSyncer{},
+		metallb:    newLB(),
 	}
 }
 
