@@ -22,7 +22,7 @@ func (cfg *MetalLBConfig) getPeer(cidr string) (*Peer, error) {
 	}
 
 	for _, p := range cfg.Peers {
-		if p.IP == ip {
+		if p.Address == ip {
 			return p, nil
 		}
 	}

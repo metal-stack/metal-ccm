@@ -72,7 +72,7 @@ func newLoadBalancer(name, id, ip string) *loadBalancer {
 // GetLoadBalancer returns whether the specified load balancer exists, and if so, what its status is.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) GetLoadBalancer(ctx context.Context, clusterName string, service *v1.Service) (status *v1.LoadBalancerStatus, exists bool, err error) {
-	lbc.logger.Printf("GetLoadBalancer: ClusterName %q, Namespace %q, ServiceName %q\n", clusterName, service.Namespace, service.Name)
+	lbc.logger.Printf("GetLoadBalancer: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
 	lb, err := lbc.retrieveAndAnnotateLoadBalancer(ctx, service)
 	if err != nil {
 		if err == errLBNotFound {
@@ -92,7 +92,7 @@ func (lbc *loadBalancerController) GetLoadBalancer(ctx context.Context, clusterN
 
 // GetLoadBalancerName returns the name of the load balancer.
 func (lbc *loadBalancerController) GetLoadBalancerName(ctx context.Context, clusterName string, service *v1.Service) string {
-	lbc.logger.Printf("GetLoadBalancerName: ClusterName %q, Namespace %q, ServiceName %q\n", clusterName, service.Namespace, service.Name)
+	lbc.logger.Printf("GetLoadBalancerName: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
 	return lbc.lbName(service)
 }
 
@@ -113,7 +113,7 @@ func nodeNames(nodes []*v1.Node) string {
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
-	lbc.logger.Printf("EnsureLoadBalancer: ClusterName %q, Namespace %q, ServiceName %q, Nodes:\n%s\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
+	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes:\n%s\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
 
 	name := lbc.lbName(service)
 	id := uuid.New().String()
@@ -142,7 +142,7 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	lbc.logger.Printf("UpdateLoadBalancer: ClusterName %q, Namespace %q, ServiceName %q, Nodes:\n%s\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
+	lbc.logger.Printf("UpdateLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes:\n%s\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
 
 	err := lbc.resctl.SyncMetalLBConfig()
 	if err != nil {
@@ -161,7 +161,7 @@ func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clust
 // Parameter 'service' is not modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (lbc *loadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
-	lbc.logger.Printf("EnsureLoadBalancerDeleted: ClusterName %q, Namespace %q, ServiceName %q\n", clusterName, service.Namespace, service.Name)
+	lbc.logger.Printf("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
 
 	existingLB, err := lbc.retrieveLoadBalancer(ctx, service)
 	if err != nil {

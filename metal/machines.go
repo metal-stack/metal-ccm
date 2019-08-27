@@ -50,7 +50,7 @@ func (m *machines) getMachines(nodes []*v1.Node) []*models.V1MachineResponse {
 
 // NodeAddresses returns the addresses of the specified instance.
 func (m *machines) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	m.logger.Printf("nodeaddress:%s", name)
+	m.logger.Printf("NodeAddresses: nodeName %q", name)
 	machine, err := machineByHostname(m.client, name)
 	if err != nil {
 		return nil, err
@@ -62,10 +62,10 @@ func (m *machines) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.N
 // NodeAddressesByProviderID returns the addresses of the specified instance.
 // The instance is specified using the providerID of the node. The
 // ProviderID is a unique identifier of the node. This will not be called
-// from the node whose nodeaddresses are being queried. m.e. local metadata
-// services cannot be used in this method to obtain nodeaddresses.
+// from the node whose node addresses are being queried. m.e. local metadata
+// services cannot be used in this method to obtain node addresses.
 func (m *machines) NodeAddressesByProviderID(_ context.Context, providerID string) ([]v1.NodeAddress, error) {
-	m.logger.Printf("nodeAddresses providerID:%s", providerID)
+	m.logger.Printf("NodeAddressesByProviderID: providerID %q", providerID)
 	machine, err := m.machineFromProviderID(providerID)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func nodeAddresses(machine *metalgo.MachineGetResponse) ([]v1.NodeAddress, error
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound).
 func (m *machines) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
-	m.logger.Printf("instanceID:%s", nodeName)
+	m.logger.Printf("InstanceID: nodeName %q", nodeName)
 	machine, err := machineByHostname(m.client, nodeName)
 	if err != nil {
 		return "", err
@@ -103,7 +103,7 @@ func (m *machines) InstanceID(_ context.Context, nodeName types.NodeName) (strin
 
 // InstanceType returns the type of the specified instance.
 func (m *machines) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
-	m.logger.Printf("instanceType:%s", nodeName)
+	m.logger.Printf("InstanceType: nodeName %q", nodeName)
 	machine, err := machineByHostname(m.client, nodeName)
 	if err != nil {
 		return "", err
@@ -114,7 +114,7 @@ func (m *machines) InstanceType(_ context.Context, nodeName types.NodeName) (str
 
 // InstanceTypeByProviderID returns the type of the specified instance.
 func (m *machines) InstanceTypeByProviderID(_ context.Context, providerID string) (string, error) {
-	m.logger.Printf("instanceType providerID:%s", providerID)
+	m.logger.Printf("InstanceTypeByProviderID: providerID %q", providerID)
 	machine, err := m.machineFromProviderID(providerID)
 	if err != nil {
 		return "", err
@@ -132,7 +132,7 @@ func (m *machines) AddSSHKeyToAllInstances(_ context.Context, user string, keyDa
 // CurrentNodeName returns the name of the node we are currently running on.
 // On most clouds (e.g. GCE) this is the hostname, so we provide the hostname.
 func (m *machines) CurrentNodeName(_ context.Context, nodeName string) (types.NodeName, error) {
-	m.logger.Printf("currentNodeName:%s", nodeName)
+	m.logger.Printf("CurrentNodeName: nodeName %q", nodeName)
 	return types.NodeName(nodeName), nil
 }
 
@@ -140,7 +140,7 @@ func (m *machines) CurrentNodeName(_ context.Context, nodeName string) (types.No
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 // This method should still return true for machines that exist but are stopped/sleeping.
 func (m *machines) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
-	m.logger.Printf("instanceExists providerID:%s", providerID)
+	m.logger.Printf("InstanceExistsByProviderID: providerID %q", providerID)
 	machine, err := m.machineFromProviderID(providerID)
 	if err != nil {
 		return false, err
@@ -151,10 +151,10 @@ func (m *machines) InstanceExistsByProviderID(_ context.Context, providerID stri
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider.
 func (m *machines) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
+	m.logger.Printf("InstanceShutdownByProviderID: providerID %q", providerID)
 	if true { //TODO Remove
 		return true, nil
 	}
-	m.logger.Printf("instanceShutdown providerID:%s", providerID)
 	machine, err := m.machineFromProviderID(providerID)
 	if err != nil || machine.Machine.Allocation == nil {
 		return true, err

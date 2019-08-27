@@ -36,8 +36,8 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	logger := logs.NewLogger("metal-ccm")
-	logger.Printf(" starting version:%s", v.V)
+	logger := logs.NewLogger("metal-ccm ")
+	logger.Printf("starting version %q", v.V)
 
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
