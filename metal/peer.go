@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/metal-pod/metal-go/api/models"
 	"net"
+	"strconv"
 )
 
 type MatchExpression struct {
@@ -51,7 +52,7 @@ func NewPeer(machine *models.V1MachineResponse, cidr string) (*Peer, error) {
 		return nil, err
 	}
 
-	asn := fmt.Sprintf("%d", alloc.Networks[0].Asn)
+	asn := strconv.FormatInt(*alloc.Networks[0].Asn, 10)
 
 	return &Peer{
 		MyASN: asn,
