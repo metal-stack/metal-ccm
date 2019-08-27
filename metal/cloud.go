@@ -21,17 +21,17 @@ const (
 )
 
 type cloud struct {
-	client       *metalgo.Driver
-	machines     cloudprovider.Instances
-	zones        cloudprovider.Zones
-	resources    *resources
-	stop         <-chan struct{}
-	loadBalancer *loadBalancerController
+	client                 *metalgo.Driver
+	machines               cloudprovider.Instances
+	zones                  cloudprovider.Zones
+	resources              *resources
+	loadBalancerController *loadBalancerController
+	stop                   <-chan struct{}
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm cloud ")
+	logger := logs.NewLogger("metal-ccm cloud | ")
 	url := os.Getenv(metalAPIUrlEnvVar)
 	token := os.Getenv(metalAuthTokenEnvVar)
 	hmac := os.Getenv(metalAuthHMACEnvVar)
@@ -52,14 +52,14 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	machines := newMachines(client)
 	zones := newZones(client)
 	resources := newResources(client)
-	loadBalancer := newLoadBalancer(resources)
+	loadBalancerController := newLoadBalancerController(resources)
 	logger.Println("initialized")
 	return &cloud{
-		client:       client,
-		machines:     machines,
-		zones:        zones,
-		resources:    resources,
-		loadBalancer: loadBalancer,
+		client:                 client,
+		machines:               machines,
+		zones:                  zones,
+		resources:              resources,
+		loadBalancerController: loadBalancerController,
 	}, nil
 }
 
@@ -77,7 +77,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	nodeInformer := sharedInformer.Core().V1().Nodes()
 
 	resctl := NewResourcesController(c.resources, nodeInformer, clientset)
-	c.loadBalancer.resctl = resctl
+	c.loadBalancerController.resctl = resctl
 
 	err := resctl.AddFirewallNetworkAddressPools()
 	if err != nil {
@@ -93,7 +93,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return c.loadBalancer, true
+	return c.loadBalancerController, true
 }
 
 // Instances returns an machines interface. Also returns true if the interface is supported, false otherwise.

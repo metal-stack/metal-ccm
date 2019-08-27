@@ -26,7 +26,7 @@ type machines struct {
 
 func newMachines(client *metalgo.Driver) cloudprovider.Instances {
 	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm machines ")
+	logger := logs.NewLogger("metal-ccm machines | ")
 
 	return &machines{
 		client: client,
