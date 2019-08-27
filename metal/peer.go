@@ -78,5 +78,6 @@ func computeGateway(cidr string) (string, error) {
 		return "", fmt.Errorf("cannot determine IP of CIDR %q", cidr)
 	}
 
-	return string(ip[3] + 1), nil
+	ip[3]++
+	return ip.String(), nil
 }

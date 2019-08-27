@@ -5,17 +5,17 @@ import (
 	"github.com/metal-pod/metal-go/api/models"
 )
 
-type LBConfig struct {
+type MetalLBConfig struct {
 	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
-func newLBConfig() *LBConfig {
-	return &LBConfig{}
+func newMetalLBConfig() *MetalLBConfig {
+	return &MetalLBConfig{}
 }
 
 // getPeer returns the peer of the given CIDR if existent.
-func (cfg *LBConfig) getPeer(cidr string) (*Peer, error) {
+func (cfg *MetalLBConfig) getPeer(cidr string) (*Peer, error) {
 	ip, err := computeGateway(cidr)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (cfg *LBConfig) getPeer(cidr string) (*Peer, error) {
 
 // getAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *LBConfig) getAddressPool(networkID string) *AddressPool {
+func (cfg *MetalLBConfig) getAddressPool(networkID string) *AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.NetworkID == networkID {
 			return pool
@@ -46,7 +46,7 @@ func (cfg *LBConfig) getAddressPool(networkID string) *AddressPool {
 }
 
 // announceMachineIPs appends the allocated IPs of the given machine to their corresponding address pools.
-func (cfg *LBConfig) announceMachineIPs(machine *models.V1MachineResponse) {
+func (cfg *MetalLBConfig) announceMachineIPs(machine *models.V1MachineResponse) {
 	if machine.Allocation == nil {
 		return
 	}
@@ -61,13 +61,13 @@ func (cfg *LBConfig) announceMachineIPs(machine *models.V1MachineResponse) {
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *LBConfig) announceIPs(network string, ips ...string) {
+func (cfg *MetalLBConfig) announceIPs(network string, ips ...string) {
 	pool := cfg.getAddressPool(network)
 	pool.AppendIPs(ips...)
 }
 
 // ToYAML returns this config in YAML format.
-func (cfg *LBConfig) ToYAML() (string, error) {
+func (cfg *MetalLBConfig) ToYAML() (string, error) {
 	bb, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", err

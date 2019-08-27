@@ -19,22 +19,25 @@ import (
 	"k8s.io/cloud-provider"
 )
 
-type instances struct {
+type machines struct {
 	client *metalgo.Driver
 	logger *log.Logger
 }
 
-func newInstances(client *metalgo.Driver) cloudprovider.Instances {
+func newMachines(client *metalgo.Driver) cloudprovider.Instances {
 	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm instances")
+	logger := logs.NewLogger("metal-ccm machines ")
 
-	return &instances{client, logger}
+	return &machines{
+		client: client,
+		logger: logger,
+	}
 }
 
-func (i *instances) getMachines(nodes []*v1.Node) []*models.V1MachineResponse {
+func (m *machines) getMachines(nodes []*v1.Node) []*models.V1MachineResponse {
 	var mm []*models.V1MachineResponse
 	for _, n := range nodes {
-		m, err := machineByHostname(i.client, types.NodeName(n.Name))
+		m, err := machineByHostname(m.client, types.NodeName(n.Name))
 		if err != nil {
 			runtime.HandleError(err)
 			continue
@@ -46,9 +49,9 @@ func (i *instances) getMachines(nodes []*v1.Node) []*models.V1MachineResponse {
 }
 
 // NodeAddresses returns the addresses of the specified instance.
-func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	i.logger.Printf("nodeaddress:%s", name)
-	machine, err := machineByHostname(i.client, name)
+func (m *machines) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
+	m.logger.Printf("nodeaddress:%s", name)
+	machine, err := machineByHostname(m.client, name)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +62,11 @@ func (i *instances) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.
 // NodeAddressesByProviderID returns the addresses of the specified instance.
 // The instance is specified using the providerID of the node. The
 // ProviderID is a unique identifier of the node. This will not be called
-// from the node whose nodeaddresses are being queried. i.e. local metadata
+// from the node whose nodeaddresses are being queried. m.e. local metadata
 // services cannot be used in this method to obtain nodeaddresses.
-func (i *instances) NodeAddressesByProviderID(_ context.Context, providerID string) ([]v1.NodeAddress, error) {
-	i.logger.Printf("nodeaddress providerID:%s", providerID)
-	machine, err := i.machineFromProviderID(providerID)
+func (m *machines) NodeAddressesByProviderID(_ context.Context, providerID string) ([]v1.NodeAddress, error) {
+	m.logger.Printf("nodeAddresses providerID:%s", providerID)
+	machine, err := m.machineFromProviderID(providerID)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +91,9 @@ func nodeAddresses(machine *metalgo.MachineGetResponse) ([]v1.NodeAddress, error
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound).
-func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
-	i.logger.Printf("instanceID:%s", nodeName)
-	machine, err := machineByHostname(i.client, nodeName)
+func (m *machines) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
+	m.logger.Printf("instanceID:%s", nodeName)
+	machine, err := machineByHostname(m.client, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -99,9 +102,9 @@ func (i *instances) InstanceID(_ context.Context, nodeName types.NodeName) (stri
 }
 
 // InstanceType returns the type of the specified instance.
-func (i *instances) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
-	i.logger.Printf("instanceType:%s", nodeName)
-	machine, err := machineByHostname(i.client, nodeName)
+func (m *machines) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
+	m.logger.Printf("instanceType:%s", nodeName)
+	machine, err := machineByHostname(m.client, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -110,9 +113,9 @@ func (i *instances) InstanceType(_ context.Context, nodeName types.NodeName) (st
 }
 
 // InstanceTypeByProviderID returns the type of the specified instance.
-func (i *instances) InstanceTypeByProviderID(_ context.Context, providerID string) (string, error) {
-	i.logger.Printf("instanceType providerID:%s", providerID)
-	machine, err := i.machineFromProviderID(providerID)
+func (m *machines) InstanceTypeByProviderID(_ context.Context, providerID string) (string, error) {
+	m.logger.Printf("instanceType providerID:%s", providerID)
+	machine, err := m.machineFromProviderID(providerID)
 	if err != nil {
 		return "", err
 	}
@@ -120,39 +123,39 @@ func (i *instances) InstanceTypeByProviderID(_ context.Context, providerID strin
 	return *machine.Machine.Size.ID, nil
 }
 
-// AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances.
+// AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all machines.
 // Expected format for the key is standard ssh-keygen format: <protocol> <blob>.
-func (i *instances) AddSSHKeyToAllInstances(_ context.Context, user string, keyData []byte) error {
+func (m *machines) AddSSHKeyToAllInstances(_ context.Context, user string, keyData []byte) error {
 	return cloudprovider.NotImplemented
 }
 
 // CurrentNodeName returns the name of the node we are currently running on.
 // On most clouds (e.g. GCE) this is the hostname, so we provide the hostname.
-func (i *instances) CurrentNodeName(_ context.Context, nodeName string) (types.NodeName, error) {
-	i.logger.Printf("currentNodeName:%s", nodeName)
+func (m *machines) CurrentNodeName(_ context.Context, nodeName string) (types.NodeName, error) {
+	m.logger.Printf("currentNodeName:%s", nodeName)
 	return types.NodeName(nodeName), nil
 }
 
 // InstanceExistsByProviderID returns true if the instance for the given provider exists.
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
-// This method should still return true for instances that exist but are stopped/sleeping.
-func (i *instances) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
-	i.logger.Printf("instanceExists providerID:%s", providerID)
-	machine, err := i.machineFromProviderID(providerID)
+// This method should still return true for machines that exist but are stopped/sleeping.
+func (m *machines) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
+	m.logger.Printf("instanceExists providerID:%s", providerID)
+	machine, err := m.machineFromProviderID(providerID)
 	if err != nil {
 		return false, err
 	}
 
-	if machine.Machine.Allocation != nil {
-		return true, nil
-	}
-	return false, nil
+	return machine.Machine.Allocation != nil, nil
 }
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider.
-func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
-	i.logger.Printf("instanceShutdown providerID:%s", providerID)
-	machine, err := i.machineFromProviderID(providerID)
+func (m *machines) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
+	if true { //TODO Remove
+		return true, nil
+	}
+	m.logger.Printf("instanceShutdown providerID:%s", providerID)
+	machine, err := m.machineFromProviderID(providerID)
 	if err != nil || machine.Machine.Allocation == nil {
 		return true, err
 	}
@@ -164,6 +167,9 @@ func (i *instances) InstanceShutdownByProviderID(_ context.Context, providerID s
 }
 
 func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse, error) {
+	if true { //TODO Remove
+		return createDummyMachine(id), nil
+	}
 	machine, err := client.MachineGet(id)
 	if err != nil {
 		return nil, err
@@ -175,6 +181,11 @@ func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse
 // machineByHostname returns an instance where hostname matches the kubernetes node.Name.
 func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
 	machineHostname := string(nodeName)
+	if true { //TODO Remove
+		if strings.HasPrefix(machineHostname, "kind-worker") {
+			return createDummyMachine(machineHostname), nil
+		}
+	}
 	mfr := &metalgo.MachineFindRequest{
 		AllocationHostname: &machineHostname,
 	}
@@ -189,10 +200,9 @@ func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalg
 		return nil, fmt.Errorf("more than one (%d) machine with name:%s found", len(machines.Machines), nodeName)
 	}
 
-	response := &metalgo.MachineGetResponse{
+	return &metalgo.MachineGetResponse{
 		Machine: machines.Machines[0],
-	}
-	return response, nil
+	}, nil
 }
 
 // machineIDFromProviderID returns a machine's ID from providerID.
@@ -217,11 +227,42 @@ func machineIDFromProviderID(providerID string) (string, error) {
 }
 
 // machineFromProviderID uses providerID to get the machine id and return the machine.
-func (i *instances) machineFromProviderID(providerID string) (*metalgo.MachineGetResponse, error) {
+func (m *machines) machineFromProviderID(providerID string) (*metalgo.MachineGetResponse, error) {
 	id, err := machineIDFromProviderID(providerID)
 	if err != nil {
 		return nil, err
 	}
 
-	return machineByID(i.client, id)
+	return machineByID(m.client, id)
+}
+
+func createDummyMachine(machineHostname string) *metalgo.MachineGetResponse { //TODO Remove
+	network := "internet-nbg-w8101"
+	asn := int64(4711)
+	ip := "10.10.0.1"
+	if strings.HasSuffix(machineHostname, "2") {
+		ip = "10.10.0.2"
+	}
+	sizeID := "test"
+	return &metalgo.MachineGetResponse{
+		Machine: &models.V1MachineResponse{
+			ID: &machineHostname,
+			Size: &models.V1SizeResponse{
+				ID: &sizeID,
+			},
+			Allocation: &models.V1MachineAllocation{
+				Hostname: &machineHostname,
+				Name:     &machineHostname,
+				Networks: []*models.V1MachineNetwork{
+					{
+						Networkid: &network,
+						Ips: []string{
+							ip,
+						},
+						Asn: &asn,
+					},
+				},
+			},
+		},
+	}
 }

@@ -46,9 +46,9 @@ var (
 )
 
 type resources struct {
-	client    *metalgo.Driver
-	kclient   kubernetes.Interface
-	instances *instances
+	client   *metalgo.Driver
+	kclient  kubernetes.Interface
+	machines *machines
 }
 
 // newResources initializes a new resources instance.
@@ -57,10 +57,10 @@ type resources struct {
 // the cloud provider framework provides us with a clientset. Fortunately, the
 // initialization order guarantees that kclient won't be consumed prior to it
 // being set.
-func newResources(client *metalgo.Driver, i *instances) *resources {
+func newResources(client *metalgo.Driver) *resources {
 	return &resources{
-		client:    client,
-		instances: i,
+		client:   client,
+		machines: &machines{client: client},
 	}
 }
 
@@ -101,7 +101,7 @@ type ResourcesController struct {
 	resources *resources
 	syncer    syncer
 
-	metallbConfig *LBConfig
+	metallbConfig *MetalLBConfig
 }
 
 // NewResourcesController returns a new resource controller.
@@ -112,7 +112,7 @@ func NewResourcesController(r *resources, inf v1informer.NodeInformer, client ku
 		kclient:       client,
 		nodeLister:    inf.Lister(),
 		syncer:        &tickerSyncer{},
-		metallbConfig: newLBConfig(),
+		metallbConfig: newMetalLBConfig(),
 	}
 }
 
@@ -123,7 +123,7 @@ func (r *ResourcesController) Run(stopCh <-chan struct{}) {
 
 // getMachineTags returns all machine tags within the shoot.
 func (r *ResourcesController) getMachineTags(nodes []*v1.Node) (map[string][]string, error) {
-	machines := r.resources.instances.getMachines(nodes)
+	machines := r.resources.machines.getMachines(nodes)
 	machineTags := make(map[string][]string)
 	for _, m := range machines {
 		hostname := *m.Allocation.Hostname

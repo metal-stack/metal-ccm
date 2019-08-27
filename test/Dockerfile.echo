@@ -1,0 +1,6 @@
+FROM alpine:3.10
+RUN apk --update add ca-certificates
+
+COPY bin/echo .
+
+CMD ["./echo"]

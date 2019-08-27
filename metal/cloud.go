@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"fmt"
 	"io"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"os"
@@ -22,15 +23,16 @@ const (
 
 type cloud struct {
 	client       *metalgo.Driver
-	instances    cloudprovider.Instances
+	machines     cloudprovider.Instances
 	zones        cloudprovider.Zones
 	resources    *resources
 	stop         <-chan struct{}
-	loadBalancer cloudprovider.LoadBalancer
+	loadBalancer *loadBalancer
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
-	logger := logs.NewLogger("metal-ccm: ")
+	logs.InitLogs()
+	logger := logs.NewLogger("metal-ccm cloud ")
 	url := os.Getenv(metalAPIUrlEnvVar)
 	token := os.Getenv(metalAuthTokenEnvVar)
 	hmac := os.Getenv(metalAuthHMACEnvVar)
@@ -48,14 +50,14 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
 	}
 
-	is := newInstances(client)
+	machines := newMachines(client)
 	zones := newZones(client)
-	resources := newResources(client, &instances{client: client})
-	loadBalancer := newLoadBalancer(resources, logger)
+	resources := newResources(client)
+	loadBalancer := newLoadBalancer(resources)
 	logger.Println("initialized")
 	return &cloud{
 		client:       client,
-		instances:    is,
+		machines:     machines,
 		zones:        zones,
 		resources:    resources,
 		loadBalancer: loadBalancer,
@@ -75,13 +77,12 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	sharedInformer := informers.NewSharedInformerFactory(clientset, 0)
 	nodeInformer := sharedInformer.Core().V1().Nodes()
 
-	res := NewResourcesController(c.resources, nodeInformer, clientset)
-	err := res.AddFirewallNetworkAddressPools()
+	resctl := NewResourcesController(c.resources, nodeInformer, clientset)
+	c.loadBalancer.resctl = resctl
+
+	err := resctl.AddFirewallNetworkAddressPools()
 	if err != nil {
-		runtime.HandleError(err)
-	}
-	err = res.SyncMetalLBConfig()
-	if err != nil {
+		fmt.Println(err.Error())
 		runtime.HandleError(err)
 	}
 
@@ -89,7 +90,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	sharedInformer.WaitForCacheSync(nil)
 
 	c.stop = stop
-	go res.Run(c.stop)
+	go resctl.Run(c.stop)
 }
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
@@ -97,9 +98,9 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return c.loadBalancer, true
 }
 
-// Instances returns an instances interface. Also returns true if the interface is supported, false otherwise.
+// Instances returns an machines interface. Also returns true if the interface is supported, false otherwise.
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
-	return c.instances, true
+	return c.machines, true
 }
 
 // Zones returns a zones interface. Also returns true if the interface is supported, false otherwise.
