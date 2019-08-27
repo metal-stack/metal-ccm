@@ -1,7 +1,6 @@
 package metal
 
 import (
-	"fmt"
 	"io"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"os"
@@ -27,7 +26,7 @@ type cloud struct {
 	zones        cloudprovider.Zones
 	resources    *resources
 	stop         <-chan struct{}
-	loadBalancer *loadBalancer
+	loadBalancer *loadBalancerController
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
@@ -82,7 +81,6 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	err := resctl.AddFirewallNetworkAddressPools()
 	if err != nil {
-		fmt.Println(err.Error())
 		runtime.HandleError(err)
 	}
 
