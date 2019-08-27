@@ -186,7 +186,6 @@ func (r *ResourcesController) updateNodes(nodes []*v1.Node) {
 	for _, n := range nodes {
 		err := retry.RetryOnConflict(updateNodeSpecBackoff, func() error {
 			_, err := r.kclient.CoreV1().Nodes().Update(n)
-			r.kclient.CoreV1().ConfigMaps("")
 			return err
 		})
 		if err != nil {

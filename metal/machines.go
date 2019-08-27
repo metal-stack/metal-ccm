@@ -75,6 +75,10 @@ func (m *machines) NodeAddressesByProviderID(_ context.Context, providerID strin
 }
 
 func nodeAddresses(machine *metalgo.MachineGetResponse) ([]v1.NodeAddress, error) {
+	if machine == nil || machine.Machine == nil || machine.Machine.Allocation == nil {
+		return nil, nil
+	}
+
 	var addresses []v1.NodeAddress
 	for _, nw := range machine.Machine.Allocation.Networks {
 		if nw == nil || (nw.Private != nil && *nw.Private) {
@@ -98,7 +102,7 @@ func (m *machines) InstanceID(_ context.Context, nodeName types.NodeName) (strin
 		return "", err
 	}
 
-	return *machine.Machine.ID, nil
+	return fmt.Sprintf("%s://%s", providerName, *machine.Machine.ID), nil
 }
 
 // InstanceType returns the type of the specified instance.
@@ -185,6 +189,7 @@ func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalg
 		if strings.HasPrefix(machineHostname, "kind-worker") {
 			return createDummyMachine(machineHostname), nil
 		}
+		return nil, fmt.Errorf("no worker node %q", machineHostname)
 	}
 	mfr := &metalgo.MachineFindRequest{
 		AllocationHostname: &machineHostname,
@@ -194,10 +199,10 @@ func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalg
 		return nil, err
 	}
 	if len(machines.Machines) == 0 {
-		return nil, fmt.Errorf("no machine with name:%s found", nodeName)
+		return nil, fmt.Errorf("no machine with name %q found", nodeName)
 	}
 	if len(machines.Machines) > 1 {
-		return nil, fmt.Errorf("more than one (%d) machine with name:%s found", len(machines.Machines), nodeName)
+		return nil, fmt.Errorf("more than one (%d) machine with name %q found", len(machines.Machines), nodeName)
 	}
 
 	return &metalgo.MachineGetResponse{
@@ -211,16 +216,16 @@ func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalg
 // node object. The expected format is: metal://machine-id.
 func machineIDFromProviderID(providerID string) (string, error) {
 	if providerID == "" {
-		return "", errors.New("providerID cannot be empty string")
+		return "", errors.New("providerID cannot be empty")
 	}
 
 	split := strings.Split(providerID, "://")
 	if len(split) != 2 {
-		return "", errors.Errorf("unexpected providerID format: %s, format should be: metal://machine-id", providerID)
+		return "", errors.Errorf("unexpected providerID format %q, format should be %q", providerID, "metal://<machine-id>")
 	}
 
 	if split[0] != providerName {
-		return "", errors.Errorf("provider name from providerID should be metal: %s", providerID)
+		return "", errors.Errorf("provider name from providerID %q should be metal", providerID)
 	}
 
 	return split[1], nil
