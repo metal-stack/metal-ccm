@@ -34,6 +34,7 @@ spec:
   selector:
     app: echo
   type: LoadBalancer
+  loadBalancerIP: 10.100.0.1
   ports:
     - port: 8080
       targetPort: 8080

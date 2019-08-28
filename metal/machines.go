@@ -182,7 +182,7 @@ func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse
 	return machine, nil
 }
 
-// machineByHostname returns an instance where hostname matches the kubernetes node.Name.
+// machineByHostname returns a machine where hostname matches the kubernetes node.Name.
 func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
 	machineHostname := string(nodeName)
 	if true { //TODO Remove

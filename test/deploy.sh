@@ -79,10 +79,11 @@ kubectl logs -n kube-system $(kubectl get pod -n kube-system | grep metal-cloud 
 echo "kubectl describe cm config -n metallb-system"
 kubectl describe cm config -n metallb-system
 
-echo "DEPLOYMENT COMPLETED"
-echo "--------------------"
-echo "To test echo service via loadbalancer:"
+echo "Test echo service via loadbalancer..."
 echo "docker exec -t kind-control-plane curl 10.100.0.1:8080/echo"
+kubectl docker exec -t kind-control-plane curl 10.100.0.1:8080/echo
+
+echo "DEPLOYMENT COMPLETED"
 echo "--------------------"
 echo "Don't forget to delete cluster after testing by running:"
 echo "kind delete cluster"
