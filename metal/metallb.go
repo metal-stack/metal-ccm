@@ -21,10 +21,6 @@ func (r *ResourcesController) AddFirewallNetworkAddressPools(nodes []*v1.Node) e
 	}
 
 	mm := r.resources.machines.getMachines(nodes[0])
-	if len(mm) == 0 {
-		return errors.New("no machine found")
-	}
-
 	fw, err := r.firewallOfMachine(*mm[0].ID)
 	if err != nil {
 		return err
