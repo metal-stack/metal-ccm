@@ -112,7 +112,15 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 	}
 
 	id := uuid.New().String()
-	lb := newLoadBalancer(service.Name, id, service.Spec.LoadBalancerIP)
+	ip := service.Spec.LoadBalancerIP
+	if len(ip) == 0 {
+		if len(service.Spec.ExternalIPs) > 0 {
+			ip = service.Spec.ExternalIPs[0]
+		} else {
+			ip = service.Spec.ClusterIP
+		}
+	}
+	lb := newLoadBalancer(service.Name, id, ip)
 	lbc.lbs = append(lbc.lbs, lb)
 
 	return &v1.LoadBalancerStatus{

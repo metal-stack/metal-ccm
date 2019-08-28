@@ -83,8 +83,9 @@ echo "kubectl describe cm config -n metallb-system"
 kubectl describe cm config -n metallb-system
 
 echo "Test echo service via loadbalancer..."
-echo "docker exec -t kind-control-plane curl 10.100.0.1:8080/echo"
-docker exec -t kind-control-plane curl 10.100.0.1:8080/echo
+LB_INGRESS_IP=$(kubectl describe svc -n kube-system echo | grep Ingress | cut -d: -f2 | sed -e 's/^[ \t]*//')
+echo "docker exec -t kind-control-plane curl ${LB_INGRESS_IP}:8080/echo"
+docker exec -t kind-control-plane curl ${LB_INGRESS_IP}:8080/echo
 
 echo "DEPLOYMENT COMPLETED"
 echo "--------------------"
