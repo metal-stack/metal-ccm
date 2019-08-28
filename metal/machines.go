@@ -168,6 +168,10 @@ func (m *machines) InstanceShutdownByProviderID(_ context.Context, providerID st
 }
 
 func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse, error) {
+	if strings.HasPrefix(id, "kind-worker") {
+		return getTestMachine(client)
+	}
+
 	machine, err := client.MachineGet(id)
 	if err != nil {
 		return nil, err
@@ -179,6 +183,10 @@ func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse
 // machineByHostname returns a machine where hostname matches the kubernetes node.Name.
 func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
 	machineHostname := string(nodeName)
+	if strings.HasPrefix(machineHostname, "kind-worker") {
+		return getTestMachine(client)
+	}
+
 	mfr := &metalgo.MachineFindRequest{
 		AllocationHostname: &machineHostname,
 	}
@@ -227,4 +235,12 @@ func (m *machines) machineFromProviderID(providerID string) (*metalgo.MachineGet
 	}
 
 	return machineByID(m.client, id)
+}
+
+func getTestMachine(client *metalgo.Driver) (*metalgo.MachineGetResponse, error) {
+	m, err := client.MachineGet("4fde6800-710d-11e9-8000-efbeaddeefbe")
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
