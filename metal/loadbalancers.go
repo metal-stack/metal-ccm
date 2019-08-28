@@ -158,15 +158,11 @@ func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clust
 func (lbc *loadBalancerController) acquireIPs(service *v1.Service) error {
 	projectID := service.Annotations[projectIDAnnotation]
 	if len(projectID) == 0 {
-		//Will prevent services with no 'project-id' annotation from being loadbalanced
-		//return fmt.Errorf("service %q does not have %q annotation", service.Name, projectIDAnnotation)
 		return nil
 	}
 
 	networkID := service.Annotations[networkIDAnnotation]
 	if len(networkID) == 0 {
-		//Will prevent services with no 'network-id' annotation from being loadbalanced
-		//return fmt.Errorf("service %q does not have %q annotation", service.Name, networkIDAnnotation)
 		return nil
 	}
 
