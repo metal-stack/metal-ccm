@@ -8,27 +8,31 @@ import (
 )
 
 // AcquireIPs acquires given count of IPs within the given network.
-func (r *ResourcesController) AcquireIPs(project, network string, count int) error {
+func (r *ResourcesController) AcquireIPs(project, network string, count int) (bool, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &project,
 		NetworkID: &network,
 	}
 	resp, err := r.resources.client.IPFind(req)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	var ips []string
-	for _, ip := range resp.IPs {
+	if len(resp.IPs) >= count {
+		return false, nil
+	}
+
+	ips := make([]string, count)
+	for i, ip := range resp.IPs {
 		if strings.Contains(ip.Name, prefix) {
-			ips = append(ips, *ip.Ipaddress)
+			ips[i] = *ip.Ipaddress
 		}
 	}
 
-	for i := len(resp.IPs); i <= count; i++ {
+	for i := len(resp.IPs); i < count; i++ {
 		name, err := uuid.NewUUID()
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		req := &metalgo.IPAcquireRequest{
@@ -38,12 +42,12 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) err
 		}
 		ip, err := r.resources.client.IPAcquire(req)
 		if err != nil {
-			return err
+			return false, err
 		}
-		ips = append(ips, *ip.IP.Ipaddress)
+		ips[i] = *ip.IP.Ipaddress
 	}
 
 	r.metallbConfig.announceIPs(network, ips...)
 
-	return r.upsertMetalLBConfig()
+	return true, r.upsertMetalLBConfig()
 }

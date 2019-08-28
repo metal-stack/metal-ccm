@@ -70,6 +70,9 @@ sleep 35
 echo "kubectl apply -f test/echo.yaml"
 kubectl apply -f test/echo.yaml
 
+echo "kubectl describe svc -n kube-system echo"
+kubectl describe svc -n kube-system echo
+
 echo "Wait for 10 seconds..."
 sleep 10
 
@@ -81,7 +84,7 @@ kubectl describe cm config -n metallb-system
 
 echo "Test echo service via loadbalancer..."
 echo "docker exec -t kind-control-plane curl 10.100.0.1:8080/echo"
-kubectl docker exec -t kind-control-plane curl 10.100.0.1:8080/echo
+docker exec -t kind-control-plane curl 10.100.0.1:8080/echo
 
 echo "DEPLOYMENT COMPLETED"
 echo "--------------------"
