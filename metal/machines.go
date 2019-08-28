@@ -34,7 +34,7 @@ func newMachines(client *metalgo.Driver) cloudprovider.Instances {
 	}
 }
 
-func (m *machines) getMachines(nodes []*v1.Node) []*models.V1MachineResponse {
+func (m *machines) getMachines(nodes ...*v1.Node) []*models.V1MachineResponse {
 	var mm []*models.V1MachineResponse
 	for _, n := range nodes {
 		m, err := machineByHostname(m.client, types.NodeName(n.Name))

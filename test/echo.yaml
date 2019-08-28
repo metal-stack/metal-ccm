@@ -32,14 +32,14 @@ metadata:
     app: echo
   annotations:
     project-id: "test"
-    network-id: "internet-nbg-w8101"
+    metallb.universe.tf/address-pool: "internet-nbg-w8101"
     ip-count: "1"
 spec:
   selector:
     app: echo
   type: LoadBalancer
 # metal-ccm also supports loadBalancerIP
-#  loadBalancerIP: 10.101.0.1
+#  loadBalancerIP: 10.100.0.1
   ports:
     - port: 8080
       targetPort: 8080

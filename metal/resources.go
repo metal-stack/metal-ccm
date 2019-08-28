@@ -123,7 +123,7 @@ func (r *ResourcesController) Run(stopCh <-chan struct{}) {
 
 // getMachineTags returns all machine tags within the shoot.
 func (r *ResourcesController) getMachineTags(nodes []*v1.Node) (map[string][]string, error) {
-	machines := r.resources.machines.getMachines(nodes)
+	machines := r.resources.machines.getMachines(nodes...)
 	machineTags := make(map[string][]string)
 	for _, m := range machines {
 		hostname := *m.Allocation.Hostname

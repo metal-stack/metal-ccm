@@ -16,7 +16,7 @@ import (
 
 const (
 	projectIDAnnotation = "project-id"
-	networkIDAnnotation = "network-id"
+	networkIDAnnotation = "metallb.universe.tf/address-pool"
 	ipCountAnnotation   = "ip-count"
 	// loadBalancerIDAnnotation is the annotation specifying the load-balancer ID
 	// used to enable fast retrievals of load-balancers from the API by UUID.
@@ -101,12 +101,17 @@ func nodeNames(nodes []*v1.Node) string {
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	err := lbc.acquireIPs(service)
+	err := lbc.resctl.AddFirewallNetworkAddressPools(nodes)
 	if err != nil {
 		return nil, err
 	}
 
-	err = lbc.resctl.SyncMetalLBConfig()
+	err = lbc.acquireIPs(service)
+	if err != nil {
+		return nil, err
+	}
+
+	err = lbc.resctl.SyncMetalLBConfig(nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +147,7 @@ func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clust
 		return err
 	}
 
-	err = lbc.resctl.SyncMetalLBConfig()
+	err = lbc.resctl.SyncMetalLBConfig(nodes)
 	if err != nil {
 		return err
 	}
@@ -167,9 +172,7 @@ func (lbc *loadBalancerController) acquireIPs(service *v1.Service) error {
 
 	ipCount := service.Annotations[ipCountAnnotation]
 	if len(ipCount) == 0 {
-		//Will prevent services with no 'ip-count' annotation from being loadbalanced
-		//return fmt.Errorf("service %q does not have %q annotation", service.Name, ipCountAnnotation)
-		return nil
+		ipCount = "1"
 	}
 
 	count, err := strconv.Atoi(ipCount)

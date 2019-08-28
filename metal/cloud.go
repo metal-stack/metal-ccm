@@ -2,7 +2,6 @@ package metal
 
 import (
 	"io"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 
 	"github.com/metal-pod/metal-go"
@@ -76,18 +75,13 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	sharedInformer := informers.NewSharedInformerFactory(clientset, 0)
 	nodeInformer := sharedInformer.Core().V1().Nodes()
 
-	resctl := NewResourcesController(c.resources, nodeInformer, clientset)
-	c.loadBalancerController.resctl = resctl
-
-	err := resctl.AddFirewallNetworkAddressPools()
-	if err != nil {
-		runtime.HandleError(err)
-	}
-
 	sharedInformer.Start(nil)
 	sharedInformer.WaitForCacheSync(nil)
 
 	c.stop = stop
+
+	resctl := NewResourcesController(c.resources, nodeInformer, clientset)
+	c.loadBalancerController.resctl = resctl
 	go resctl.Run(c.stop)
 }
 

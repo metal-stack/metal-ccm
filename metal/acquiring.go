@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+const (
+	prefix = "metallb-"
+)
+
 // AcquireIPs acquires given count of IPs within the given network.
 func (r *ResourcesController) DeleteIPs(ips ...string) error {
 	for _, ip := range ips {
@@ -58,7 +62,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) err
 		ips[i] = *ip.IP.Ipaddress
 	}
 
-	r.metallbConfig.announceIPs(network, ips...)
+	r.metallbConfig.announceIPs(network, ips)
 
 	return nil
 }

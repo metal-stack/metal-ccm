@@ -56,12 +56,12 @@ func (cfg *MetalLBConfig) announceMachineIPs(machine *models.V1MachineResponse) 
 			continue
 		}
 
-		cfg.announceIPs(*nw.Networkid, nw.Ips...)
+		cfg.announceIPs(*nw.Networkid, nw.Ips)
 	}
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *MetalLBConfig) announceIPs(network string, ips ...string) {
+func (cfg *MetalLBConfig) announceIPs(network string, ips []string) {
 	pool := cfg.getAddressPool(network)
 	pool.AppendIPs(ips...)
 }

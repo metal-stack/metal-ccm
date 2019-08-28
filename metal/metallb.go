@@ -1,63 +1,111 @@
 package metal
 
 import (
+	"errors"
+	"github.com/metal-pod/metal-go/api/models"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
 const (
-	prefix        = "metallb-"
 	namespace     = "metallb-system"
 	configMapName = "config"
 	configMapKey  = "config"
 )
 
 // AddFirewallNetworkAddressPools creates and adds empty address pools for all non-private and non-underlay firewall networks.
-func (r *ResourcesController) AddFirewallNetworkAddressPools() error {
-	resp, err := r.resources.client.FirewallList()
+func (r *ResourcesController) AddFirewallNetworkAddressPools(nodes []*v1.Node) error {
+	if len(nodes) == 0 {
+		return errors.New("node slice must not be empty")
+	}
+
+	mm := r.resources.machines.getMachines(nodes[0])
+	if len(mm) == 0 {
+		return errors.New("no machine found")
+	}
+
+	fw, err := r.firewallOfMachine(*mm[0].ID)
 	if err != nil {
 		return err
 	}
+	if fw == nil || fw.Allocation == nil {
+		return nil
+	}
 
 	var networkIDs []string
-	for _, fw := range resp.Firewalls {
-		if fw == nil || fw.Allocation == nil {
+	for _, nw := range fw.Allocation.Networks {
+		if nw == nil || (nw.Private != nil && *nw.Private) || (nw.Underlay != nil && *nw.Underlay) || nw.Networkid == nil || len(*nw.Networkid) == 0 {
 			continue
 		}
 
-		for _, nw := range fw.Allocation.Networks {
-			if nw == nil || (nw.Private != nil && *nw.Private) || (nw.Underlay != nil && *nw.Underlay) || nw.Networkid == nil || len(*nw.Networkid) == 0 {
-				continue
+		handled := false
+		for _, id := range networkIDs {
+			if id == *nw.Networkid {
+				handled = true
+				break
 			}
+		}
 
-			existent := false
-			for _, id := range networkIDs {
-				if id == *nw.Networkid {
-					existent = true
-					break
-				}
-			}
-
-			if !existent {
-				networkIDs = append(networkIDs, *nw.Networkid)
-				r.metallbConfig.AddressPools = append(r.metallbConfig.AddressPools, NewBGPAddressPool(*nw.Networkid))
-			}
+		if !handled {
+			networkIDs = append(networkIDs, *nw.Networkid)
+			r.metallbConfig.AddressPools = append(r.metallbConfig.AddressPools, NewBGPAddressPool(*nw.Networkid))
 		}
 	}
 
 	return r.upsertMetalLBConfig()
 }
 
-// SyncMetalLBConfig synchronizes the Metal-LB config.
-func (r *ResourcesController) SyncMetalLBConfig() error {
-	nodes, err := r.getNodes()
+func (r *ResourcesController) firewallOfMachine(machineID string) (*models.V1FirewallResponse, error) { //TODO provide metal-api endpoint, adjust and move to metal-go
+	m, err := r.resources.client.MachineGet(machineID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	if m == nil || m.Machine == nil || m.Machine.Allocation == nil {
+		return nil, nil
+	}
+
+	for _, nw := range m.Machine.Allocation.Networks {
+		if nw == nil {
+			continue
+		}
+		networkID := *nw.Networkid
+		nwResp, err := r.resources.client.NetworkGet(networkID)
+		if err != nil {
+			return nil, nil
+		}
+		if nwResp == nil || nwResp.Network == nil || nwResp.Network.Parentnetworkid == nil {
+			continue
+		}
+
+		resp, err := r.resources.client.FirewallList()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, fw := range resp.Firewalls {
+			if fw == nil || fw.Allocation == nil {
+				continue
+			}
+
+			for _, nw = range fw.Allocation.Networks {
+				if nw == nil || nw.Networkid == nil || *nw.Networkid != networkID {
+					continue
+				}
+
+				return fw, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// SyncMetalLBConfig synchronizes the Metal-LB config.
+func (r *ResourcesController) SyncMetalLBConfig(nodes []*v1.Node) error {
 	for _, node := range nodes {
-		nodeName := node.GetName()
-		resp, err := machineByHostname(r.resources.client, types.NodeName(nodeName))
+		resp, err := machineByHostname(r.resources.client, types.NodeName(node.Name))
 		if err != nil {
 			runtime.HandleError(err)
 			continue
