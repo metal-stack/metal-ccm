@@ -101,15 +101,14 @@ func nodeNames(nodes []*v1.Node) string {
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	ok, err := lbc.acquireIPs(service)
+	err := lbc.acquireIPs(service)
 	if err != nil {
 		return nil, err
 	}
-	if !ok {
-		err = lbc.resctl.SyncMetalLBConfig()
-		if err != nil {
-			return nil, err
-		}
+
+	err = lbc.resctl.SyncMetalLBConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	id := uuid.New().String()
@@ -130,7 +129,7 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
 	lbc.logger.Printf("UpdateLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	_, err := lbc.acquireIPs(service)
+	err := lbc.acquireIPs(service)
 	if err != nil {
 		return err
 	}
@@ -143,34 +142,34 @@ func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clust
 	return nil
 }
 
-func (lbc *loadBalancerController) acquireIPs(service *v1.Service) (bool, error) {
+func (lbc *loadBalancerController) acquireIPs(service *v1.Service) error {
 	projectID := service.Annotations[projectIDAnnotation]
 	if len(projectID) == 0 {
 		//Will prevent services with no 'project-id' annotation from being loadbalanced
-		//return false, fmt.Errorf("service %q does not have %q annotation", service.Name, projectIDAnnotation)
-		return false, nil
+		//return fmt.Errorf("service %q does not have %q annotation", service.Name, projectIDAnnotation)
+		return nil
 	}
 
 	networkID := service.Annotations[networkIDAnnotation]
 	if len(networkID) == 0 {
 		//Will prevent services with no 'network-id' annotation from being loadbalanced
-		//return false, fmt.Errorf("service %q does not have %q annotation", service.Name, networkIDAnnotation)
-		return false, nil
+		//return fmt.Errorf("service %q does not have %q annotation", service.Name, networkIDAnnotation)
+		return nil
 	}
 
 	ipCount := service.Annotations[ipCountAnnotation]
 	if len(ipCount) == 0 {
 		//Will prevent services with no 'ip-count' annotation from being loadbalanced
-		//return false, fmt.Errorf("service %q does not have %q annotation", service.Name, ipCountAnnotation)
-		return false, nil
+		//return fmt.Errorf("service %q does not have %q annotation", service.Name, ipCountAnnotation)
+		return nil
 	}
 
 	count, err := strconv.Atoi(ipCount)
 	if err != nil {
-		return false, fmt.Errorf("service %q has invalid %q annotation: integer expected", service.Name, ipCountAnnotation)
+		return fmt.Errorf("service %q has invalid %q annotation: integer expected", service.Name, ipCountAnnotation)
 	}
 	if count < 1 {
-		return false, fmt.Errorf("service %q has invalid %q annotation: positive integer expected", service.Name, ipCountAnnotation)
+		return fmt.Errorf("service %q has invalid %q annotation: positive integer expected", service.Name, ipCountAnnotation)
 	}
 
 	return lbc.resctl.AcquireIPs(projectID, networkID, count)
@@ -197,8 +196,13 @@ func (lbc *loadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context
 
 	for i, lb := range lbc.lbs {
 		if lb.id == existingLB.id {
+			err := lbc.resctl.DeleteIPs() //TODO delete network IPs
+			if err != nil {
+				return err
+			}
+
 			lbc.lbs = append(lbc.lbs[:i], lbc.lbs[i+1:]...)
-			// TODO: free network IPs
+
 			break
 		}
 	}

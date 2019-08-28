@@ -3,23 +3,34 @@ package metal
 import (
 	"fmt"
 	"github.com/google/uuid"
-	metalgo "github.com/metal-pod/metal-go"
+	"github.com/metal-pod/metal-go"
 	"strings"
 )
 
 // AcquireIPs acquires given count of IPs within the given network.
-func (r *ResourcesController) AcquireIPs(project, network string, count int) (bool, error) {
+func (r *ResourcesController) DeleteIPs(ips ...string) error {
+	for _, ip := range ips {
+		_, err := r.resources.client.IPDelete(ip)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *ResourcesController) AcquireIPs(project, network string, count int) error {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &project,
 		NetworkID: &network,
 	}
 	resp, err := r.resources.client.IPFind(req)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if len(resp.IPs) >= count {
-		return false, nil
+		return nil
 	}
 
 	ips := make([]string, count)
@@ -32,7 +43,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) (bo
 	for i := len(resp.IPs); i < count; i++ {
 		name, err := uuid.NewUUID()
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		req := &metalgo.IPAcquireRequest{
@@ -42,12 +53,12 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) (bo
 		}
 		ip, err := r.resources.client.IPAcquire(req)
 		if err != nil {
-			return false, err
+			return err
 		}
 		ips[i] = *ip.IP.Ipaddress
 	}
 
 	r.metallbConfig.announceIPs(network, ips...)
 
-	return true, r.upsertMetalLBConfig()
+	return nil
 }

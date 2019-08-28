@@ -156,9 +156,6 @@ func (m *machines) InstanceExistsByProviderID(_ context.Context, providerID stri
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider.
 func (m *machines) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
 	m.logger.Printf("InstanceShutdownByProviderID: providerID %q", providerID)
-	if true { //TODO Remove
-		return true, nil
-	}
 	machine, err := m.machineFromProviderID(providerID)
 	if err != nil || machine.Machine.Allocation == nil {
 		return true, err
@@ -171,9 +168,6 @@ func (m *machines) InstanceShutdownByProviderID(_ context.Context, providerID st
 }
 
 func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse, error) {
-	if true { //TODO Remove
-		return createDummyMachine(id), nil
-	}
 	machine, err := client.MachineGet(id)
 	if err != nil {
 		return nil, err
@@ -185,12 +179,6 @@ func machineByID(client *metalgo.Driver, id string) (*metalgo.MachineGetResponse
 // machineByHostname returns a machine where hostname matches the kubernetes node.Name.
 func machineByHostname(client *metalgo.Driver, nodeName types.NodeName) (*metalgo.MachineGetResponse, error) {
 	machineHostname := string(nodeName)
-	if true { //TODO Remove
-		if strings.HasPrefix(machineHostname, "kind-worker") {
-			return createDummyMachine(machineHostname), nil
-		}
-		return nil, fmt.Errorf("no worker node %q", machineHostname)
-	}
 	mfr := &metalgo.MachineFindRequest{
 		AllocationHostname: &machineHostname,
 	}
@@ -239,35 +227,4 @@ func (m *machines) machineFromProviderID(providerID string) (*metalgo.MachineGet
 	}
 
 	return machineByID(m.client, id)
-}
-
-func createDummyMachine(machineHostname string) *metalgo.MachineGetResponse { //TODO Remove
-	network := "internet-nbg-w8101"
-	asn := int64(4711)
-	ip := "10.10.0.1"
-	if strings.HasSuffix(machineHostname, "2") {
-		ip = "10.10.0.2"
-	}
-	sizeID := "test"
-	return &metalgo.MachineGetResponse{
-		Machine: &models.V1MachineResponse{
-			ID: &machineHostname,
-			Size: &models.V1SizeResponse{
-				ID: &sizeID,
-			},
-			Allocation: &models.V1MachineAllocation{
-				Hostname: &machineHostname,
-				Name:     &machineHostname,
-				Networks: []*models.V1MachineNetwork{
-					{
-						Networkid: &network,
-						Ips: []string{
-							ip,
-						},
-						Asn: &asn,
-					},
-				},
-			},
-		},
-	}
 }
