@@ -102,7 +102,11 @@ func (m *machines) InstanceID(_ context.Context, nodeName types.NodeName) (strin
 		return "", err
 	}
 
-	return fmt.Sprintf("%s://%s", providerName, *machine.Machine.ID), nil
+	if !strings.HasPrefix(*machine.Machine.ID, providerName) {
+		return fmt.Sprintf("%s://%s", providerName, *machine.Machine.ID), nil
+	}
+
+	return *machine.Machine.ID, nil
 }
 
 // InstanceType returns the type of the specified instance.
