@@ -168,8 +168,8 @@ github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e h1:hB2xlXdHp/pmPZq
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
-github.com/metal-pod/metal-go v0.0.0-20190822222222-e13fc770f44b h1:j2pdAi0O9GNOaLw43wjx9BeGGBVMCNZ4C9l2gLuwFCE=
-github.com/metal-pod/metal-go v0.0.0-20190822222222-e13fc770f44b/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
+github.com/metal-pod/metal-go v0.0.0-20190822222222-62d2d0f26ed1 h1:+cuoX6e/Ku8tCSTbcO5mj62eMhm6MCaO26JSC1pEKxw=
+github.com/metal-pod/metal-go v0.0.0-20190822222222-62d2d0f26ed1/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
 github.com/metal-pod/v v0.0.2 h1:iCHmbNqkX+aoOPxfictrJ8CQC0TWdCkRAf998NHFby4=
