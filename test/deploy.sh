@@ -4,13 +4,15 @@ set -e
 
 CURR_DIR=$(pwd)
 function finish {
-  cd ${CURR_DIR}
+  set +e
+  kind delete cluster &>/dev/null
+  cd "${CURR_DIR}"
 }
 trap finish EXIT
-TEST_DIR=$( dirname $(readlink -f ${BASH_SOURCE[0]} ))
+TEST_DIR=$( dirname "$(readlink -f "${BASH_SOURCE[0]}" )")
 
-if [[ ! -z ${GOPATH} ]]; then
-  cd ${GOPATH}
+if [[ -n ${GOPATH} ]]; then
+  cd "${GOPATH}"
   go get sigs.k8s.io/kind@v0.5.0
 fi
 
@@ -24,7 +26,7 @@ if [[ -z ${METAL_API_HMAC} ]]; then
   METAL_API_HMAC=${METALCTL_HMAC-metal-test-admin}
 fi
 
-cd ${TEST_DIR}
+cd "${TEST_DIR}"
 go build -tags netgo -o bin/echo echo.go
 docker build -f Dockerfile.echo -t metalpod/test:echo .
 cd ..
@@ -42,13 +44,10 @@ stringData:
   apiKey: \"\"
   apiHMAC: \"$METAL_API_HMAC\"" > test/metal-cloud-config.yaml
 
-set +e
-kind delete cluster 2>/dev/null
-set -e
-
 echo "kind create cluster --config test/kind-config.yaml"
 kind create cluster --config test/kind-config.yaml
-export KUBECONFIG=$(kind get kubeconfig-path --name=kind)
+KUBECONFIG=$(kind get kubeconfig-path --name=kind)
+export KUBECONFIG
 
 echo "kind load docker-image metalpod/metal-ccm:v0.0.1"
 kind load docker-image metalpod/metal-ccm:v0.0.1
@@ -74,7 +73,7 @@ echo "Wait for 10 seconds..."
 sleep 10
 
 echo "kubectl logs -n kube-system $(kubectl get pod -n kube-system | grep metal-cloud | cut -d' ' -f1)"
-kubectl logs -n kube-system $(kubectl get pod -n kube-system | grep metal-cloud | cut -d' ' -f1)
+kubectl logs -n kube-system "$(kubectl get pod -n kube-system | grep metal-cloud | cut -d' ' -f1)"
 
 echo "kubectl describe svc -n kube-system echo"
 kubectl describe svc -n kube-system echo
@@ -84,10 +83,14 @@ kubectl describe cm config -n metallb-system
 
 echo "Test echo service via loadbalancer..."
 LB_INGRESS_IP=$(kubectl describe svc -n kube-system echo | grep Ingress | cut -d: -f2 | sed -e 's/^[ \t]*//')
-echo "docker exec -t kind-control-plane curl ${LB_INGRESS_IP}:8080/echo"
-docker exec -t kind-control-plane curl ${LB_INGRESS_IP}:8080/echo
+for i in {1..3}; do
+  echo "docker exec -t kind-control-plane curl ${LB_INGRESS_IP}:8080/echo"
+  docker exec -t kind-control-plane curl "${LB_INGRESS_IP}":8080/echo
+done
 
-echo "DEPLOYMENT COMPLETED"
-echo "--------------------"
-echo "Don't forget to delete cluster after testing by running:"
-echo "kind delete cluster"
+echo
+
+kubectl get pod -n kube-system | grep echo- | cut -d' ' -f1 | while IFS= read -r i; do
+  echo "kubectl logs -n kube-system $i"
+  kubectl logs -n kube-system "$i"
+done
