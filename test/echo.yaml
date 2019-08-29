@@ -30,10 +30,6 @@ metadata:
   namespace: kube-system
   labels:
     app: echo
-  annotations:
-    project-id: "test"
-    metallb.universe.tf/address-pool: "internet-nbg-w8101"
-    ip-count: "1"
 spec:
   selector:
     app: echo

@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	projectIDAnnotation = "project-id"
-	networkIDAnnotation = "metallb.universe.tf/address-pool"
-	ipCountAnnotation   = "ip-count"
+	projectIDLabel = "project-id"
+	networkIDLabel = "metallb.universe.tf/address-pool"
+	ipCountLabel   = "ip-count"
 	// loadBalancerIDAnnotation is the annotation specifying the load-balancer ID
 	// used to enable fast retrievals of load-balancers from the API by UUID.
 	loadBalancerIDAnnotation = "kubernetes.metal.com/load-balancer-id"
@@ -101,12 +101,12 @@ func nodeNames(nodes []*v1.Node) string {
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	err := lbc.resctl.AddFirewallNetworkAddressPools(nodes)
+	err := lbc.resctl.AddFirewallNetworkAddressPools(nodes[0])
 	if err != nil {
 		return nil, err
 	}
 
-	err = lbc.acquireIPs(service)
+	err = lbc.acquireIPs(nodes[0])
 	if err != nil {
 		return nil, err
 	}
@@ -142,12 +142,7 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
 	lbc.logger.Printf("UpdateLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	err := lbc.acquireIPs(service)
-	if err != nil {
-		return err
-	}
-
-	err = lbc.resctl.SyncMetalLBConfig(nodes)
+	err := lbc.resctl.SyncMetalLBConfig(nodes)
 	if err != nil {
 		return err
 	}
@@ -155,28 +150,30 @@ func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clust
 	return nil
 }
 
-func (lbc *loadBalancerController) acquireIPs(service *v1.Service) error {
-	projectID := service.Annotations[projectIDAnnotation]
+func (lbc *loadBalancerController) acquireIPs(node *v1.Node) error {
+	tags := lbc.resources.machines.getMachines(node)[0].Tags
+
+	projectID := getTagValue(projectIDLabel, tags)
 	if len(projectID) == 0 {
 		return nil
 	}
 
-	networkID := service.Annotations[networkIDAnnotation]
+	networkID := getTagValue(networkIDLabel, tags)
 	if len(networkID) == 0 {
 		return nil
 	}
 
-	ipCount := service.Annotations[ipCountAnnotation]
+	ipCount := getTagValue(ipCountLabel, tags)
 	if len(ipCount) == 0 {
 		ipCount = "1"
 	}
 
 	count, err := strconv.Atoi(ipCount)
 	if err != nil {
-		return fmt.Errorf("service %q has invalid %q annotation: integer expected", service.Name, ipCountAnnotation)
+		return fmt.Errorf("service %q has invalid %q label: integer expected", node.Name, ipCountLabel)
 	}
 	if count < 1 {
-		return fmt.Errorf("service %q has invalid %q annotation: positive integer expected", service.Name, ipCountAnnotation)
+		return fmt.Errorf("service %q has invalid %q label: positive integer expected", node.Name, ipCountLabel)
 	}
 
 	return lbc.resctl.AcquireIPs(projectID, networkID, count)
@@ -259,4 +256,17 @@ func (lbc *loadBalancerController) ensureLoadBalancerIDAnnotation(service *v1.Se
 
 func getLoadBalancerID(service *v1.Service) string {
 	return service.ObjectMeta.Annotations[loadBalancerIDAnnotation]
+}
+
+func getTagValue(key string, tags []string) string {
+	for _, tag := range tags {
+		parts := strings.Split(tag, "=")
+		if parts[0] == key {
+			if len(parts) == 1 {
+				return ""
+			}
+			return parts[1]
+		}
+	}
+	return ""
 }

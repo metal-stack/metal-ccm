@@ -1,7 +1,6 @@
 package metal
 
 import (
-	"errors"
 	"github.com/metal-pod/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,12 +14,8 @@ const (
 )
 
 // AddFirewallNetworkAddressPools creates and adds empty address pools for all non-private and non-underlay firewall networks.
-func (r *ResourcesController) AddFirewallNetworkAddressPools(nodes []*v1.Node) error {
-	if len(nodes) == 0 {
-		return errors.New("node slice must not be empty")
-	}
-
-	mm := r.resources.machines.getMachines(nodes[0])
+func (r *ResourcesController) AddFirewallNetworkAddressPools(node *v1.Node) error {
+	mm := r.resources.machines.getMachines(node)
 	fw, err := r.firewallOfMachine(*mm[0].ID)
 	if err != nil {
 		return err
