@@ -11,11 +11,6 @@ function finish {
 trap finish EXIT
 TEST_DIR=$( dirname "$(readlink -f "${BASH_SOURCE[0]}" )")
 
-if [[ -n ${GOPATH} ]]; then
-  cd "${GOPATH}"
-  go get sigs.k8s.io/kind@v0.5.0
-fi
-
 METAL_API_URL=${METAL_API_URL}
 if [[ -z ${METAL_API_URL} ]]; then
   METAL_API_URL=${METALCTL_URL-http://metal.test.fi-ts.io}
