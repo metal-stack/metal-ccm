@@ -33,11 +33,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) err
 		return err
 	}
 
-	if len(resp.IPs) >= count {
-		return nil
-	}
-
-	ips := make([]string, count)
+	ips := make([]string, len(resp.IPs))
 	for i, ip := range resp.IPs {
 		if strings.Contains(ip.Name, prefix) {
 			ips[i] = *ip.Ipaddress
