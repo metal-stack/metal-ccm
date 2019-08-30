@@ -23,15 +23,15 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/component-base/logs"
 
 	metalgo "github.com/metal-pod/metal-go"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	v1informer "k8s.io/client-go/informers/core/v1"
+
 	"k8s.io/client-go/kubernetes"
-	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
 )
 
@@ -112,8 +112,7 @@ func (s *tickerSyncer) Sync(name string, period time.Duration, stopCh <-chan str
 // resources. It maintains a local state of the resources and
 // synchronizes when needed.
 type ResourcesController struct {
-	kclient    kubernetes.Interface
-	nodeLister v1lister.NodeLister
+	kclient kubernetes.Interface
 
 	resources *resources
 	syncer    syncer
@@ -124,14 +123,13 @@ type ResourcesController struct {
 }
 
 // NewResourcesController returns a new resource controller.
-func NewResourcesController(r *resources, inf v1informer.NodeInformer, client kubernetes.Interface) *ResourcesController {
+func NewResourcesController(r *resources, client kubernetes.Interface) *ResourcesController {
 	r.kclient = client
 	logger := logs.NewLogger("metal-ccm resources-controller | ")
 
 	return &ResourcesController{
 		resources:     r,
 		kclient:       client,
-		nodeLister:    inf.Lister(),
 		syncer:        newTickerSyncer(),
 		metallbConfig: newMetalLBConfig(),
 		logger:        logger,
@@ -144,7 +142,7 @@ func (r *ResourcesController) Run(stopCh <-chan struct{}) {
 }
 
 // getMachineTags returns all machine tags within the shoot.
-func (r *ResourcesController) getMachineTags(nodes []*v1.Node) (map[string][]string, error) {
+func (r *ResourcesController) getMachineTags(nodes []v1.Node) (map[string][]string, error) {
 	machines := r.resources.machines.getMachines(nodes...)
 	machineTags := make(map[string][]string)
 	for _, m := range machines {
@@ -156,12 +154,12 @@ func (r *ResourcesController) getMachineTags(nodes []*v1.Node) (map[string][]str
 }
 
 // getNodes returns all nodes of this cluster.
-func (r *ResourcesController) getNodes() ([]*v1.Node, error) {
-	nodes, err := r.nodeLister.List(labels.Everything())
+func (r *ResourcesController) getNodes() ([]v1.Node, error) {
+	nodes, err := r.kclient.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list nodes: %s", err)
 	}
-	return nodes, nil
+	return nodes.Items, nil
 }
 
 // syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
@@ -211,10 +209,10 @@ func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
 }
 
 // updateNodes updates given nodes.
-func (r *ResourcesController) updateNodes(nodes []*v1.Node) {
+func (r *ResourcesController) updateNodes(nodes []v1.Node) {
 	for _, n := range nodes {
 		err := retry.RetryOnConflict(updateNodeSpecBackoff, func() error {
-			_, err := r.kclient.CoreV1().Nodes().Update(n)
+			_, err := r.kclient.CoreV1().Nodes().Update(&n)
 			return err
 		})
 		if err != nil {

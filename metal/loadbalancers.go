@@ -105,16 +105,17 @@ func nodeNames(nodes []*v1.Node) string {
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
+
 	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, nodeNames(nodes))
 
 	lbc.mtx.Lock()
 	defer lbc.mtx.Unlock()
 
-	externalNetworkID, ips, err := lbc.acquireIPs(nodes[0], service)
+	externalNetworkID, ips, err := lbc.acquireIPs(*nodes[0], service)
 	if err != nil {
 		return nil, err
 	}
-	lbc.logger.Printf("EnsureLoadBalancer: acquired ips in external network %q for service %q: %v", externalNetworkID, service.Namespace, ips)
+	lbc.logger.Printf("EnsureLoadBalancer: acquired ips in external network %q for service %q: %v", externalNetworkID, service.Name, ips)
 	lbc.resctl.metallbConfig.announceIPs(externalNetworkID, ips)
 	lbc.logger.Printf("EnsureLoadBalancer: address pools were updated: %s", lbc.resctl.metallbConfig.StringAddressPools())
 
@@ -142,7 +143,7 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 	}, nil
 }
 
-func (lbc *loadBalancerController) acquireIPs(node *v1.Node, service *v1.Service) (string, []string, error) {
+func (lbc *loadBalancerController) acquireIPs(node v1.Node, service *v1.Service) (string, []string, error) {
 	m := lbc.resources.machines.getMachines(node)[0]
 	tags := m.Tags
 

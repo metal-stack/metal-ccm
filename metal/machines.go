@@ -3,20 +3,21 @@ package metal
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"log"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/runtime"
+
 	"k8s.io/component-base/logs"
 
-	"github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"
 
 	"github.com/pkg/errors"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cloud-provider"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 type machines struct {
@@ -34,7 +35,7 @@ func newMachines(client *metalgo.Driver) cloudprovider.Instances {
 	}
 }
 
-func (m *machines) getMachines(nodes ...*v1.Node) []*models.V1MachineResponse {
+func (m *machines) getMachines(nodes ...v1.Node) []*models.V1MachineResponse {
 	var mm []*models.V1MachineResponse
 	for _, n := range nodes {
 		m, err := machineByHostname(m.client, types.NodeName(n.Name))

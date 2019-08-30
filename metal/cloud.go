@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-pod/metal-go"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/informers"
 	"k8s.io/component-base/logs"
 
-	"k8s.io/cloud-provider"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 const (
@@ -76,14 +76,13 @@ func init() {
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 	clientset := clientBuilder.ClientOrDie("cloud-controller-manager-nodelister")
 	sharedInformer := informers.NewSharedInformerFactory(clientset, 0)
-	nodeInformer := sharedInformer.Core().V1().Nodes()
 
 	sharedInformer.Start(nil)
 	sharedInformer.WaitForCacheSync(nil)
 
 	c.stop = stop
 
-	resctl := NewResourcesController(c.resources, nodeInformer, clientset)
+	resctl := NewResourcesController(c.resources, clientset)
 	err := resctl.syncMachineTagsToNodeLabels()
 	if err != nil {
 		c.logger.Println(err.Error())
