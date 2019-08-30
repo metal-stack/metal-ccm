@@ -14,6 +14,7 @@ import (
 	"github.com/metal-pod/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 
+	"k8s.io/client-go/informers"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
@@ -80,6 +81,9 @@ func init() {
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 	k8sClient := clientBuilder.ClientOrDie("metal-cloud-controller-manager")
+	sharedInformer := informers.NewSharedInformerFactory(k8sClient, 0)
+	sharedInformer.Start(nil)
+	sharedInformer.WaitForCacheSync(nil)
 
 	housekeeper := housekeeping.New(client, stop)
 	housekeeper.K8sClient = k8sClient
