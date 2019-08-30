@@ -2,7 +2,6 @@ package metal
 
 import (
 	"github.com/ghodss/yaml"
-	"github.com/metal-pod/metal-go/api/models"
 )
 
 type MetalLBConfig struct {
@@ -43,21 +42,6 @@ func (cfg *MetalLBConfig) getAddressPool(networkID string) *AddressPool {
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
-}
-
-// announceMachineIPs appends the allocated IPs of the given machine to their corresponding address pools.
-func (cfg *MetalLBConfig) announceMachineIPs(machine *models.V1MachineResponse) {
-	if machine.Allocation == nil {
-		return
-	}
-
-	for _, nw := range machine.Allocation.Networks {
-		if nw == nil || (nw.Private != nil && *nw.Private) || (nw.Underlay != nil && *nw.Underlay) {
-			continue
-		}
-
-		cfg.announceIPs(*nw.Networkid, nw.Ips)
-	}
 }
 
 // announceIPs appends the given IPs to the network address pools.
