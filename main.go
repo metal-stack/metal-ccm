@@ -16,7 +16,7 @@ import (
 	// _ "k8s.io/kubernetes/pkg/util/prometheusclientgo" // load all the prometheus client-go plugins
 	// _ "k8s.io/kubernetes/pkg/version/prometheus"      // for version metric registration
 
-	_ "github.com/metal-pod/metal-ccm/metal"
+	_ "github.com/metal-pod/metal-ccm/cmd"
 	"github.com/metal-pod/v"
 )
 

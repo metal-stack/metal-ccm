@@ -10,7 +10,7 @@ export GO111MODULE := on
 export CGO_ENABLED := 0
 
 BINARY := metal-cloud-controller-manager
-MAINMODULE := github.com/metal-pod/metal-ccm/cmd
+MAINMODULE := github.com/metal-pod/metal-ccm
 
 .PHONY: all
 all:: bin/$(BINARY);
