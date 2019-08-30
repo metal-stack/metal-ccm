@@ -55,7 +55,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) ([]
 		if err != nil {
 			return nil, err
 		}
-		ips[i] = *resp.IP.Ipaddress
+		ips = append(ips, *resp.IP.Ipaddress)
 	}
 
 	return ips, nil

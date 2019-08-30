@@ -32,7 +32,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog"
 )
 
 const (
@@ -75,7 +74,17 @@ type syncer interface {
 	Sync(name string, period time.Duration, stopCh <-chan struct{}, fn func() error)
 }
 
-type tickerSyncer struct{}
+type tickerSyncer struct {
+	logger *log.Logger
+}
+
+func newTickerSyncer() *tickerSyncer {
+	logger := logs.NewLogger("metal-ccm ticker-syncer | ")
+
+	return &tickerSyncer{
+		logger: logger,
+	}
+}
 
 func (s *tickerSyncer) Sync(name string, period time.Duration, stopCh <-chan struct{}, fn func() error) {
 	ticker := time.NewTicker(period)
@@ -83,14 +92,14 @@ func (s *tickerSyncer) Sync(name string, period time.Duration, stopCh <-chan str
 
 	// manually call to avoid initial tick delay
 	if err := fn(); err != nil {
-		klog.Errorf("%s failed: %s", name, err)
+		s.logger.Printf("%s failed: %s", name, err)
 	}
 
 	for {
 		select {
 		case <-ticker.C:
 			if err := fn(); err != nil {
-				klog.Errorf("%s failed: %s", name, err)
+				s.logger.Printf("%s failed: %s", name, err)
 			}
 		case <-stopCh:
 			return
@@ -122,7 +131,7 @@ func NewResourcesController(r *resources, inf v1informer.NodeInformer, client ku
 		resources:     r,
 		kclient:       client,
 		nodeLister:    inf.Lister(),
-		syncer:        &tickerSyncer{},
+		syncer:        newTickerSyncer(),
 		metallbConfig: newMetalLBConfig(),
 		logger:        logger,
 	}
@@ -171,12 +180,15 @@ func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
 	// klog.Infof("nodes: %s", nodes)
 	for _, n := range nodes {
 		nodeName := n.Name
+		r.logger.Printf("sync machine tags of %q", nodeName)
 		tags, ok := machineTags[nodeName]
 		if !ok {
 			r.logger.Printf("warning: node:%s not a machine", nodeName)
 			continue
 		}
-		ll := buildLabels(tags)
+		r.logger.Printf("machine tags of %q: %v", nodeName, tags)
+		ll := r.buildLabels(tags)
+		r.logger.Printf("converted tags of %q: %v", nodeName, ll)
 
 		for key, value := range ll {
 			r.logger.Printf("machine label: %s value:%s", key, value)
@@ -208,7 +220,7 @@ func (r *ResourcesController) updateNodes(nodes []*v1.Node) {
 	}
 }
 
-func buildLabels(tags []string) map[string]string {
+func (r *ResourcesController) buildLabels(tags []string) map[string]string {
 	result := make(map[string]string)
 	for _, t := range tags {
 		parts := strings.Split(t, "=")
