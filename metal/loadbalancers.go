@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/component-base/logs"
@@ -166,17 +165,17 @@ func (lbc *loadBalancerController) acquireIPs(node v1.Node, service *v1.Service)
 	}
 
 	if len(service.Spec.ExternalIPs) == 0 {
-		return lbc.acquireIPsFromDefaultExternalNetwork(m, projectID, count)
+		return lbc.acquireIPsFromDefaultExternalNetwork(m.Partition.ID, projectID, count)
 	}
 
 	//TODO allow acquiring from explicit external networks
 	return "", nil, errors.New("not implemented")
 }
 
-func (lbc *loadBalancerController) acquireIPsFromDefaultExternalNetwork(machine *models.V1MachineResponse, project string, ipCount int) (string, []string, error) {
+func (lbc *loadBalancerController) acquireIPsFromDefaultExternalNetwork(partitionID *string, project string, ipCount int) (string, []string, error) {
 	falseFlag := false
 	nfr := &metalgo.NetworkFindRequest{
-		PartitionID:  machine.Partition.ID,
+		PartitionID:  partitionID,
 		PrivateSuper: &falseFlag,
 		Underlay:     &falseFlag,
 	}

@@ -2,9 +2,9 @@ package metal
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
-	"github.com/metal-pod/metal-go"
-	"strings"
+	metalgo "github.com/metal-pod/metal-go"
 )
 
 const (
@@ -24,23 +24,8 @@ func (r *ResourcesController) DeleteIPs(ips ...string) error {
 }
 
 func (r *ResourcesController) AcquireIPs(project, network string, count int) ([]string, error) {
-	req := &metalgo.IPFindRequest{
-		ProjectID: &project,
-		NetworkID: &network,
-	}
-	resp, err := r.resources.client.IPFind(req)
-	if err != nil {
-		return nil, err
-	}
-
 	var ips []string
-	for _, ip := range resp.IPs {
-		if strings.Contains(ip.Name, prefix) {
-			ips = append(ips, *ip.Ipaddress)
-		}
-	}
-
-	for i := len(ips); i < count; i++ {
+	for i := 0; i < count; i++ {
 		name, err := uuid.NewUUID()
 		if err != nil {
 			return nil, err
