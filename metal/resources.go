@@ -19,6 +19,8 @@ package metal
 import (
 	"fmt"
 	"k8s.io/api/core/v1"
+	"k8s.io/component-base/logs"
+	"log"
 	"strings"
 	"time"
 
@@ -49,6 +51,7 @@ type resources struct {
 	client   *metalgo.Driver
 	kclient  kubernetes.Interface
 	machines *machines
+	logger   *log.Logger
 }
 
 // newResources initializes a new resources instance.
@@ -58,9 +61,13 @@ type resources struct {
 // initialization order guarantees that kclient won't be consumed prior to it
 // being set.
 func newResources(client *metalgo.Driver) *resources {
+	logs.InitLogs()
+	logger := logs.NewLogger("metal-ccm resources | ")
+
 	return &resources{
 		client:   client,
 		machines: &machines{client: client},
+		logger:   logger,
 	}
 }
 
@@ -102,17 +109,22 @@ type ResourcesController struct {
 	syncer    syncer
 
 	metallbConfig *MetalLBConfig
+
+	logger *log.Logger
 }
 
 // NewResourcesController returns a new resource controller.
 func NewResourcesController(r *resources, inf v1informer.NodeInformer, client kubernetes.Interface) *ResourcesController {
 	r.kclient = client
+	logger := logs.NewLogger("metal-ccm resources-controller | ")
+
 	return &ResourcesController{
 		resources:     r,
 		kclient:       client,
 		nodeLister:    inf.Lister(),
 		syncer:        &tickerSyncer{},
 		metallbConfig: newMetalLBConfig(),
+		logger:        logger,
 	}
 }
 
@@ -128,7 +140,7 @@ func (r *ResourcesController) getMachineTags(nodes []*v1.Node) (map[string][]str
 	for _, m := range machines {
 		hostname := *m.Allocation.Hostname
 		machineTags[hostname] = m.Tags
-		klog.Infof("machine %s ", hostname)
+		r.logger.Printf("machine %s ", hostname)
 	}
 	return machineTags, nil
 }
@@ -156,22 +168,22 @@ func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
 
 	// klog.Infof("nodes: %s", nodes)
 	for _, n := range nodes {
-		nodeName := n.GetName()
+		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
 		if !ok {
-			klog.Warningf("node:%s not a machine", nodeName)
+			r.logger.Printf("warning: node:%s not a machine", nodeName)
 			continue
 		}
 		ll := buildLabels(tags)
 
 		for key, value := range ll {
-			klog.Infof("machine label: %s value:%s", key, value)
+			r.logger.Printf("machine label: %s value:%s", key, value)
 			_, ok := n.Labels[key]
 			if ok {
-				klog.Infof("skip existing node label:%s", key)
+				r.logger.Printf("skip existing node label:%s", key)
 				continue
 			}
-			klog.Infof("adding node label from metal: %s=%s to node:%s", key, value, nodeName)
+			r.logger.Printf("adding node label from metal: %s=%s to node:%s", key, value, nodeName)
 			n.Labels[key] = value
 		}
 	}
@@ -205,7 +217,7 @@ func buildLabels(tags []string) map[string]string {
 		// if len(parts) == 1 {
 		// 	result[parts[0]] = ""
 		// }
-		if len(parts) >= 2 {
+		if len(parts) > 1 {
 			result[parts[0]] = strings.Join(parts[1:], "=")
 		}
 	}

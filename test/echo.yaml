@@ -34,8 +34,8 @@ spec:
   selector:
     app: echo
   type: LoadBalancer
-# metal-ccm also supports loadBalancerIP
-#  loadBalancerIP: 10.100.0.1
+# metal-ccm also respects loadBalancerIP
+  loadBalancerIP: 10.100.0.1
   ports:
     - port: 8080
       targetPort: 8080

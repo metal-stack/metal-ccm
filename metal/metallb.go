@@ -40,7 +40,7 @@ func (r *ResourcesController) AddFirewallNetworkAddressPools(node *v1.Node) erro
 
 		if !handled {
 			networkIDs = append(networkIDs, *nw.Networkid)
-			r.metallbConfig.AddressPools = append(r.metallbConfig.AddressPools, NewBGPAddressPool(*nw.Networkid))
+			r.metallbConfig.getAddressPool(*nw.Networkid)
 		}
 	}
 

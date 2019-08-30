@@ -102,8 +102,12 @@ func (m *machines) InstanceID(_ context.Context, nodeName types.NodeName) (strin
 		return "", err
 	}
 
-	if !strings.HasPrefix(*machine.Machine.ID, providerName) {
-		return fmt.Sprintf("%s://%s", providerName, *machine.Machine.ID), nil
+	m.logger.Printf("InstanceID: nodeName %q, machineID %q", nodeName, *machine.Machine.ID)
+	prefix := fmt.Sprintf("%s://", providerName)
+	if !strings.HasPrefix(*machine.Machine.ID, prefix) {
+		instanceID := fmt.Sprintf("%s%s", prefix, *machine.Machine.ID)
+		m.logger.Printf("InstanceID: nodeName %q, machineID %q, instanceID %q", nodeName, *machine.Machine.ID, instanceID)
+		return instanceID, nil
 	}
 
 	return *machine.Machine.ID, nil

@@ -17,8 +17,8 @@ func NewBGPAddressPool(networkID string) *AddressPool {
 	}
 }
 
-func (ap *AddressPool) ContainsIP(ip string) bool {
-	for _, IP := range ap.IPs {
+func (pool *AddressPool) ContainsIP(ip string) bool {
+	for _, IP := range pool.IPs {
 		if ip == IP {
 			return true
 		}
@@ -26,12 +26,12 @@ func (ap *AddressPool) ContainsIP(ip string) bool {
 	return false
 }
 
-func (ap *AddressPool) AppendIPs(ips ...string) {
+func (pool *AddressPool) AppendIPs(ips ...string) {
 	for _, ip := range ips {
-		if ap.ContainsIP(ip) {
+		if pool.ContainsIP(ip) {
 			continue
 		}
 
-		ap.IPs = append(ap.IPs, ip)
+		pool.IPs = append(pool.IPs, ip)
 	}
 }

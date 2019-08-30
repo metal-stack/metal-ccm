@@ -78,7 +78,7 @@ kubectl describe cm config -n metallb-system
 
 echo "Test echo service via loadbalancer..."
 LB_INGRESS_IP=$(kubectl describe svc -n kube-system echo | grep Ingress | cut -d: -f2 | sed -e 's/^[ \t]*//')
-for i in {1..3}; do
+for i in {1..5}; do
   echo "docker exec -t kind-control-plane curl ${LB_INGRESS_IP}:8080/echo"
   docker exec -t kind-control-plane curl "${LB_INGRESS_IP}":8080/echo
 done

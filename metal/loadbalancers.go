@@ -8,6 +8,7 @@ import (
 	"k8s.io/component-base/logs"
 	"strconv"
 	"strings"
+	"sync"
 
 	"errors"
 	"fmt"
@@ -30,6 +31,7 @@ type loadBalancerController struct {
 	logger    *log.Logger
 	resctl    *ResourcesController
 	lbs       []*loadBalancer
+	mtx       *sync.Mutex
 }
 
 func newLoadBalancerController(resources *resources) *loadBalancerController {
@@ -39,6 +41,7 @@ func newLoadBalancerController(resources *resources) *loadBalancerController {
 	return &loadBalancerController{
 		resources: resources,
 		logger:    logger,
+		mtx:       &sync.Mutex{},
 	}
 }
 
@@ -100,6 +103,9 @@ func nodeNames(nodes []*v1.Node) string {
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
+	lbc.mtx.Lock()
+	defer lbc.mtx.Unlock()
+
 	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
 	err := lbc.resctl.AddFirewallNetworkAddressPools(nodes[0])
 	if err != nil {
@@ -121,8 +127,6 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 	if len(ip) == 0 {
 		if len(service.Spec.ExternalIPs) > 0 {
 			ip = service.Spec.ExternalIPs[0]
-		} else {
-			ip = service.Spec.ClusterIP
 		}
 	}
 	lb := newLoadBalancer(service.Name, id, ip)
@@ -135,19 +139,6 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 			},
 		},
 	}, nil
-}
-
-// UpdateLoadBalancer updates hosts under the specified load balancer.
-// Neither 'service' nor 'nodes' are modified.
-// Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
-func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	lbc.logger.Printf("UpdateLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	err := lbc.resctl.SyncMetalLBConfig(nodes)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (lbc *loadBalancerController) acquireIPs(node *v1.Node) error {
@@ -177,6 +168,23 @@ func (lbc *loadBalancerController) acquireIPs(node *v1.Node) error {
 	}
 
 	return lbc.resctl.AcquireIPs(projectID, networkID, count)
+}
+
+// UpdateLoadBalancer updates hosts under the specified load balancer.
+// Neither 'service' nor 'nodes' are modified.
+// Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
+func (lbc *loadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
+	lbc.logger.Printf("UpdateLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
+
+	lbc.mtx.Lock()
+	defer lbc.mtx.Unlock()
+
+	err := lbc.resctl.SyncMetalLBConfig(nodes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // EnsureLoadBalancerDeleted deletes the cluster load balancer if it
