@@ -33,14 +33,14 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) ([]
 		return nil, err
 	}
 
-	ips := make([]string, len(resp.IPs))
-	for i, ip := range resp.IPs {
+	var ips []string
+	for _, ip := range resp.IPs {
 		if strings.Contains(ip.Name, prefix) {
-			ips[i] = *ip.Ipaddress
+			ips = append(ips, *ip.Ipaddress)
 		}
 	}
 
-	for i := len(resp.IPs); i < count; i++ {
+	for i := len(ips); i < count; i++ {
 		name, err := uuid.NewUUID()
 		if err != nil {
 			return nil, err
@@ -55,12 +55,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) ([]
 		if err != nil {
 			return nil, err
 		}
-		ip := *resp.IP.Ipaddress
-		if len(ip) == 0 {
-			return nil, fmt.Errorf("failed to acquire IP: project %q, network %q", project, network)
-		}
-
-		ips[i] = ip
+		ips[i] = *resp.IP.Ipaddress
 	}
 
 	return ips, nil
