@@ -1,8 +1,9 @@
-package metal
+package kubernetes
 
 import (
 	"encoding/json"
-	"k8s.io/api/core/v1"
+
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"

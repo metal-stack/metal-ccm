@@ -1,4 +1,4 @@
-package metal
+package loadbalancer
 
 import (
 	"fmt"

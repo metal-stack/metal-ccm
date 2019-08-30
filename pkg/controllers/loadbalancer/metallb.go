@@ -1,9 +1,19 @@
-package metal
+package loadbalancer
 
 import (
+	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	clientset "k8s.io/client-go/kubernetes"
+
 	"github.com/ghodss/yaml"
 )
 
+const (
+	metallbNamespace     = "metallb-system"
+	metallbConfigMapName = "config"
+	metallbConfigMapKey  = "config"
+)
+
+// MetalLBConfig is a struct containing a config for metallb
 type MetalLBConfig struct {
 	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
@@ -11,6 +21,19 @@ type MetalLBConfig struct {
 
 func newMetalLBConfig() *MetalLBConfig {
 	return &MetalLBConfig{}
+}
+
+// Write inserts or updates the Metal-LB config.
+func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
+	yaml, err := cfg.ToYAML()
+	if err != nil {
+		return nil
+	}
+
+	cm := make(map[string]string, 1)
+	cm[metallbConfigMapKey] = yaml
+
+	return kubernetes.ApplyConfigMap(client, metallbNamespace, metallbConfigMapName, cm)
 }
 
 // getPeer returns the peer of the given CIDR if existent.
@@ -29,9 +52,9 @@ func (cfg *MetalLBConfig) getPeer(cidr string) (*Peer, error) {
 	return nil, nil
 }
 
-// getAddressPool returns the address pool of the given network.
+// getOrCreateAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *MetalLBConfig) getAddressPool(networkID string) *AddressPool {
+func (cfg *MetalLBConfig) getOrCreateAddressPool(networkID string) *AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.NetworkID == networkID {
 			return pool
@@ -45,13 +68,9 @@ func (cfg *MetalLBConfig) getAddressPool(networkID string) *AddressPool {
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *MetalLBConfig) announceIPs(network string, ips []string) {
-	if len(ips) == 0 {
-		return
-	}
-
-	pool := cfg.getAddressPool(network)
-	pool.AppendIPs(ips...)
+func (cfg *MetalLBConfig) addIPToPool(network string, ip string) {
+	pool := cfg.getOrCreateAddressPool(network)
+	pool.AppendIP(ip)
 }
 
 // ToYAML returns this config in YAML format.

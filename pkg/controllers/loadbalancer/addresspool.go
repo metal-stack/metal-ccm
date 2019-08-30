@@ -1,4 +1,4 @@
-package metal
+package loadbalancer
 
 import "fmt"
 
@@ -28,16 +28,14 @@ func (pool *AddressPool) ContainsCIDR(cidr string) bool {
 	return false
 }
 
-func (pool *AddressPool) AppendIPs(ips ...string) {
-	for _, ip := range ips {
-		cidr := ip + "/32"
+func (pool *AddressPool) AppendIP(ip string) {
+	cidr := ip + "/32"
 
-		if pool.ContainsCIDR(cidr) {
-			continue
-		}
-
-		pool.CIDRs = append(pool.CIDRs, cidr)
+	if pool.ContainsCIDR(cidr) {
+		return
 	}
+
+	pool.CIDRs = append(pool.CIDRs, cidr)
 }
 
 func (pool *AddressPool) String() string {
