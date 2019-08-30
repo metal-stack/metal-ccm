@@ -78,3 +78,11 @@ func (cfg *MetalLBConfig) ToYAML() (string, error) {
 	}
 	return string(bb), nil
 }
+
+func (cfg *MetalLBConfig) StringAddressPools() string {
+	result := ""
+	for _, pool := range cfg.AddressPools {
+		result += pool.String() + " "
+	}
+	return result
+}

@@ -18,13 +18,14 @@ package metal
 
 import (
 	"fmt"
-	"k8s.io/api/core/v1"
-	"k8s.io/component-base/logs"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/metal-pod/metal-go"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/component-base/logs"
+
+	metalgo "github.com/metal-pod/metal-go"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -169,15 +170,17 @@ func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
 
 	nodes, err := r.getNodes()
 	if err != nil {
+		r.logger.Printf("error occurred: %v", err)
 		return err
 	}
 
 	machineTags, err := r.getMachineTags(nodes)
 	if err != nil {
+		r.logger.Printf("error occurred: %v", err)
 		return err
 	}
 
-	// klog.Infof("nodes: %s", nodes)
+	r.logger.Printf("sync machine tags for nodes: %v", nodes)
 	for _, n := range nodes {
 		nodeName := n.Name
 		r.logger.Printf("sync machine tags of %q", nodeName)

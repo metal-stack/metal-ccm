@@ -2,15 +2,16 @@ package metal
 
 import (
 	"context"
-	"github.com/google/uuid"
-	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
-	"k8s.io/api/core/v1"
-	"k8s.io/cloud-provider"
-	"k8s.io/component-base/logs"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/google/uuid"
+	metalgo "github.com/metal-pod/metal-go"
+	"github.com/metal-pod/metal-go/api/models"
+	v1 "k8s.io/api/core/v1"
+	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/component-base/logs"
 
 	"errors"
 	"fmt"
@@ -104,7 +105,7 @@ func nodeNames(nodes []*v1.Node) string {
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
-	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
+	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, nodeNames(nodes))
 
 	lbc.mtx.Lock()
 	defer lbc.mtx.Unlock()
@@ -113,7 +114,9 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 	if err != nil {
 		return nil, err
 	}
+	lbc.logger.Printf("EnsureLoadBalancer: acquired ips in external network %q for service %q: %v", externalNetworkID, service.Namespace, ips)
 	lbc.resctl.metallbConfig.announceIPs(externalNetworkID, ips)
+	lbc.logger.Printf("EnsureLoadBalancer: address pools were updated: %s", lbc.resctl.metallbConfig.StringAddressPools())
 
 	err = lbc.resctl.SyncMetalLBConfig(nodes)
 	if err != nil {

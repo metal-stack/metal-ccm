@@ -1,5 +1,7 @@
 package metal
 
+import "fmt"
+
 const (
 	bgpProtocol = "bgp"
 )
@@ -36,4 +38,8 @@ func (pool *AddressPool) AppendIPs(ips ...string) {
 
 		pool.CIDRs = append(pool.CIDRs, cidr)
 	}
+}
+
+func (pool *AddressPool) String() string {
+	return fmt.Sprintf("%s (%s): %v", pool.NetworkID, pool.Protocol, pool.CIDRs)
 }
