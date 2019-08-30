@@ -168,37 +168,25 @@ func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
 
 	nodes, err := r.getNodes()
 	if err != nil {
-		r.logger.Printf("error occurred: %v", err)
 		return err
 	}
 
 	machineTags, err := r.getMachineTags(nodes)
 	if err != nil {
-		r.logger.Printf("error occurred: %v", err)
 		return err
 	}
 
-	r.logger.Printf("sync machine tags for nodes: %v", nodes)
 	for _, n := range nodes {
 		nodeName := n.Name
-		r.logger.Printf("sync machine tags of %q", nodeName)
 		tags, ok := machineTags[nodeName]
 		if !ok {
 			r.logger.Printf("warning: node:%s not a machine", nodeName)
 			continue
 		}
-		r.logger.Printf("machine tags of %q: %v", nodeName, tags)
 		ll := r.buildLabels(tags)
-		r.logger.Printf("converted tags of %q: %v", nodeName, ll)
+		r.logger.Printf("updating node tags of %q: %v", nodeName, ll)
 
 		for key, value := range ll {
-			r.logger.Printf("machine label: %s value:%s", key, value)
-			_, ok := n.Labels[key]
-			if ok {
-				r.logger.Printf("skip existing node label:%s", key)
-				continue
-			}
-			r.logger.Printf("adding node label from metal: %s=%s to node:%s", key, value, nodeName)
 			n.Labels[key] = value
 		}
 	}
