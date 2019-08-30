@@ -3,6 +3,8 @@ package metal
 import (
 	"context"
 	"github.com/google/uuid"
+	metalgo "github.com/metal-pod/metal-go"
+	"github.com/metal-pod/metal-go/api/models"
 	"k8s.io/api/core/v1"
 	"k8s.io/cloud-provider"
 	"k8s.io/component-base/logs"
@@ -16,9 +18,8 @@ import (
 )
 
 const (
-	projectIDLabel = "project-id"
-	networkIDLabel = "metallb.universe.tf/address-pool"
-	ipCountLabel   = "ip-count"
+	projectIDTag = "machine.metal-pod.io/project-id"
+	ipCountTag   = "machine.metal-pod.io/ip-count"
 	// loadBalancerIDAnnotation is the annotation specifying the load-balancer ID
 	// used to enable fast retrievals of load-balancers from the API by UUID.
 	loadBalancerIDAnnotation = "kubernetes.metal.com/load-balancer-id"
@@ -103,19 +104,16 @@ func nodeNames(nodes []*v1.Node) string {
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
+	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
+
 	lbc.mtx.Lock()
 	defer lbc.mtx.Unlock()
 
-	lbc.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, nodeNames(nodes))
-	err := lbc.resctl.AddFirewallNetworkAddressPools(nodes[0])
+	externalNetworkID, ips, err := lbc.acquireIPs(nodes[0], service)
 	if err != nil {
 		return nil, err
 	}
-
-	err = lbc.acquireIPs(nodes[0])
-	if err != nil {
-		return nil, err
-	}
+	lbc.resctl.metallbConfig.announceIPs(externalNetworkID, ips)
 
 	err = lbc.resctl.SyncMetalLBConfig(nodes)
 	if err != nil {
@@ -141,33 +139,66 @@ func (lbc *loadBalancerController) EnsureLoadBalancer(ctx context.Context, clust
 	}, nil
 }
 
-func (lbc *loadBalancerController) acquireIPs(node *v1.Node) error {
-	tags := lbc.resources.machines.getMachines(node)[0].Tags
+func (lbc *loadBalancerController) acquireIPs(node *v1.Node, service *v1.Service) (string, []string, error) {
+	m := lbc.resources.machines.getMachines(node)[0]
+	tags := m.Tags
 
-	projectID := getTagValue(projectIDLabel, tags)
+	projectID := getTagValue(projectIDTag, tags)
 	if len(projectID) == 0 {
-		return nil
+		return "", nil, fmt.Errorf("machine %q has no %q tag", *m.ID, projectIDTag)
 	}
 
-	networkID := getTagValue(networkIDLabel, tags)
-	if len(networkID) == 0 {
-		return nil
-	}
-
-	ipCount := getTagValue(ipCountLabel, tags)
+	ipCount := getTagValue(ipCountTag, tags)
 	if len(ipCount) == 0 {
 		ipCount = "1"
 	}
 
 	count, err := strconv.Atoi(ipCount)
 	if err != nil {
-		return fmt.Errorf("service %q has invalid %q label: integer expected", node.Name, ipCountLabel)
+		return "", nil, fmt.Errorf("service %q has invalid %q label: integer expected", node.Name, ipCountTag)
 	}
 	if count < 1 {
-		return fmt.Errorf("service %q has invalid %q label: positive integer expected", node.Name, ipCountLabel)
+		return "", nil, fmt.Errorf("service %q has invalid %q label: positive integer expected", node.Name, ipCountTag)
 	}
 
-	return lbc.resctl.AcquireIPs(projectID, networkID, count)
+	if len(service.Spec.ExternalIPs) == 0 {
+		return lbc.acquireIPsFromDefaultExternalNetwork(m, projectID, count)
+	}
+
+	//TODO allow acquiring from explicit external networks
+	return "", nil, errors.New("not implemented")
+}
+
+func (lbc *loadBalancerController) acquireIPsFromDefaultExternalNetwork(machine *models.V1MachineResponse, project string, ipCount int) (string, []string, error) {
+	falseFlag := false
+	nfr := &metalgo.NetworkFindRequest{
+		PartitionID:  machine.Partition.ID,
+		PrivateSuper: &falseFlag,
+		Underlay:     &falseFlag,
+	}
+	resp, err := lbc.resources.client.NetworkFind(nfr)
+	if err != nil {
+		return "", nil, fmt.Errorf("unable to find external networks: %v", err)
+	}
+
+	externalNWs := resp.Networks
+	if len(externalNWs) == 0 {
+		return "", nil, fmt.Errorf("no external networks found: %v", err)
+	}
+
+	for _, enw := range externalNWs {
+		if !strings.HasPrefix(*enw.ID, "internet") {
+			continue
+		}
+
+		ips, err := lbc.resctl.AcquireIPs(project, *enw.ID, ipCount)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to acquire IPs: project %q, network %q, error %v", project, *enw.ID, err)
+		}
+		return *enw.ID, ips, nil
+	}
+
+	return "", nil, errors.New("no default external networks found")
 }
 
 // UpdateLoadBalancer updates hosts under the specified load balancer.

@@ -156,6 +156,8 @@ func (r *ResourcesController) getNodes() ([]*v1.Node, error) {
 
 // syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
 func (r *ResourcesController) syncMachineTagsToNodeLabels() error {
+	r.logger.Println("SyncMachineTagsToNodeLabels...")
+
 	nodes, err := r.getNodes()
 	if err != nil {
 		return err

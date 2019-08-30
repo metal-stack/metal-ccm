@@ -2,6 +2,7 @@ package metal
 
 import (
 	"io"
+	"log"
 	"os"
 
 	"github.com/metal-pod/metal-go"
@@ -26,6 +27,7 @@ type cloud struct {
 	resources              *resources
 	loadBalancerController *loadBalancerController
 	stop                   <-chan struct{}
+	logger                 *log.Logger
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
@@ -59,6 +61,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		zones:                  zones,
 		resources:              resources,
 		loadBalancerController: loadBalancerController,
+		logger:                 logger,
 	}, nil
 }
 
@@ -81,6 +84,10 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.stop = stop
 
 	resctl := NewResourcesController(c.resources, nodeInformer, clientset)
+	err := resctl.syncMachineTagsToNodeLabels()
+	if err != nil {
+		c.logger.Println(err.Error())
+	}
 	c.loadBalancerController.resctl = resctl
 	go resctl.Run(c.stop)
 }

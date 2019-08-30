@@ -7,7 +7,7 @@ const (
 type AddressPool struct {
 	NetworkID string   `json:"name" yaml:"name"`
 	Protocol  string   `json:"protocol" yaml:"protocol"`
-	IPs       []string `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	CIDRs     []string `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 }
 
 func NewBGPAddressPool(networkID string) *AddressPool {
@@ -17,9 +17,10 @@ func NewBGPAddressPool(networkID string) *AddressPool {
 	}
 }
 
-func (pool *AddressPool) ContainsIP(ip string) bool {
-	for _, IP := range pool.IPs {
-		if ip == IP {
+// Assumed only /32 addresses are used
+func (pool *AddressPool) ContainsCIDR(cidr string) bool {
+	for _, CIDR := range pool.CIDRs {
+		if cidr == CIDR {
 			return true
 		}
 	}
@@ -28,10 +29,12 @@ func (pool *AddressPool) ContainsIP(ip string) bool {
 
 func (pool *AddressPool) AppendIPs(ips ...string) {
 	for _, ip := range ips {
-		if pool.ContainsIP(ip) {
+		cidr := ip + "/32"
+
+		if pool.ContainsCIDR(cidr) {
 			continue
 		}
 
-		pool.IPs = append(pool.IPs, ip)
+		pool.CIDRs = append(pool.CIDRs, cidr)
 	}
 }

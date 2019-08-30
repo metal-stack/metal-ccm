@@ -62,6 +62,10 @@ func (cfg *MetalLBConfig) announceMachineIPs(machine *models.V1MachineResponse) 
 
 // announceIPs appends the given IPs to the network address pools.
 func (cfg *MetalLBConfig) announceIPs(network string, ips []string) {
+	if len(ips) == 0 {
+		return
+	}
+
 	pool := cfg.getAddressPool(network)
 	pool.AppendIPs(ips...)
 }

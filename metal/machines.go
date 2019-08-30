@@ -250,5 +250,8 @@ func getTestMachine(client *metalgo.Driver) (*metalgo.MachineGetResponse, error)
 	if err != nil {
 		return nil, err
 	}
+	m.Machine.Tags = []string{
+		fmt.Sprintf("%s=test", projectIDTag),
+	}
 	return m, nil
 }

@@ -23,14 +23,14 @@ func (r *ResourcesController) DeleteIPs(ips ...string) error {
 	return nil
 }
 
-func (r *ResourcesController) AcquireIPs(project, network string, count int) error {
+func (r *ResourcesController) AcquireIPs(project, network string, count int) ([]string, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &project,
 		NetworkID: &network,
 	}
 	resp, err := r.resources.client.IPFind(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ips := make([]string, len(resp.IPs))
@@ -43,7 +43,7 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) err
 	for i := len(resp.IPs); i < count; i++ {
 		name, err := uuid.NewUUID()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		req := &metalgo.IPAcquireRequest{
@@ -51,14 +51,17 @@ func (r *ResourcesController) AcquireIPs(project, network string, count int) err
 			Networkid: network,
 			Name:      fmt.Sprintf("%s%s", prefix, name.String()[:5]),
 		}
-		ip, err := r.resources.client.IPAcquire(req)
+		resp, err := r.resources.client.IPAcquire(req)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		ips[i] = *ip.IP.Ipaddress
+		ip := *resp.IP.Ipaddress
+		if len(ip) == 0 {
+			return nil, fmt.Errorf("failed to acquire IP: project %q, network %q", project, network)
+		}
+
+		ips[i] = ip
 	}
 
-	r.metallbConfig.announceIPs(network, ips)
-
-	return nil
+	return ips, nil
 }
