@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/metal-pod/metal-go/api/models"
 	"net"
-	"strconv"
 )
 
 type MatchExpression struct {
@@ -18,8 +17,8 @@ type NodeSelector struct {
 }
 
 type Peer struct {
-	MyASN         string          `json:"my-asn" yaml:"my-asn"`
-	ASN           string          `json:"peer-asn" yaml:"peer-asn"`
+	MyASN         int64           `json:"my-asn" yaml:"my-asn"`
+	ASN           int64           `json:"peer-asn" yaml:"peer-asn"`
 	Address       string          `json:"peer-address" yaml:"peer-address"`
 	NodeSelectors []*NodeSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
@@ -52,7 +51,7 @@ func NewPeer(machine *models.V1MachineResponse, cidr string) (*Peer, error) {
 		return nil, err
 	}
 
-	asn := strconv.FormatInt(*alloc.Networks[0].Asn, 10)
+	asn := *alloc.Networks[0].Asn
 
 	return &Peer{
 		MyASN:   asn,
