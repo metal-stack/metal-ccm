@@ -76,10 +76,10 @@ func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
 			continue
 		}
 
-		annotations := node.GetAnnotations()
-		asnString, ok := annotations[constants.ASNNodeAnnotation]
+		labels := node.GetLabels()
+		asnString, ok := labels[constants.ASNNodeLabel]
 		if !ok {
-			return fmt.Errorf("node %q misses annotation: %s", node.GetName(), constants.ASNNodeAnnotation)
+			return fmt.Errorf("node %q misses label: %s", node.GetName(), constants.ASNNodeLabel)
 		}
 		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {

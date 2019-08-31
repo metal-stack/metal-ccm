@@ -10,7 +10,7 @@ const (
 	ProviderName = "metal"
 
 	IPCountServiceAnnotation = "machine.metal-pod.io/ip-count"
-	ASNNodeAnnotation        = "machine.metal-pod.io/network.primary.asn"
+	ASNNodeLabel             = "machine.metal-pod.io/network.primary.asn"
 
 	IPPrefix = "metallb-"
 )
