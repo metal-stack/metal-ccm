@@ -122,24 +122,14 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 	networkMap := metal.NetworksByID(networks)
 
 	config := newMetalLBConfig()
-	for _, ip := range ips {
-		nw, ok := networkMap[*ip.Networkid]
-		if !ok {
-			continue
-		}
-		// we do not want IPs in networks where the parents are private or underlay networks
-		if nw.Parentnetworkid != nil && *nw.Parentnetworkid != "" {
-			parent, ok := networkMap[*nw.Parentnetworkid]
-			if !ok {
-				continue
-			}
-			if *parent.Privatesuper || *parent.Underlay {
-				continue
-			}
-		}
-		config.addIPToPool(*ip.Networkid, *ip.Ipaddress)
+	err = config.CalculateConfig(ips, networkMap, nodes)
+	if err != nil {
+		return nil, err
 	}
-	config.Write(l.K8sClient)
+	err = config.Write(l.K8sClient)
+	if err != nil {
+		return nil, err
+	}
 
 	lbStatusIngress := []v1.LoadBalancerIngress{}
 	for _, ip := range newIPs {

@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"fmt"
-	"github.com/metal-pod/metal-go/api/models"
 	"net"
 )
 
@@ -23,21 +22,7 @@ type Peer struct {
 	NodeSelectors []*NodeSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-func NewPeer(machine *models.V1MachineResponse, cidr string) (*Peer, error) {
-	if machine.Allocation == nil {
-		return nil, fmt.Errorf("machine %q is not allocated", *machine.ID)
-	}
-
-	alloc := machine.Allocation
-	hostname := *alloc.Hostname
-	if len(hostname) == 0 {
-		return nil, fmt.Errorf("machine %q has no allocated hostname", *machine.ID)
-	}
-
-	if len(alloc.Networks) == 0 {
-		return nil, fmt.Errorf("machine %q has no allocated networks", *machine.ID)
-	}
-
+func NewPeer(hostname string, asn int64, cidr string) (*Peer, error) {
 	matchExpression := &MatchExpression{
 		Key:      "kubernetes.io/hostname",
 		Operator: "In",
@@ -50,8 +35,6 @@ func NewPeer(machine *models.V1MachineResponse, cidr string) (*Peer, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	asn := *alloc.Networks[0].Asn
 
 	return &Peer{
 		MyASN:   asn,

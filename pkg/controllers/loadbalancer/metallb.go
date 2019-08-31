@@ -1,8 +1,15 @@
 package loadbalancer
 
 import (
+	"fmt"
+	"strconv"
+
+	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+
+	"github.com/metal-pod/metal-go/api/models"
 
 	"github.com/ghodss/yaml"
 )
@@ -21,6 +28,72 @@ type MetalLBConfig struct {
 
 func newMetalLBConfig() *MetalLBConfig {
 	return &MetalLBConfig{}
+}
+
+// CalculateConfig computes the metallb config from given parameter input.
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
+	err := cfg.computeAddressPools(ips, nws)
+	if err != nil {
+		return err
+	}
+	err = cfg.computePeers(nodes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse) error {
+	for _, ip := range ips {
+		nw, ok := nws[*ip.Networkid]
+		if !ok {
+			continue
+		}
+		// we do not want IPs in networks where the parents are private or underlay networks
+		if nw.Parentnetworkid != nil && *nw.Parentnetworkid != "" {
+			parent, ok := nws[*nw.Parentnetworkid]
+			if !ok {
+				continue
+			}
+			if *parent.Privatesuper || *parent.Underlay {
+				continue
+			}
+		}
+		cfg.addIPToPool(*ip.Networkid, *ip.Ipaddress)
+	}
+	return nil
+}
+
+func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
+	for _, node := range nodes {
+		podCIDR := node.Spec.PodCIDR
+		peer, err := cfg.getPeer(podCIDR)
+		if err != nil {
+			return err
+		}
+
+		if peer != nil {
+			continue
+		}
+
+		annotations := node.GetAnnotations()
+		asnString, ok := annotations[constants.ASNNodeAnnotation]
+		if !ok {
+			return fmt.Errorf("node %q misses annotation: %s", node.GetName(), constants.ASNNodeAnnotation)
+		}
+		asn, err := strconv.ParseInt(asnString, 10, 64)
+		if err != nil {
+			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
+		}
+
+		peer, err = NewPeer(node.GetName(), asn, podCIDR)
+		if err != nil {
+			return err
+		}
+
+		cfg.Peers = append(cfg.Peers, peer)
+	}
+	return nil
 }
 
 // Write inserts or updates the Metal-LB config.
