@@ -46,7 +46,7 @@ func (h *Housekeeper) SyncMachineTagsToNodeLabels() error {
 		Jitter:   1.0,
 	}
 	for _, node := range nodes {
-		err := kubernetes.UpdateNodeWithBackoff(h.K8sClient, &node, updateNodeSpecBackoff)
+		err := kubernetes.UpdateNodeWithBackoff(h.K8sClient, node, updateNodeSpecBackoff)
 		if err != nil {
 			return err
 		}
@@ -56,8 +56,8 @@ func (h *Housekeeper) SyncMachineTagsToNodeLabels() error {
 }
 
 // getMachineTags returns all machine tags within the shoot.
-func (h *Housekeeper) getMachineTags(nodes []v1.Node) (map[string][]string, error) {
-	machines, err := metal.GetMachinesFromNodes(h.client, nodes...)
+func (h *Housekeeper) getMachineTags(nodes []*v1.Node) (map[string][]string, error) {
+	machines, err := metal.GetMachinesFromNodes(h.client, nodes)
 	if err != nil {
 		return nil, err
 	}

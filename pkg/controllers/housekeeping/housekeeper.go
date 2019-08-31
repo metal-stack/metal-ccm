@@ -6,8 +6,8 @@ import (
 
 	metalgo "github.com/metal-pod/metal-go"
 	v1 "k8s.io/api/core/v1"
-	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/apimachinery/pkg/fields"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/component-base/logs"
 )

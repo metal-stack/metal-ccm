@@ -26,8 +26,6 @@ const (
 	loadBalancerIDAnnotation = "kubernetes.metal.com/load-balancer-id"
 )
 
-var errLBNotFound = errors.New("loadBalancerController not found")
-
 type LoadBalancerController struct {
 	client      *metalgo.Driver
 	partitionID string
@@ -98,9 +96,6 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		return nil, err
 	}
 
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
-
 	var newIPs []string
 	if currentIPCount < wantedIPCount {
 		newIPs, err = l.acquireIPs(service, wantedIPCount-currentIPCount)
@@ -109,24 +104,10 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		}
 	}
 
-	// TODO: For now we just add all IPs of this project to the metallb config
-	// this will become more controllable when announceable ips are implemented in network entities of the metal-api
-	ips, err := metal.FindProjectIPs(l.client, l.projectID)
-	if err != nil {
-		return nil, fmt.Errorf("could not find ips of this project: %v", err)
-	}
-	networks, err := metal.ListNetworks(l.client)
-	if err != nil {
-		return nil, fmt.Errorf("could not list networks: %v", err)
-	}
-	networkMap := metal.NetworksByID(networks)
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
 
-	config := newMetalLBConfig()
-	err = config.CalculateConfig(ips, networkMap, nodes)
-	if err != nil {
-		return nil, err
-	}
-	err = config.Write(l.K8sClient)
+	err = l.updateLoadBalancerConfig(nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -206,16 +187,36 @@ func (l *LoadBalancerController) getExternalNetworkID() (string, error) {
 	return "", errors.New("no default external network(s) found")
 }
 
+func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) error {
+	// TODO: For now we just add all IPs of this project to the metallb config
+	// this will become more controllable when announceable ips are implemented in network entities of the metal-api
+	ips, err := metal.FindProjectIPs(l.client, l.projectID)
+	if err != nil {
+		return fmt.Errorf("could not find ips of this project: %v", err)
+	}
+	networks, err := metal.ListNetworks(l.client)
+	if err != nil {
+		return fmt.Errorf("could not list networks: %v", err)
+	}
+	networkMap := metal.NetworksByID(networks)
+
+	config := newMetalLBConfig()
+	err = config.CalculateConfig(ips, networkMap, nodes)
+	if err != nil {
+		return err
+	}
+	err = config.Write(l.K8sClient)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateLoadBalancer updates hosts under the specified load balancer.
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	l.logger.Printf("UpdateLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q\n", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(nodes))
-
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
-
-	return fmt.Errorf("updating load balancer not yet supported")
+	return nil
 }
 
 // EnsureLoadBalancerDeleted deletes the cluster load balancer if it
@@ -229,11 +230,24 @@ func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, cluster
 func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
 	l.logger.Printf("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
 
+	nodes, err := kubernetes.GetNodes(l.K8sClient)
+	if err != nil {
+		return err
+	}
+
 	for _, ingress := range service.Status.LoadBalancer.Ingress {
 		err := metal.DeleteIP(l.client, ingress.IP)
 		if err != nil {
-			l.logger.Printf("unable to delete ip: %s", ingress.IP)
+			return fmt.Errorf("unable to delete ip: %s", ingress.IP)
 		}
+	}
+
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+
+	err = l.updateLoadBalancerConfig(nodes)
+	if err != nil {
+		return err
 	}
 
 	return nil
