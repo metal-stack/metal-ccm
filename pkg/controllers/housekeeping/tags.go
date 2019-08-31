@@ -11,8 +11,8 @@ import (
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
 )
 
-// syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
-func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
+// SyncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
+func (h *Housekeeper) SyncMachineTagsToNodeLabels() error {
 	h.logger.Println("Start syncing machine tags to node labels")
 
 	nodes, err := kubernetes.GetNodes(h.K8sClient)

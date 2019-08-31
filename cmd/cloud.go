@@ -83,6 +83,10 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	housekeeper := housekeeping.New(client, stop)
 	housekeeper.K8sClient = k8sClient
+	err := housekeeper.SyncMachineTagsToNodeLabels()
+	if err != nil {
+		panic(errors.Wrap(err, "unable to sync machine tags on controller initialization, which is required to succeed as otherwise load balacing will not work"))
+	}
 
 	c.instances.K8sClient = k8sClient
 	c.loadBalancer.K8sClient = k8sClient

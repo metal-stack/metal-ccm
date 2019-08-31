@@ -34,5 +34,5 @@ func New(metalClient *metalgo.Driver, stop <-chan struct{}) *Housekeeper {
 }
 
 func (h *Housekeeper) Run() {
-	h.ticker.Start("tags syncer", controllerSyncTagsPeriod, h.stop, h.syncMachineTagsToNodeLabels)
+	h.ticker.Start("tags syncer", controllerSyncTagsPeriod, h.stop, h.SyncMachineTagsToNodeLabels)
 }
