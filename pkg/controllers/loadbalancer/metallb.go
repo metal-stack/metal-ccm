@@ -49,13 +49,16 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 		if !ok {
 			continue
 		}
-		// we do not want IPs in networks where the parents are private or underlay networks
+		if *nw.Underlay {
+			continue
+		}
+		// we do not want IPs from networks where the parent networks are private
 		if nw.Parentnetworkid != nil && *nw.Parentnetworkid != "" {
 			parent, ok := nws[*nw.Parentnetworkid]
 			if !ok {
 				continue
 			}
-			if *parent.Privatesuper || *parent.Underlay {
+			if *parent.Privatesuper {
 				continue
 			}
 		}

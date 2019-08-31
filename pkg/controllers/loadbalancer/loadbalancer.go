@@ -131,7 +131,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		return nil, err
 	}
 
-	lbStatusIngress := []v1.LoadBalancerIngress{}
+	lbStatusIngress := service.Status.LoadBalancer.Ingress
 	for _, ip := range newIPs {
 		lbStatusIngress = append(lbStatusIngress, v1.LoadBalancerIngress{IP: ip})
 	}
