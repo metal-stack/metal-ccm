@@ -2,11 +2,8 @@ package instances
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"strings"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
 
 	metalgo "github.com/metal-pod/metal-go"
@@ -88,15 +85,6 @@ func (i *InstancesController) InstanceID(_ context.Context, nodeName types.NodeN
 	machine, err := metal.GetMachineFromNode(i.client, nodeName)
 	if err != nil {
 		return "", err
-	}
-
-	i.logger.Printf("InstanceID: nodeName %q, machineID %q", nodeName, *machine.ID)
-
-	prefix := fmt.Sprintf("%s://", constants.ProviderName)
-	if !strings.HasPrefix(*machine.ID, prefix) {
-		instanceID := fmt.Sprintf("%s%s", prefix, *machine.ID)
-		i.logger.Printf("InstanceID: nodeName %q, machineID %q, instanceID %q", nodeName, *machine.ID, instanceID)
-		return instanceID, nil
 	}
 
 	return *machine.ID, nil
