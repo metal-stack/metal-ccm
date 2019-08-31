@@ -33,7 +33,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 			continue
 		}
 		labels := h.buildLabelsFromMachineTags(tags)
-		h.logger.Printf("updating node tags of %q: %v", nodeName, labels)
+		h.logger.Printf("ensuring node tags of %q: %v", nodeName, labels)
 
 		for key, value := range labels {
 			n.Labels[key] = value
