@@ -127,9 +127,15 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		if !ok {
 			continue
 		}
-		// we do not want IPs of private or underlay networks
-		if *nw.Privatesuper || *nw.Underlay {
-			continue
+		// we do not want IPs in networks where the parents are private or underlay networks
+		if nw.Parentnetworkid != nil && *nw.Parentnetworkid != "" {
+			parent, ok := networkMap[*nw.Parentnetworkid]
+			if !ok {
+				continue
+			}
+			if *parent.Privatesuper || *parent.Underlay {
+				continue
+			}
 		}
 		config.addIPToPool(*ip.Networkid, *ip.Ipaddress)
 	}
