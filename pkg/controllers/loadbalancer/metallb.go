@@ -68,6 +68,7 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 }
 
 func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
+	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, node := range nodes {
 		podCIDR := node.Spec.PodCIDR
 		peer, err := cfg.getPeer(podCIDR)

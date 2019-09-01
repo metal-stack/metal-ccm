@@ -81,10 +81,6 @@ func (l *LoadBalancerController) lbName(service *v1.Service) string {
 func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	l.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(nodes))
 
-	if len(nodes) == 0 {
-		return nil, fmt.Errorf("EnsureLoadBalancer: unable to satisfy load balancer request as there is no node yet in the cluster")
-	}
-
 	var currentIPs []string
 	for _, ingress := range service.Status.LoadBalancer.Ingress {
 		currentIPs = append(currentIPs, ingress.IP)
@@ -120,6 +116,55 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 	return &v1.LoadBalancerStatus{
 		Ingress: lbStatusIngress,
 	}, nil
+}
+
+// UpdateLoadBalancer updates hosts under the specified load balancer.
+// Neither 'service' nor 'nodes' are modified.
+// Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
+func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+
+	err := l.updateLoadBalancerConfig(nodes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// EnsureLoadBalancerDeleted deletes the cluster load balancer if it
+// exists, returning nil if the load balancer specified either didn't exist or
+// was successfully deleted.
+// This construction is useful because many cloud providers' load balancers
+// have multiple underlying components, meaning a Get could say that the LB
+// doesn't exist even if some part of it is still laying around.
+// Parameter 'service' is not modified.
+// Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
+func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
+	l.logger.Printf("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
+
+	nodes, err := kubernetes.GetNodes(l.K8sClient)
+	if err != nil {
+		return err
+	}
+
+	for _, ingress := range service.Status.LoadBalancer.Ingress {
+		err := metal.DeleteIP(l.client, ingress.IP)
+		if err != nil {
+			return fmt.Errorf("unable to delete ip: %s", ingress.IP)
+		}
+	}
+
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+
+	err = l.updateLoadBalancerConfig(nodes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func extractIPCountAnnotation(service *v1.Service) (int, error) {
@@ -209,46 +254,5 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) erro
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-// UpdateLoadBalancer updates hosts under the specified load balancer.
-// Neither 'service' nor 'nodes' are modified.
-// Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
-func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	return nil
-}
-
-// EnsureLoadBalancerDeleted deletes the cluster load balancer if it
-// exists, returning nil if the load balancer specified either didn't exist or
-// was successfully deleted.
-// This construction is useful because many cloud providers' load balancers
-// have multiple underlying components, meaning a Get could say that the LB
-// doesn't exist even if some part of it is still laying around.
-// Parameter 'service' is not modified.
-// Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
-func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
-	l.logger.Printf("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
-
-	nodes, err := kubernetes.GetNodes(l.K8sClient)
-	if err != nil {
-		return err
-	}
-
-	for _, ingress := range service.Status.LoadBalancer.Ingress {
-		err := metal.DeleteIP(l.client, ingress.IP)
-		if err != nil {
-			return fmt.Errorf("unable to delete ip: %s", ingress.IP)
-		}
-	}
-
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
-
-	err = l.updateLoadBalancerConfig(nodes)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
