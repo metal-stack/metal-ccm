@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -86,6 +87,11 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.instances.K8sClient = k8sClient
 	c.loadBalancer.K8sClient = k8sClient
 	c.zones.K8sClient = k8sClient
+
+	_, err := c.loadBalancer.GetPeer()
+	if err != nil {
+		fmt.Printf("error:%v", err)
+	}
 
 	go housekeeper.Run()
 }
