@@ -81,8 +81,7 @@ func init() {
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager-nodelister")
 
-	housekeeper := housekeeping.New(client, stop)
-	housekeeper.K8sClient = k8sClient
+	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient)
 
 	c.instances.K8sClient = k8sClient
 	c.loadBalancer.K8sClient = k8sClient

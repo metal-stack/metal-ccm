@@ -15,7 +15,7 @@ import (
 func (h *Housekeeper) SyncMachineTagsToNodeLabels() error {
 	h.logger.Println("Start syncing machine tags to node labels")
 
-	nodes, err := kubernetes.GetNodes(h.K8sClient)
+	nodes, err := kubernetes.GetNodes(h.k8sClient)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (h *Housekeeper) SyncMachineTagsToNodeLabels() error {
 		Jitter:   1.0,
 	}
 	for _, node := range nodes {
-		err := kubernetes.UpdateNodeWithBackoff(h.K8sClient, node, updateNodeSpecBackoff)
+		err := kubernetes.UpdateNodeWithBackoff(h.k8sClient, node, updateNodeSpecBackoff)
 		if err != nil {
 			return err
 		}

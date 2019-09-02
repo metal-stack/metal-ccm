@@ -100,10 +100,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		}
 	}
 
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
-
-	err = l.updateLoadBalancerConfig(nodes)
+	err = l.UpdateMetalLBConfig(nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -122,15 +119,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
-
-	err := l.updateLoadBalancerConfig(nodes)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return l.UpdateMetalLBConfig(nodes)
 }
 
 // EnsureLoadBalancerDeleted deletes the cluster load balancer if it
@@ -156,14 +145,18 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		}
 	}
 
+	return l.UpdateMetalLBConfig(nodes)
+}
+
+// UpdateMetalLBConfig the metallb config for given nodes
+func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []*v1.Node) error {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 
-	err = l.updateLoadBalancerConfig(nodes)
+	err := l.updateLoadBalancerConfig(nodes)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
