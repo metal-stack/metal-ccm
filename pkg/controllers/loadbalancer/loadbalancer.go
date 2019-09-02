@@ -40,13 +40,17 @@ func New(client *metalgo.Driver, partitionID, projectID string) *LoadBalancerCon
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
-	return &LoadBalancerController{
+	lbc := &LoadBalancerController{
 		client:      client,
 		logger:      logger,
 		partitionID: partitionID,
 		projectID:   projectID,
 		mtx:         &sync.Mutex{},
 	}
+
+	lbc.getPeer()
+
+	return lbc
 }
 
 // GetLoadBalancer returns whether the specified load balancer exists, and if so, what its status is.
@@ -248,4 +252,21 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) erro
 		return err
 	}
 	return nil
+}
+
+func (l *LoadBalancerController) getPeer() (string, error) {
+
+	ipamblocks := "/apis/crd.projectcalico.org/v1/ipamblocks/"
+
+	result := l.K8sClient.CoreV1().RESTClient().Get().AbsPath(ipamblocks).Do()
+	if result.Error() != nil {
+		return "", result.Error()
+	}
+
+	obj, err := result.Get()
+	if err != nil {
+		return "", err
+	}
+	l.logger.Printf("got ipamblocks:%v", obj)
+	return "", nil
 }
