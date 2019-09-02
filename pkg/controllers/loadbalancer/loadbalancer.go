@@ -48,7 +48,10 @@ func New(client *metalgo.Driver, partitionID, projectID string) *LoadBalancerCon
 		mtx:         &sync.Mutex{},
 	}
 
-	lbc.getPeer()
+	_, err := lbc.getPeer()
+	if err != nil {
+		logger.Printf("error:%v", err)
+	}
 
 	return lbc
 }
@@ -258,7 +261,12 @@ func (l *LoadBalancerController) getPeer() (string, error) {
 
 	ipamblocks := "/apis/crd.projectcalico.org/v1/ipamblocks/"
 
-	result := l.K8sClient.CoreV1().RESTClient().Get().AbsPath(ipamblocks).Do()
+	request := l.K8sClient.CoreV1().RESTClient().Get()
+	if request == nil {
+		return "", fmt.Errorf("request is nil")
+	}
+
+	result := request.AbsPath(ipamblocks).Do()
 	if result.Error() != nil {
 		return "", result.Error()
 	}
