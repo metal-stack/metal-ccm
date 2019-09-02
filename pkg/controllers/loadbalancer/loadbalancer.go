@@ -15,6 +15,7 @@ import (
 
 	metalgo "github.com/metal-pod/metal-go"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/component-base/logs"
@@ -27,12 +28,13 @@ const (
 )
 
 type LoadBalancerController struct {
-	client      *metalgo.Driver
-	partitionID string
-	projectID   string
-	logger      *log.Logger
-	K8sClient   clientset.Interface
-	mtx         *sync.Mutex
+	client           *metalgo.Driver
+	partitionID      string
+	projectID        string
+	logger           *log.Logger
+	K8sClient        clientset.Interface
+	DynamicK8sClient dynamic.Interface
+	mtx              *sync.Mutex
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
@@ -40,15 +42,13 @@ func New(client *metalgo.Driver, partitionID, projectID string) *LoadBalancerCon
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
-	lbc := &LoadBalancerController{
+	return &LoadBalancerController{
 		client:      client,
 		logger:      logger,
 		partitionID: partitionID,
 		projectID:   projectID,
 		mtx:         &sync.Mutex{},
 	}
-
-	return lbc
 }
 
 // GetLoadBalancer returns whether the specified load balancer exists, and if so, what its status is.
@@ -241,7 +241,7 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) erro
 	networkMap := metal.NetworksByID(networks)
 
 	config := newMetalLBConfig()
-	err = config.CalculateConfig(ips, networkMap, nodes)
+	err = config.CalculateConfig(l.DynamicK8sClient, ips, networkMap, nodes)
 	if err != nil {
 		return err
 	}
@@ -250,26 +250,4 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) erro
 		return err
 	}
 	return nil
-}
-
-func (l *LoadBalancerController) GetPeer() (string, error) {
-
-	ipamblocks := "/apis/crd.projectcalico.org/v1/ipamblocks/"
-
-	request := l.K8sClient.CoreV1().RESTClient().Get()
-	if request == nil {
-		return "", fmt.Errorf("request is nil")
-	}
-
-	result := request.AbsPath(ipamblocks).Do()
-	if result.Error() != nil {
-		return "", result.Error()
-	}
-
-	obj, err := result.Get()
-	if err != nil {
-		return "", err
-	}
-	l.logger.Printf("got ipamblocks:%v", obj)
-	return "", nil
 }

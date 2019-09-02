@@ -7,6 +7,7 @@ import (
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 
 	"github.com/metal-pod/metal-go/api/models"
@@ -31,12 +32,12 @@ func newMetalLBConfig() *MetalLBConfig {
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(client dynamic.Interface, ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
 	}
-	err = cfg.computePeers(nodes)
+	err = cfg.computePeers(client, nodes)
 	if err != nil {
 		return err
 	}
@@ -67,19 +68,9 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 	return nil
 }
 
-func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) computePeers(client dynamic.Interface, nodes []*v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, node := range nodes {
-		podCIDR := node.Spec.PodCIDR
-		peer, err := cfg.getPeer(podCIDR)
-		if err != nil {
-			return err
-		}
-
-		if peer != nil {
-			continue
-		}
-
 		labels := node.GetLabels()
 		asnString, ok := labels[constants.ASNNodeLabel]
 		if !ok {
@@ -90,7 +81,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
 		}
 
-		peer, err = NewPeer(node.GetName(), asn, podCIDR)
+		peer, err := newPeer(client, node.GetName(), asn)
 		if err != nil {
 			return err
 		}
@@ -111,22 +102,6 @@ func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 	cm[metallbConfigMapKey] = yaml
 
 	return kubernetes.ApplyConfigMap(client, metallbNamespace, metallbConfigMapName, cm)
-}
-
-// getPeer returns the peer of the given CIDR if existent.
-func (cfg *MetalLBConfig) getPeer(cidr string) (*Peer, error) {
-	ip, err := computeGateway(cidr)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range cfg.Peers {
-		if p.Address == ip {
-			return p, nil
-		}
-	}
-
-	return nil, nil
 }
 
 // getOrCreateAddressPool returns the address pool of the given network.

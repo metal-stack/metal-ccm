@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/metal-pod/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 
+	"k8s.io/client-go/dynamic"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
@@ -80,18 +80,15 @@ func init() {
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
-	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager-nodelister")
+	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager")
+	dynamicClient := dynamic.NewForConfigOrDie(clientBuilder.ConfigOrDie("cloud-controller-manager"))
 
 	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient)
 
 	c.instances.K8sClient = k8sClient
 	c.loadBalancer.K8sClient = k8sClient
+	c.loadBalancer.DynamicK8sClient = dynamicClient
 	c.zones.K8sClient = k8sClient
-
-	_, err := c.loadBalancer.GetPeer()
-	if err != nil {
-		fmt.Printf("error:%v", err)
-	}
 
 	go housekeeper.Run()
 }

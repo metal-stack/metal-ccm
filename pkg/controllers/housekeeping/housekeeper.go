@@ -64,7 +64,6 @@ func (h *Housekeeper) runNodeWatcher() {
 				if err != nil {
 					h.logger.Printf("unable to fetch nodes:%v", err)
 				} else {
-
 					h.lbController.UpdateMetalLBConfig(nodes)
 				}
 			},

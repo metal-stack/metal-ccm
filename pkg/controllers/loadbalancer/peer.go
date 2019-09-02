@@ -1,8 +1,13 @@
 package loadbalancer
 
 import (
+	"encoding/json"
 	"fmt"
-	"net"
+	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 type MatchExpression struct {
@@ -22,7 +27,16 @@ type Peer struct {
 	NodeSelectors []*NodeSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-func NewPeer(hostname string, asn int64, cidr string) (*Peer, error) {
+type IPAMBlock struct {
+	Spec IPAMBlockSpec `json:"spec"`
+}
+
+type IPAMBlockSpec struct {
+	Affinity string `json:"affinity"`
+	Cidr     string `json:"cidr"`
+}
+
+func newPeer(client dynamic.Interface, hostname string, asn int64) (*Peer, error) {
 	matchExpression := &MatchExpression{
 		Key:      "kubernetes.io/hostname",
 		Operator: "In",
@@ -31,7 +45,7 @@ func NewPeer(hostname string, asn int64, cidr string) (*Peer, error) {
 		},
 	}
 
-	gateway, err := computeGateway(cidr)
+	address, err := getPeerAddress(client, hostname)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +53,7 @@ func NewPeer(hostname string, asn int64, cidr string) (*Peer, error) {
 	return &Peer{
 		MyASN:   asn,
 		ASN:     asn,
-		Address: gateway,
+		Address: address,
 		NodeSelectors: []*NodeSelector{
 			{
 				MatchExpressions: []*MatchExpression{
@@ -50,17 +64,30 @@ func NewPeer(hostname string, asn int64, cidr string) (*Peer, error) {
 	}, nil
 }
 
-func computeGateway(cidr string) (string, error) {
-	ip, _, err := net.ParseCIDR(cidr)
+func getPeerAddress(client dynamic.Interface, hostname string) (string, error) {
+	resource := client.Resource(schema.GroupVersionResource{Group: "crd.projectcalico.org", Version: "v1", Resource: "ipamblocks"})
+
+	ipamBlocksRaw, err := resource.List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 
-	ip = ip.To4()
-	if ip == nil {
-		return "", fmt.Errorf("cannot determine IP of CIDR %q", cidr)
-	}
+	for _, ipamBlockRaw := range ipamBlocksRaw.Items {
+		raw, err := json.Marshal(ipamBlockRaw.Object)
+		if err != nil {
+			return "", err
+		}
 
-	ip[3]++
-	return ip.String(), nil
+		var ipamBlock IPAMBlock
+		err = json.Unmarshal(raw, &ipamBlock)
+		if err != nil {
+			return "", err
+		}
+
+		if strings.HasSuffix(ipamBlock.Spec.Affinity, hostname) {
+			cidr := ipamBlock.Spec.Cidr
+			return cidr[:strings.Index(cidr, "/")], nil
+		}
+	}
+	return "", fmt.Errorf("peer address for host %q could not be determined from calico IPAM blocks", hostname)
 }
