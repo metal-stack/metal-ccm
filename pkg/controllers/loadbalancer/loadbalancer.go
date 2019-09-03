@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -79,26 +78,29 @@ func (l *LoadBalancerController) lbName(service *v1.Service) string {
 func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	l.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(nodes))
 
+	// FIXME implement based on our findings/decisions.
+	fixedIP := service.Spec.LoadBalancerIP
+	if fixedIP != "" {
+		l.logger.Printf("fixed ip:%s requested, ignoring for now.", fixedIP)
+		return nil, nil
+	}
+
 	l.ipAllocateMutex.Lock()
 	defer l.ipAllocateMutex.Unlock()
 
-	var currentIPs []string
-	for _, ingress := range service.Status.LoadBalancer.Ingress {
-		currentIPs = append(currentIPs, ingress.IP)
-	}
+	ingressStatus := service.Status.LoadBalancer.Ingress
 
-	currentIPCount := len(currentIPs)
-	wantedIPCount, err := extractIPCountAnnotation(service)
-	if err != nil {
-		return nil, err
-	}
-
-	var newIPs []string
-	if currentIPCount < wantedIPCount {
-		newIPs, err = l.acquireIPs(service, wantedIPCount-currentIPCount)
+	// if we already acquired an IP, we write it into the service status
+	// we do not acquire another IP if there is already an IP present in the service status
+	currentIPCount := len(ingressStatus)
+	var err error
+	var ip string
+	if currentIPCount < 1 {
+		ip, err = l.acquireIP(service)
 		if err != nil {
 			return nil, err
 		}
+		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 	}
 
 	err = l.UpdateMetalLBConfig(nodes)
@@ -106,13 +108,8 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		return nil, err
 	}
 
-	lbStatusIngress := service.Status.LoadBalancer.Ingress
-	for _, ip := range newIPs {
-		lbStatusIngress = append(lbStatusIngress, v1.LoadBalancerIngress{IP: ip})
-	}
-
 	return &v1.LoadBalancerStatus{
-		Ingress: lbStatusIngress,
+		Ingress: ingressStatus,
 	}, nil
 }
 
@@ -164,48 +161,33 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []*v1.Node) error {
 	return nil
 }
 
-func extractIPCountAnnotation(service *v1.Service) (int, error) {
+func (l *LoadBalancerController) acquireIP(service *v1.Service) (string, error) {
 	annotations := service.GetAnnotations()
-
-	ipCountString, ok := annotations[constants.IPCountServiceAnnotation]
+	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
 	if !ok {
-		return 1, nil
+		return l.acquireIPFromDefaultExternalNetwork()
 	}
-
-	count, err := strconv.Atoi(ipCountString)
-	if err != nil {
-		return 0, fmt.Errorf("service %q has invalid %q label: integer expected", service.Name, ipCountString)
-	}
-	if count < 1 {
-		return 0, fmt.Errorf("service %q has invalid %q label: positive integer expected", service.Name, ipCountString)
-	}
-
-	return count, nil
+	return l.acquireIPFromSpecificNetwork(addressPool)
 }
 
-func (l *LoadBalancerController) acquireIPs(service *v1.Service, ipCount int) ([]string, error) {
-	if len(service.Spec.ExternalIPs) == 0 {
-		return l.acquireIPsFromDefaultExternalNetwork(ipCount)
-	}
-
-	// TODO: Implement acquiring from explicit external networks
-	return nil, errors.New("not implemented")
-}
-
-func (l *LoadBalancerController) acquireIPsFromDefaultExternalNetwork(ipCount int) ([]string, error) {
+func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork() (string, error) {
 	nwID, err := l.getExternalNetworkID()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	ips, err := metal.AcquireIPs(l.client, constants.IPPrefix, l.projectID, nwID, ipCount)
+	return l.acquireIPFromSpecificNetwork(nwID)
+}
+
+func (l *LoadBalancerController) acquireIPFromSpecificNetwork(nwID string) (string, error) {
+	ip, err := metal.AcquireIP(l.client, constants.IPPrefix, l.projectID, nwID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
+		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
 	}
-	ipStrings := metal.IPAddressesOfIPs(ips)
-	l.logger.Printf("acquired ips in external network %q: %v", nwID, ipStrings)
 
-	return ipStrings, nil
+	l.logger.Printf("acquired ip in network %q: %v", nwID, *ip.Ipaddress)
+
+	return *ip.Ipaddress, nil
 }
 
 func (l *LoadBalancerController) getExternalNetworkID() (string, error) {

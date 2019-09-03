@@ -41,28 +41,23 @@ func DeleteIP(client *metalgo.Driver, ip string) error {
 	return nil
 }
 
-// AcquireIPs acquires a given count of IPs within the given network for a given project.
-func AcquireIPs(client *metalgo.Driver, namePrefix, project, network string, count int) ([]*models.V1IPResponse, error) {
-	var ips []*models.V1IPResponse
-	for i := 0; i < count; i++ {
-		name, err := uuid.NewUUID()
-		if err != nil {
-			return nil, err
-		}
-
-		req := &metalgo.IPAcquireRequest{
-			Projectid: project,
-			Networkid: network,
-			Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
-		}
-
-		resp, err := client.IPAcquire(req)
-		if err != nil {
-			return nil, err
-		}
-
-		ips = append(ips, resp.IP)
+// AcquireIP acquires an IP within the given network for a given project.
+func AcquireIP(client *metalgo.Driver, namePrefix, project, network string) (*models.V1IPResponse, error) {
+	name, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
 	}
 
-	return ips, nil
+	req := &metalgo.IPAcquireRequest{
+		Projectid: project,
+		Networkid: network,
+		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
+	}
+
+	resp, err := client.IPAcquire(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.IP, nil
 }

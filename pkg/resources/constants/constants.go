@@ -10,10 +10,11 @@ const (
 
 	ProviderName = "metal"
 
-	IPCountServiceAnnotation = "machine.metal-pod.io/ip-count"
-	ASNNodeLabel             = "machine.metal-pod.io/network.primary.asn"
+	ASNNodeLabel = "machine.metal-pod.io/network.primary.asn"
 
 	CalicoIPTunnelAddr = "projectcalico.org/IPv4IPIPTunnelAddr"
+
+	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
 
 	IPPrefix = "metallb-"
 )
