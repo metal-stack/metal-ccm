@@ -78,17 +78,17 @@ func (l *LoadBalancerController) lbName(service *v1.Service) string {
 func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	l.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(nodes))
 
+	ingressStatus := service.Status.LoadBalancer.Ingress
+
 	// FIXME implement based on our findings/decisions.
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
 		l.logger.Printf("fixed ip:%s requested, ignoring for now.", fixedIP)
-		return nil, nil
+		return &v1.LoadBalancerStatus{Ingress: ingressStatus}, nil
 	}
 
 	l.ipAllocateMutex.Lock()
 	defer l.ipAllocateMutex.Unlock()
-
-	ingressStatus := service.Status.LoadBalancer.Ingress
 
 	// if we already acquired an IP, we write it into the service status
 	// we do not acquire another IP if there is already an IP present in the service status
