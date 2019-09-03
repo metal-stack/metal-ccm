@@ -1,13 +1,10 @@
 package loadbalancer
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"github.com/metal-pod/metal-ccm/pkg/resources/metallb"
 )
 
 type MatchExpression struct {
@@ -27,16 +24,7 @@ type Peer struct {
 	NodeSelectors []*NodeSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-type IPAMBlock struct {
-	Spec IPAMBlockSpec `json:"spec"`
-}
-
-type IPAMBlockSpec struct {
-	Affinity string `json:"affinity"`
-	Cidr     string `json:"cidr"`
-}
-
-func newPeer(client dynamic.Interface, hostname string, asn int64) (*Peer, error) {
+func newPeer(peerAddressMap metallb.PeerAddressMap, hostname string, asn int64) (*Peer, error) {
 	matchExpression := &MatchExpression{
 		Key:      "kubernetes.io/hostname",
 		Operator: "In",
@@ -45,7 +33,7 @@ func newPeer(client dynamic.Interface, hostname string, asn int64) (*Peer, error
 		},
 	}
 
-	address, err := getPeerAddress(client, hostname)
+	address, err := getPeerAddress(peerAddressMap, hostname)
 	if err != nil {
 		return nil, err
 	}
@@ -64,28 +52,9 @@ func newPeer(client dynamic.Interface, hostname string, asn int64) (*Peer, error
 	}, nil
 }
 
-func getPeerAddress(client dynamic.Interface, hostname string) (string, error) {
-	resource := client.Resource(schema.GroupVersionResource{Group: "crd.projectcalico.org", Version: "v1", Resource: "ipamblocks"})
-
-	ipamBlocksRaw, err := resource.List(metav1.ListOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	for _, ipamBlockRaw := range ipamBlocksRaw.Items {
-		raw, err := json.Marshal(ipamBlockRaw.Object)
-		if err != nil {
-			return "", err
-		}
-
-		var ipamBlock IPAMBlock
-		err = json.Unmarshal(raw, &ipamBlock)
-		if err != nil {
-			return "", err
-		}
-
-		if strings.HasSuffix(ipamBlock.Spec.Affinity, hostname) {
-			cidr := ipamBlock.Spec.Cidr
+func getPeerAddress(peerAddressMap metallb.PeerAddressMap, hostname string) (string, error) {
+	for host, cidr := range peerAddressMap {
+		if hostname == host {
 			return cidr[:strings.Index(cidr, "/")], nil
 		}
 	}

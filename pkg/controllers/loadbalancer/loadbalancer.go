@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/metal-pod/metal-ccm/pkg/resources/calico"
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
@@ -31,23 +32,27 @@ type LoadBalancerController struct {
 	client           *metalgo.Driver
 	partitionID      string
 	projectID        string
+	networkID        string
 	logger           *log.Logger
 	K8sClient        clientset.Interface
 	DynamicK8sClient dynamic.Interface
-	mtx              *sync.Mutex
+	configWriteMutex *sync.Mutex
+	ipAllocateMutex  *sync.Mutex
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(client *metalgo.Driver, partitionID, projectID string) *LoadBalancerController {
+func New(client *metalgo.Driver, partitionID, projectID, networkID string) *LoadBalancerController {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
 	return &LoadBalancerController{
-		client:      client,
-		logger:      logger,
-		partitionID: partitionID,
-		projectID:   projectID,
-		mtx:         &sync.Mutex{},
+		client:           client,
+		logger:           logger,
+		partitionID:      partitionID,
+		projectID:        projectID,
+		networkID:        networkID,
+		configWriteMutex: &sync.Mutex{},
+		ipAllocateMutex:  &sync.Mutex{},
 	}
 }
 
@@ -82,6 +87,9 @@ func (l *LoadBalancerController) lbName(service *v1.Service) string {
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	l.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(nodes))
+
+	l.ipAllocateMutex.Lock()
+	defer l.ipAllocateMutex.Unlock()
 
 	var currentIPs []string
 	for _, ingress := range service.Status.LoadBalancer.Ingress {
@@ -152,13 +160,16 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 
 // UpdateMetalLBConfig the metallb config for given nodes
 func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []*v1.Node) error {
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
+	l.configWriteMutex.Lock()
+	defer l.configWriteMutex.Unlock()
 
 	err := l.updateLoadBalancerConfig(nodes)
 	if err != nil {
 		return err
 	}
+
+	l.logger.Printf("metallb config updated successfully")
+
 	return nil
 }
 
@@ -239,9 +250,13 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) erro
 		return fmt.Errorf("could not list networks: %v", err)
 	}
 	networkMap := metal.NetworksByID(networks)
+	ipamBlocks, err := calico.ListIPAMBlocks(l.DynamicK8sClient)
+	if err != nil {
+		return fmt.Errorf("could not list ipam blocks: %v", err)
+	}
 
 	config := newMetalLBConfig()
-	err = config.CalculateConfig(l.DynamicK8sClient, ips, networkMap, nodes)
+	err = config.CalculateConfig(ipamBlocks.CidrByHost(), ips, networkMap, nodes)
 	if err != nil {
 		return err
 	}

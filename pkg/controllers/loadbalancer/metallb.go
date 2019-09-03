@@ -6,8 +6,9 @@ import (
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	"github.com/metal-pod/metal-ccm/pkg/resources/metallb"
+
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 
 	"github.com/metal-pod/metal-go/api/models"
@@ -32,12 +33,12 @@ func newMetalLBConfig() *MetalLBConfig {
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(client dynamic.Interface, ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(peerAddressMap metallb.PeerAddressMap, ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
 	}
-	err = cfg.computePeers(client, nodes)
+	err = cfg.computePeers(peerAddressMap, nodes)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 	return nil
 }
 
-func (cfg *MetalLBConfig) computePeers(client dynamic.Interface, nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) computePeers(peerAddressMap metallb.PeerAddressMap, nodes []*v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, node := range nodes {
 		labels := node.GetLabels()
@@ -85,7 +86,7 @@ func (cfg *MetalLBConfig) computePeers(client dynamic.Interface, nodes []*v1.Nod
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
 		}
 
-		peer, err := newPeer(client, node.GetName(), asn)
+		peer, err := newPeer(peerAddressMap, node.GetName(), asn)
 		if err != nil {
 			return err
 		}

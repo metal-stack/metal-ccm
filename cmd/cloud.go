@@ -36,6 +36,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
+	networkID := os.Getenv(constants.MetalNetworkIDEnvVar)
 
 	if projectID == "" {
 		return nil, errors.Errorf("environment variable %q is required", constants.MetalProjectIDEnvVar)
@@ -43,6 +44,10 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	if partitionID == "" {
 		return nil, errors.Errorf("environment variable %q is required", constants.MetalPartitionIDEnvVar)
+	}
+
+	if networkID == "" {
+		return nil, errors.Errorf("environment variable %q is required", constants.MetalNetworkIDEnvVar)
 	}
 
 	if url == "" {
@@ -61,7 +66,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(client)
 	zonesController := zones.New(client)
-	loadBalancerController := loadbalancer.New(client, partitionID, projectID)
+	loadBalancerController := loadbalancer.New(client, partitionID, projectID, networkID)
 
 	logger.Println("initialized cloud controller manager")
 	return &cloud{
@@ -83,7 +88,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager")
 	dynamicClient := dynamic.NewForConfigOrDie(clientBuilder.ConfigOrDie("cloud-controller-manager"))
 
-	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient)
+	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient, dynamicClient)
 
 	c.instances.K8sClient = k8sClient
 	c.loadBalancer.K8sClient = k8sClient

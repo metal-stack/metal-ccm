@@ -5,15 +5,53 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
 )
 
-// SyncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
-func (h *Housekeeper) SyncMachineTagsToNodeLabels() error {
-	h.logger.Println("Start syncing machine tags to node labels")
+const (
+	SyncTagsInterval        = 1 * time.Minute
+	SyncTagsMinimalInterval = 5 * time.Second
+)
+
+func (h *Housekeeper) startTagSynching() {
+	h.ticker.Start("tags syncher", SyncTagsInterval, h.stop, h.syncMachineTagsToNodeLabels)
+	go h.watchNodes()
+}
+
+func (h *Housekeeper) watchNodes() {
+	h.logger.Printf("start watching nodes")
+	watchlist := cache.NewListWatchFromClient(h.k8sClient.CoreV1().RESTClient(), "nodes", "", fields.Everything())
+	_, controller := cache.NewInformer(
+		watchlist,
+		&v1.Node{},
+		time.Second*0,
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				if time.Now().Sub(h.lastTagSync) < SyncTagsMinimalInterval {
+					return
+				}
+				h.logger.Printf("node was added, start label syncing")
+				err := h.syncMachineTagsToNodeLabels()
+				if err != nil {
+					h.logger.Printf("synching tags failed: %v", err)
+				} else {
+					h.logger.Printf("labels synched successfully")
+				}
+				h.lastTagSync = time.Now()
+			},
+		},
+	)
+	controller.Run(h.stop)
+}
+
+// syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
+func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
+	h.logger.Println("start syncing machine tags to node labels")
 
 	nodes, err := kubernetes.GetNodes(h.k8sClient)
 	if err != nil {
@@ -73,14 +111,8 @@ func (h *Housekeeper) getMachineTags(nodes []*v1.Node) (map[string][]string, err
 func (h *Housekeeper) buildLabelsFromMachineTags(tags []string) map[string]string {
 	result := make(map[string]string)
 	for _, t := range tags {
-		parts := strings.Split(t, "=")
-		// TODO labels must have a value ?
-		// if len(parts) == 0 {
-		// 	result[t] = ""
-		// }
-		// if len(parts) == 1 {
-		// 	result[parts[0]] = ""
-		// }
+		parts := strings.SplitN(t, "=", 2)
+		// we only add tags to the node labels that have an "="
 		if len(parts) > 1 {
 			result[parts[0]] = strings.Join(parts[1:], "=")
 		}
