@@ -53,6 +53,10 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 		if *nw.Underlay {
 			continue
 		}
+		// If ip has a machineID this is a ip which was acquired for a machine an cannot be used for metallb
+		if *ip.Machineid != "" {
+			continue
+		}
 		// we do not want IPs from networks where the parent networks are private
 		if nw.Parentnetworkid != nil && *nw.Parentnetworkid != "" {
 			parent, ok := nws[*nw.Parentnetworkid]
