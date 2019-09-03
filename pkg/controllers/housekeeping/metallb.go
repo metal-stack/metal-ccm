@@ -17,12 +17,12 @@ const (
 )
 
 func (h *Housekeeper) startMetalLBTriggers() {
-	h.ticker.Start("metallb syncher", SyncMetalLBInterval, h.stop, h.updateMetalLBConfig)
+	go h.ticker.Start("metallb syncher", SyncMetalLBInterval, h.stop, h.updateMetalLBConfig)
 	go h.watchCalico()
 }
 
 func (h *Housekeeper) updateMetalLBConfig() error {
-	if time.Now().Sub(h.lastMetalLBConfigSync) < SyncMetalLBMinimalInternval {
+	if time.Since(h.lastMetalLBConfigSync) < SyncMetalLBMinimalInternval {
 		return nil
 	}
 	nodes, err := kubernetes.GetNodes(h.k8sClient)

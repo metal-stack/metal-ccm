@@ -19,7 +19,7 @@ const (
 )
 
 func (h *Housekeeper) startTagSynching() {
-	h.ticker.Start("tags syncher", SyncTagsInterval, h.stop, h.syncMachineTagsToNodeLabels)
+	go h.ticker.Start("tags syncher", SyncTagsInterval, h.stop, h.syncMachineTagsToNodeLabels)
 	go h.watchNodes()
 }
 
@@ -32,7 +32,7 @@ func (h *Housekeeper) watchNodes() {
 		time.Second*0,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				if time.Now().Sub(h.lastTagSync) < SyncTagsMinimalInterval {
+				if time.Since(h.lastTagSync) < SyncTagsMinimalInterval {
 					return
 				}
 				h.logger.Printf("node was added, start label syncing")
@@ -71,7 +71,6 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 			continue
 		}
 		labels := h.buildLabelsFromMachineTags(tags)
-		h.logger.Printf("ensuring node tags of %q: %v", nodeName, labels)
 
 		for key, value := range labels {
 			n.Labels[key] = value

@@ -22,12 +22,6 @@ import (
 	"k8s.io/component-base/logs"
 )
 
-const (
-	// loadBalancerIDAnnotation is the annotation specifying the load-balancer ID
-	// used to enable fast retrievals of load-balancers from the API by UUID.
-	loadBalancerIDAnnotation = "kubernetes.metal.com/load-balancer-id"
-)
-
 type LoadBalancerController struct {
 	client           *metalgo.Driver
 	partitionID      string
