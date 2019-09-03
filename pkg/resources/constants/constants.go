@@ -13,5 +13,7 @@ const (
 	IPCountServiceAnnotation = "machine.metal-pod.io/ip-count"
 	ASNNodeLabel             = "machine.metal-pod.io/network.primary.asn"
 
+	CalicoIPTunnelAddr = "projectcalico.org/IPv4IPIPTunnelAddr"
+
 	IPPrefix = "metallb-"
 )

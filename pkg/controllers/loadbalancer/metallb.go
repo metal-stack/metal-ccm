@@ -2,14 +2,15 @@ package loadbalancer
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-pod/metal-ccm/pkg/resources/metallb"
 
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/component-base/logs"
 
 	"github.com/metal-pod/metal-go/api/models"
 
@@ -26,19 +27,25 @@ const (
 type MetalLBConfig struct {
 	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	logger       *log.Logger
 }
 
 func newMetalLBConfig() *MetalLBConfig {
-	return &MetalLBConfig{}
+	logs.InitLogs()
+	logger := logs.NewLogger("metal-ccm metallbcfg-renderer | ")
+
+	return &MetalLBConfig{
+		logger: logger,
+	}
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(peerAddressMap metallb.PeerAddressMap, ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
 	}
-	err = cfg.computePeers(peerAddressMap, nodes)
+	err = cfg.computePeers(nodes)
 	if err != nil {
 		return err
 	}
@@ -73,7 +80,7 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 	return nil
 }
 
-func (cfg *MetalLBConfig) computePeers(peerAddressMap metallb.PeerAddressMap, nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, node := range nodes {
 		labels := node.GetLabels()
@@ -86,9 +93,10 @@ func (cfg *MetalLBConfig) computePeers(peerAddressMap metallb.PeerAddressMap, no
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
 		}
 
-		peer, err := newPeer(peerAddressMap, node.GetName(), asn)
+		peer, err := newPeer(node, asn)
 		if err != nil {
-			return err
+			cfg.logger.Printf("skipping peer: %v", err)
+			continue
 		}
 
 		cfg.Peers = append(cfg.Peers, peer)

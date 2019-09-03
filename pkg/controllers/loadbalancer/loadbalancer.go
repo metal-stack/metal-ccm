@@ -9,14 +9,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/calico"
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
 
 	metalgo "github.com/metal-pod/metal-go"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/component-base/logs"
@@ -29,7 +27,6 @@ type LoadBalancerController struct {
 	networkID        string
 	logger           *log.Logger
 	K8sClient        clientset.Interface
-	DynamicK8sClient dynamic.Interface
 	configWriteMutex *sync.Mutex
 	ipAllocateMutex  *sync.Mutex
 }
@@ -244,13 +241,9 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) erro
 		return fmt.Errorf("could not list networks: %v", err)
 	}
 	networkMap := metal.NetworksByID(networks)
-	ipamBlocks, err := calico.ListIPAMBlocks(l.DynamicK8sClient)
-	if err != nil {
-		return fmt.Errorf("could not list ipam blocks: %v", err)
-	}
 
 	config := newMetalLBConfig()
-	err = config.CalculateConfig(ipamBlocks.CidrByHost(), ips, networkMap, nodes)
+	err = config.CalculateConfig(ips, networkMap, nodes)
 	if err != nil {
 		return err
 	}

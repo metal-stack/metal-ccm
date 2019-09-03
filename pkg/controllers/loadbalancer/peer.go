@@ -2,9 +2,10 @@ package loadbalancer
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/metallb"
+	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 type MatchExpression struct {
@@ -24,7 +25,9 @@ type Peer struct {
 	NodeSelectors []*NodeSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-func newPeer(peerAddressMap metallb.PeerAddressMap, hostname string, asn int64) (*Peer, error) {
+func newPeer(node *v1.Node, asn int64) (*Peer, error) {
+	hostname := node.GetName()
+
 	matchExpression := &MatchExpression{
 		Key:      "kubernetes.io/hostname",
 		Operator: "In",
@@ -33,7 +36,7 @@ func newPeer(peerAddressMap metallb.PeerAddressMap, hostname string, asn int64) 
 		},
 	}
 
-	address, err := getPeerAddress(peerAddressMap, hostname)
+	address, err := getPeerAddress(node)
 	if err != nil {
 		return nil, err
 	}
@@ -52,11 +55,13 @@ func newPeer(peerAddressMap metallb.PeerAddressMap, hostname string, asn int64) 
 	}, nil
 }
 
-func getPeerAddress(peerAddressMap metallb.PeerAddressMap, hostname string) (string, error) {
-	for host, cidr := range peerAddressMap {
-		if hostname == host {
-			return cidr[:strings.Index(cidr, "/")], nil
-		}
+func getPeerAddress(node *v1.Node) (string, error) {
+	annotations := node.GetAnnotations()
+
+	tunnelAddress, ok := annotations[constants.CalicoIPTunnelAddr]
+	if !ok {
+		return "", fmt.Errorf("unable to determine tunnel address, calico has not yet added a node annotation")
 	}
-	return "", fmt.Errorf("peer address for host %q could not be determined from calico IPAM blocks", hostname)
+
+	return tunnelAddress, nil
 }

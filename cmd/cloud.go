@@ -14,7 +14,6 @@ import (
 	"github.com/metal-pod/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 
-	"k8s.io/client-go/dynamic"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
@@ -86,13 +85,11 @@ func init() {
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager")
-	dynamicClient := dynamic.NewForConfigOrDie(clientBuilder.ConfigOrDie("cloud-controller-manager"))
 
-	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient, dynamicClient)
+	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient)
 
 	c.instances.K8sClient = k8sClient
 	c.loadBalancer.K8sClient = k8sClient
-	c.loadBalancer.DynamicK8sClient = dynamicClient
 	c.zones.K8sClient = k8sClient
 
 	go housekeeper.Run()

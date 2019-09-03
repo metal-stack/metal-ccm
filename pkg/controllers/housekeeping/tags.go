@@ -5,9 +5,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
@@ -20,33 +18,6 @@ const (
 
 func (h *Housekeeper) startTagSynching() {
 	go h.ticker.Start("tags syncher", SyncTagsInterval, h.stop, h.syncMachineTagsToNodeLabels)
-	go h.watchNodes()
-}
-
-func (h *Housekeeper) watchNodes() {
-	h.logger.Printf("start watching nodes")
-	watchlist := cache.NewListWatchFromClient(h.k8sClient.CoreV1().RESTClient(), "nodes", "", fields.Everything())
-	_, controller := cache.NewInformer(
-		watchlist,
-		&v1.Node{},
-		time.Second*0,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				if time.Since(h.lastTagSync) < SyncTagsMinimalInterval {
-					return
-				}
-				h.logger.Printf("node was added, start label syncing")
-				err := h.syncMachineTagsToNodeLabels()
-				if err != nil {
-					h.logger.Printf("synching tags failed: %v", err)
-				} else {
-					h.logger.Printf("labels synched successfully")
-				}
-				h.lastTagSync = time.Now()
-			},
-		},
-	)
-	controller.Run(h.stop)
 }
 
 // syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
@@ -88,6 +59,8 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 			return err
 		}
 	}
+
+	h.lastTagSync = time.Now()
 
 	return nil
 }
