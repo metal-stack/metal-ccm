@@ -10,13 +10,7 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/kubernetes/cmd/cloud-controller-manager/app"
 
-	// NOTE: Importing all in-tree cloud-providers is not required when
-	// implementing an out-of-tree cloud-provider.
-	// _ "k8s.io/kubernetes/pkg/cloudprovider/providers"
-	// _ "k8s.io/kubernetes/pkg/util/prometheusclientgo" // load all the prometheus client-go plugins
-	// _ "k8s.io/kubernetes/pkg/version/prometheus"      // for version metric registration
-
-	_ "github.com/metal-pod/metal-ccm/metal"
+	_ "github.com/metal-pod/metal-ccm/cmd"
 	"github.com/metal-pod/v"
 )
 
@@ -36,8 +30,8 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	logger := logs.NewLogger("metal-ccm")
-	logger.Printf(" starting version:%s", v.V)
+	logger := logs.NewLogger("metal-ccm ")
+	logger.Printf("starting version %q", v.V)
 
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

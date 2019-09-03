@@ -23,7 +23,7 @@ spec:
       serviceAccountName: cloud-controller-manager
       tolerations:
         # this taint is set by all kubelets running `--cloud-provider=external`
-        # so we should tolerate it to schedule the metal ccm
+        # so we should tolerate it to schedule the metal-ccm
         - key: "node.cloudprovider.kubernetes.io/uninitialized"
           value: "true"
           effect: "NoSchedule"
@@ -33,9 +33,8 @@ spec:
         - key: "node-role.kubernetes.io/master"
           effect: NoSchedule
       containers:
-      # FIXME image
-      - image: metal-pod/metal-ccm:v0.0.1
-        name: metal-cloud-controller-manager
+      - name: metal-cloud-controller-manager
+        image: metalpod/metal-ccm:v0.0.1
         command:
           - "./metal-cloud-controller-manager"
           - "--cloud-provider=metal"
@@ -64,11 +63,6 @@ spec:
               secretKeyRef:
                 name: metal-cloud-config
                 key: apiHMAC
-          - name: METAL_PROJECT_ID
-            valueFrom:
-              secretKeyRef:
-                name: metal-cloud-config
-                key: projectID
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -91,6 +85,12 @@ rules:
   - create
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - '*'
 - apiGroups:
   - ""
   resources:

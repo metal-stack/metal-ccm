@@ -13,6 +13,7 @@ require (
 	github.com/docker/distribution v0.0.0-20170726174610-edc3ab29cdff // indirect
 	github.com/docker/docker v0.0.0-20180612054059-a9fbbdc8dd87 // indirect
 	github.com/evanphx/json-patch v4.1.1-0.20190203023257-5858425f7550+incompatible // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/analysis v0.19.4 // indirect
 	github.com/go-openapi/runtime v0.19.3 // indirect
 	github.com/go-openapi/strfmt v0.19.2 // indirect
@@ -22,6 +23,7 @@ require (
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
@@ -33,7 +35,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
-	github.com/metal-pod/metal-go v0.0.0-20190719070030-811f1ffbb531
+	github.com/metal-pod/metal-go v0.0.0-20190822222222-62d2d0f26ed1
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
@@ -71,7 +73,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/cloud-provider v0.0.0-20190409023720-1bc0c81fa51d
 	k8s.io/component-base v0.0.0-20190409093041-e34633071963
-	k8s.io/klog v0.2.0
+	k8s.io/klog v0.2.0 // indirect
 	k8s.io/kube-controller-manager v0.0.0-20190409093943-63563cf7ef9a // indirect
 	k8s.io/kube-openapi v0.0.0-20190401085232-94e1e7b7574c // indirect
 	k8s.io/kubernetes v1.14.1

@@ -31,6 +31,14 @@ bin/$(BINARY): $(GOSRC)
 clean:
 	rm -f bin/$(BINARY)
 
+.PHONY: gofmt
+gofmt:
+	GO111MODULE=off go fmt ./...
+
+.PHONY: golint
+golint:
+	golangci-lint run
+
 .PHONY: dockerimage
 dockerimage:
 	docker build --no-cache -t metalpod/metal-ccm .
