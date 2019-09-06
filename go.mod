@@ -29,7 +29,7 @@ require (
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20190904122538-f3202a69c63f
+	github.com/metal-pod/metal-go v0.0.0-20190906074518-f002e94f3db0
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
