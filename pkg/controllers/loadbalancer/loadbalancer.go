@@ -76,7 +76,11 @@ func (l *LoadBalancerController) lbName(service *v1.Service) string {
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
-	l.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(nodes))
+	ns := []v1.Node{}
+	for i := range nodes {
+		ns = append(ns, *nodes[i])
+	}
+	l.logger.Printf("EnsureLoadBalancer: clusterName %q, namespace %q, serviceName %q, nodes %q", clusterName, service.Namespace, service.Name, kubernetes.NodeNamesOfNodes(ns))
 
 	ingressStatus := service.Status.LoadBalancer.Ingress
 
@@ -103,7 +107,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 	}
 
-	err = l.UpdateMetalLBConfig(nodes)
+	err = l.UpdateMetalLBConfig(ns)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +121,11 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 // Neither 'service' nor 'nodes' are modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager.
 func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	return l.UpdateMetalLBConfig(nodes)
+	ns := []v1.Node{}
+	for i := range nodes {
+		ns = append(ns, *nodes[i])
+	}
+	return l.UpdateMetalLBConfig(ns)
 }
 
 // EnsureLoadBalancerDeleted deletes the cluster load balancer if it
@@ -142,12 +150,11 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 			return fmt.Errorf("unable to delete ip: %s", ingress.IP)
 		}
 	}
-
 	return l.UpdateMetalLBConfig(nodes)
 }
 
 // UpdateMetalLBConfig the metallb config for given nodes
-func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []*v1.Node) error {
+func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 	l.configWriteMutex.Lock()
 	defer l.configWriteMutex.Unlock()
 
@@ -211,7 +218,7 @@ func (l *LoadBalancerController) getExternalNetworkID() (string, error) {
 	return "", errors.New("no default external network(s) found")
 }
 
-func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []*v1.Node) error {
+func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error {
 	// TODO: For now we just add all IPs of this project to the metallb config
 	// this will become more controllable when announceable ips are implemented in network entities of the metal-api
 	ips, err := metal.FindProjectIPs(l.client, l.projectID)

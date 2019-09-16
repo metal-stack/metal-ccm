@@ -66,7 +66,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 }
 
 // getMachineTags returns all machine tags within the shoot.
-func (h *Housekeeper) getMachineTags(nodes []*v1.Node) (map[string][]string, error) {
+func (h *Housekeeper) getMachineTags(nodes []v1.Node) (map[string][]string, error) {
 	machines, err := metal.GetMachinesFromNodes(h.client, nodes)
 	if err != nil {
 		return nil, err

@@ -16,7 +16,7 @@ import (
 )
 
 // GetMachinesFromNodes gets metal machines from K8s nodes.
-func GetMachinesFromNodes(client *metalgo.Driver, nodes []*v1.Node) ([]*models.V1MachineResponse, error) {
+func GetMachinesFromNodes(client *metalgo.Driver, nodes []v1.Node) ([]*models.V1MachineResponse, error) {
 	var mm []*models.V1MachineResponse
 	for _, n := range nodes {
 		m, err := GetMachineFromNode(client, types.NodeName(n.Name))

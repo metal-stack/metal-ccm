@@ -40,7 +40,7 @@ func newMetalLBConfig() *MetalLBConfig {
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -80,10 +80,9 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 	return nil
 }
 
-func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
+func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
-	for _, node := range nodes {
-		n := *node
+	for _, n := range nodes {
 		labels := n.GetLabels()
 		asnString, ok := labels[constants.ASNNodeLabel]
 		if !ok {
