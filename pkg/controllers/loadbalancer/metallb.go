@@ -83,17 +83,18 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 func (cfg *MetalLBConfig) computePeers(nodes []*v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, node := range nodes {
-		labels := node.GetLabels()
+		n := *node
+		labels := n.GetLabels()
 		asnString, ok := labels[constants.ASNNodeLabel]
 		if !ok {
-			return fmt.Errorf("node %q misses label: %s", node.GetName(), constants.ASNNodeLabel)
+			return fmt.Errorf("node %q misses label: %s", n.GetName(), constants.ASNNodeLabel)
 		}
 		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
 		}
 
-		peer, err := newPeer(node, asn)
+		peer, err := newPeer(n, asn)
 		if err != nil {
 			cfg.logger.Printf("skipping peer: %v", err)
 			continue

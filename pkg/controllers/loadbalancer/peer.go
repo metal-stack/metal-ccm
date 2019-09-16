@@ -25,7 +25,7 @@ type Peer struct {
 	NodeSelectors []*NodeSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-func newPeer(node *v1.Node, asn int64) (*Peer, error) {
+func newPeer(node v1.Node, asn int64) (*Peer, error) {
 	hostname := node.GetName()
 
 	matchExpression := &MatchExpression{
@@ -55,7 +55,7 @@ func newPeer(node *v1.Node, asn int64) (*Peer, error) {
 	}, nil
 }
 
-func getPeerAddress(node *v1.Node) (string, error) {
+func getPeerAddress(node v1.Node) (string, error) {
 	annotations := node.GetAnnotations()
 
 	tunnelAddress, ok := annotations[constants.CalicoIPTunnelAddr]
