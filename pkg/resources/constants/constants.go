@@ -12,9 +12,17 @@ const (
 
 	ASNNodeLabel = "machine.metal-pod.io/network.primary.asn"
 
-	CalicoIPTunnelAddr = "projectcalico.org/IPv4IPIPTunnelAddr"
+	CalicoIPv4IPIPTunnelAddr  = "projectcalico.org/IPv4IPIPTunnelAddr"
+	CalicoIPv4VXLANTunnelAddr = "projectcalico.org/IPv4VXLANTunnelAddr"
 
 	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
 
 	IPPrefix = "metallb-"
+)
+
+var (
+	CalicoAnnotations = []string{
+		CalicoIPv4IPIPTunnelAddr,
+		CalicoIPv4VXLANTunnelAddr,
+	}
 )

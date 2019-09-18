@@ -36,7 +36,7 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 		},
 	}
 
-	address, err := getPeerAddress(node)
+	address, err := CalicoTunnelAddress(node)
 	if err != nil {
 		return nil, err
 	}
@@ -55,13 +55,13 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 	}, nil
 }
 
-func getPeerAddress(node v1.Node) (string, error) {
+func CalicoTunnelAddress(node v1.Node) (string, error) {
 	annotations := node.GetAnnotations()
-
-	tunnelAddress, ok := annotations[constants.CalicoIPTunnelAddr]
-	if !ok {
-		return "", fmt.Errorf("unable to determine tunnel address, calico has not yet added a node annotation")
+	for _, ca := range constants.CalicoAnnotations {
+		tunnelAddress, ok := annotations[ca]
+		if ok {
+			return tunnelAddress, nil
+		}
 	}
-
-	return tunnelAddress, nil
+	return "", fmt.Errorf("unable to determine tunnel address, calico has not yet added a node annotation")
 }

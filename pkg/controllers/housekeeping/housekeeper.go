@@ -12,7 +12,6 @@ import (
 	"k8s.io/component-base/logs"
 
 	"github.com/metal-pod/metal-ccm/pkg/controllers/loadbalancer"
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 )
 
@@ -74,10 +73,14 @@ func (h *Housekeeper) watchNodes() {
 				oldNode := oldObj.(*v1.Node)
 				newNode := newObj.(*v1.Node)
 
-				_, oldContains := oldNode.GetAnnotations()[constants.CalicoIPTunnelAddr]
-				_, newContains := newNode.GetAnnotations()[constants.CalicoIPTunnelAddr]
-
-				if oldContains == newContains {
+				oldTunnelAddress, _ := loadbalancer.CalicoTunnelAddress(*oldNode)
+				newTunnelAddress, err := loadbalancer.CalicoTunnelAddress(*newNode)
+				if err != nil {
+					h.logger.Printf("newNode does not have a tunnelAddress, ignoring")
+					return
+				}
+				if oldTunnelAddress == newTunnelAddress {
+					h.logger.Printf("node was not modified and calico tunnel address has not changed, not updating metallb config")
 					return
 				}
 
