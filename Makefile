@@ -5,6 +5,7 @@ BUILDDATE := $(shell date -Iseconds)
 VERSION := $(or ${VERSION},devel)
 GO := go
 GOSRC = $(shell find . -not \( -path vendor -prune \) -type f -name '*.go')
+DOCKER_TAG := $(or ${GITHUB_TAG_NAME}, latest)
 
 export GO111MODULE := on
 export CGO_ENABLED := 0
@@ -41,4 +42,8 @@ golint:
 
 .PHONY: dockerimage
 dockerimage:
-	docker build --no-cache -t metalpod/metal-ccm .
+	docker build --no-cache -t metalpod/metal-ccm:${DOCKER_TAG} .
+
+.PHONY: dockerpush
+dockerpush:
+	docker push metalpod/metal-ccm:${DOCKER_TAG}
