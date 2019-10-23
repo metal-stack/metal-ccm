@@ -7,15 +7,17 @@ const (
 )
 
 type AddressPool struct {
-	NetworkID string   `json:"name" yaml:"name"`
-	Protocol  string   `json:"protocol" yaml:"protocol"`
-	CIDRs     []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only /32 addresses are used.
+	Name       string   `json:"name" yaml:"name"`
+	Protocol   string   `json:"protocol" yaml:"protocol"`
+	AutoAssign *bool    `json:"auto-assign" yaml:"auto-assign,omitempty"`
+	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only /32 addresses are used.
 }
 
-func NewBGPAddressPool(networkID string) *AddressPool {
+func NewBGPAddressPool(name string, autoAssign bool) *AddressPool {
 	return &AddressPool{
-		NetworkID: networkID,
-		Protocol:  bgpProtocol,
+		Name:       name,
+		Protocol:   bgpProtocol,
+		AutoAssign: &autoAssign,
 	}
 }
 
@@ -39,5 +41,5 @@ func (pool *AddressPool) AppendIP(ip string) {
 }
 
 func (pool *AddressPool) String() string {
-	return fmt.Sprintf("%s (%s): %v", pool.NetworkID, pool.Protocol, pool.CIDRs)
+	return fmt.Sprintf("%s (%s): %v", pool.Name, pool.Protocol, pool.CIDRs)
 }

@@ -24,6 +24,7 @@ type LoadBalancerController struct {
 	partitionID      string
 	projectID        string
 	networkID        string
+	clusterID        string
 	logger           *log.Logger
 	K8sClient        clientset.Interface
 	configWriteMutex *sync.Mutex
@@ -31,7 +32,7 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(client *metalgo.Driver, partitionID, projectID, networkID string) *LoadBalancerController {
+func New(client *metalgo.Driver, partitionID, projectID, networkID, clusterID string) *LoadBalancerController {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
@@ -41,6 +42,7 @@ func New(client *metalgo.Driver, partitionID, projectID, networkID string) *Load
 		partitionID:      partitionID,
 		projectID:        projectID,
 		networkID:        networkID,
+		clusterID:        clusterID,
 		configWriteMutex: &sync.Mutex{},
 		ipAllocateMutex:  &sync.Mutex{},
 	}
@@ -84,10 +86,14 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	ingressStatus := service.Status.LoadBalancer.Ingress
 
-	// FIXME implement based on our findings/decisions.
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
-		l.logger.Printf("fixed ip:%s requested, ignoring for now.", fixedIP)
+		err := l.associateIP(fixedIP, l.clusterID, l.projectID, service)
+		if err != nil {
+			l.logger.Printf("could not associate fixed ip:%s, err: %v", fixedIP, err)
+			return nil, err
+		}
+		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: fixedIP})
 		return &v1.LoadBalancerStatus{Ingress: ingressStatus}, nil
 	}
 
@@ -99,13 +105,28 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 	currentIPCount := len(ingressStatus)
 	var err error
 	var ip string
-	if currentIPCount < 1 {
+	if currentIPCount > 0 {
+		return &v1.LoadBalancerStatus{
+			Ingress: ingressStatus,
+		}, nil
+	}
+
+	available, err := metal.FindAvailableProjectIP(l.client, l.projectID)
+	if err != nil {
 		ip, err = l.acquireIP(service)
 		if err != nil {
 			return nil, err
 		}
-		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
+	} else {
+		// try to use a free project ip that is not currently associated to a cluster / machine
+		ip = *available.Ipaddress
+		err = l.associateIP(ip, l.clusterID, l.projectID, service)
+		if err != nil {
+			return nil, fmt.Errorf("could not associate ip address to cluster err: %v", err)
+		}
 	}
+
+	ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 
 	err = l.UpdateMetalLBConfig(ns)
 	if err != nil {
@@ -168,6 +189,39 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 	return nil
 }
 
+func generateClusterIPTag(key, value string) string {
+	return fmt.Sprintf("%s/%s=%s", constants.TagClusterPrefix, key, value)
+}
+
+func generateTags(s v1.Service, clusterID string) []string {
+	cluster := generateClusterIPTag("clusterId", clusterID)
+	clusterName := generateClusterIPTag("clusterName", s.GetClusterName())
+	svcNamespace := generateClusterIPTag("serviceNamespace", s.GetNamespace())
+	svcName := generateClusterIPTag("serviceName", s.GetName())
+	tags := []string{cluster, clusterName, svcNamespace, svcName}
+	return tags
+}
+
+func (l *LoadBalancerController) associateIP(ip, cluster, project string, s *v1.Service) error {
+	tags := generateTags(*s, cluster)
+	details, err := metal.AssociateIP(l.client, ip, cluster, project, tags)
+	if err != nil {
+		return err
+	}
+	l.logger.Printf("associate ip with cluster; ip: %v", details)
+	return nil
+}
+
+func (l *LoadBalancerController) deassociateIP(ip, cluster, project string, s *v1.Service) error {
+	tags := generateTags(*s, cluster)
+	details, err := metal.DeassociateIP(l.client, ip, cluster, project, tags)
+	if err != nil {
+		return err
+	}
+	l.logger.Printf("deassociate ip with cluster; ip: %v", details)
+	return nil
+}
+
 func (l *LoadBalancerController) acquireIP(service *v1.Service) (string, error) {
 	annotations := service.GetAnnotations()
 	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
@@ -187,7 +241,7 @@ func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork() (string, 
 }
 
 func (l *LoadBalancerController) acquireIPFromSpecificNetwork(nwID string) (string, error) {
-	ip, err := metal.AcquireIP(l.client, constants.IPPrefix, l.projectID, nwID)
+	ip, err := metal.AcquireIP(l.client, constants.IPPrefix, l.projectID, nwID, l.clusterID)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
 	}
@@ -219,11 +273,9 @@ func (l *LoadBalancerController) getExternalNetworkID() (string, error) {
 }
 
 func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error {
-	// TODO: For now we just add all IPs of this project to the metallb config
-	// this will become more controllable when announceable ips are implemented in network entities of the metal-api
-	ips, err := metal.FindProjectIPs(l.client, l.projectID)
+	ips, err := metal.FindClusterIPs(l.client, l.projectID, l.clusterID)
 	if err != nil {
-		return fmt.Errorf("could not find ips of this project: %v", err)
+		return fmt.Errorf("could not find ips of this project's cluster: %v", err)
 	}
 	networks, err := metal.ListNetworks(l.client)
 	if err != nil {

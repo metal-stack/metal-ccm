@@ -7,6 +7,7 @@ const (
 	MetalProjectIDEnvVar   = "METAL_PROJECT_ID"
 	MetalPartitionIDEnvVar = "METAL_PARTITION_ID"
 	MetalNetworkIDEnvVar   = "METAL_NETWORK_ID"
+	MetalClusterIDEnvVar   = "METAL_CLUSTER_ID"
 
 	ProviderName = "metal"
 
@@ -16,6 +17,9 @@ const (
 	CalicoIPv4VXLANTunnelAddr = "projectcalico.org/IPv4VXLANTunnelAddr"
 
 	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
+
+	TagClusterPrefix = "cluster.metal-pod.io"
+	TagMachinePrefix = "machine.metal-pod.io"
 
 	IPPrefix = "metallb-"
 )
