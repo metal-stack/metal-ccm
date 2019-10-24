@@ -171,15 +171,16 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		}
 		resp, err := l.client.IPFind(r)
 		if err != nil {
-			return fmt.Errorf("unable to find ip: %v", err)
+			l.logger.Printf("unable to find ip: %v", err)
+			continue
 		}
-		if len(resp.IPs) != 1 {
-			return fmt.Errorf("ip was not found or is ambiguous")
+		if len(resp.IPs) == 0 {
+			continue
 		}
 		ip := resp.IPs[0]
 		err = l.releaseIPFromCluster(*ip.Ipaddress, l.clusterID, l.projectID, service)
 		if err != nil {
-			return fmt.Errorf("could not deassociate ip address: %v", err)
+			return fmt.Errorf("could not release ip from cluster: %v", err)
 		}
 		if *ip.Iptype == "ephemeral" {
 			err := metal.DeleteIP(l.client, ingress.IP)
