@@ -35,7 +35,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
-	networkID := os.Getenv(constants.MetalNetworkIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 
 	if projectID == "" {
@@ -44,10 +43,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	if partitionID == "" {
 		return nil, errors.Errorf("environment variable %q is required", constants.MetalPartitionIDEnvVar)
-	}
-
-	if networkID == "" {
-		return nil, errors.Errorf("environment variable %q is required", constants.MetalNetworkIDEnvVar)
 	}
 
 	if clusterID == "" {
@@ -70,7 +65,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(client)
 	zonesController := zones.New(client)
-	loadBalancerController := loadbalancer.New(client, partitionID, projectID, networkID, clusterID)
+	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID)
 
 	logger.Println("initialized cloud controller manager")
 	return &cloud{

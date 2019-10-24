@@ -23,7 +23,6 @@ type LoadBalancerController struct {
 	client           *metalgo.Driver
 	partitionID      string
 	projectID        string
-	networkID        string
 	clusterID        string
 	logger           *log.Logger
 	K8sClient        clientset.Interface
@@ -32,7 +31,7 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(client *metalgo.Driver, partitionID, projectID, networkID, clusterID string) *LoadBalancerController {
+func New(client *metalgo.Driver, partitionID, projectID, clusterID string) *LoadBalancerController {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
@@ -41,7 +40,6 @@ func New(client *metalgo.Driver, partitionID, projectID, networkID, clusterID st
 		logger:           logger,
 		partitionID:      partitionID,
 		projectID:        projectID,
-		networkID:        networkID,
 		clusterID:        clusterID,
 		configWriteMutex: &sync.Mutex{},
 		ipAllocateMutex:  &sync.Mutex{},
@@ -88,7 +86,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
-		err := l.associateIP(fixedIP, l.clusterID, l.projectID, service)
+		err := l.useIPInCluster(fixedIP, l.clusterID, l.projectID, service)
 		if err != nil {
 			l.logger.Printf("could not associate fixed ip:%s, err: %v", fixedIP, err)
 			return nil, err
@@ -120,7 +118,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 	} else {
 		// try to use a free project ip that is not currently associated to a cluster / machine
 		ip = *available.Ipaddress
-		err = l.associateIP(ip, l.clusterID, l.projectID, service)
+		err = l.useIPInCluster(ip, l.clusterID, l.projectID, service)
 		if err != nil {
 			return nil, fmt.Errorf("could not associate ip address to cluster err: %v", err)
 		}
@@ -179,8 +177,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 			return fmt.Errorf("ip was not found or is ambiguous")
 		}
 		ip := resp.IPs[0]
-		tags := generateTags(*service, l.clusterID)
-		_, err = metal.DeassociateIP(l.client, *ip.Ipaddress, l.clusterID, l.projectID, tags)
+		err = l.releaseIPFromCluster(*ip.Ipaddress, l.clusterID, l.projectID, service)
 		if err != nil {
 			return fmt.Errorf("could not deassociate ip address: %v", err)
 		}
@@ -222,9 +219,15 @@ func generateTags(s v1.Service, clusterID string) []string {
 	return tags
 }
 
-func (l *LoadBalancerController) associateIP(ip, cluster, project string, s *v1.Service) error {
+func (l *LoadBalancerController) useIPInCluster(ip, cluster, project string, s *v1.Service) error {
 	tags := generateTags(*s, cluster)
-	details, err := metal.AssociateIP(l.client, ip, cluster, project, tags)
+	iuc := &metalgo.IPUseInClusterRequest{
+		IPAddress: ip,
+		ClusterID: cluster,
+		ProjectID: project,
+		Tags:      tags,
+	}
+	details, err := l.client.IPUseInCluster(iuc)
 	if err != nil {
 		return err
 	}
@@ -232,9 +235,15 @@ func (l *LoadBalancerController) associateIP(ip, cluster, project string, s *v1.
 	return nil
 }
 
-func (l *LoadBalancerController) deassociateIP(ip, cluster, project string, s *v1.Service) error {
+func (l *LoadBalancerController) releaseIPFromCluster(ip, cluster, project string, s *v1.Service) error {
 	tags := generateTags(*s, cluster)
-	details, err := metal.DeassociateIP(l.client, ip, cluster, project, tags)
+	irc := &metalgo.IPReleaseFromClusterRequest{
+		IPAddress: ip,
+		ClusterID: cluster,
+		ProjectID: project,
+		Tags:      tags,
+	}
+	details, err := l.client.IPReleaseFromCluster(irc)
 	if err != nil {
 		return err
 	}

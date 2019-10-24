@@ -191,6 +191,10 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/metal-pod/metal-go v0.0.0-20191023123822-c1cba586c727 h1:LDN88O6ioOyCl0GKtXg4yI4+Uohs+TzYS2RhP4CQmrY=
 github.com/metal-pod/metal-go v0.0.0-20191023123822-c1cba586c727/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
+github.com/metal-pod/metal-go v0.0.0-20191024092440-4f99893f8f4a h1:vcyazVsQgYMJV3p6MpMqrG/aBkLbaKFZaMyTBPTnxwM=
+github.com/metal-pod/metal-go v0.0.0-20191024092440-4f99893f8f4a/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
+github.com/metal-pod/metal-go v0.0.0-20191024093147-ca4186dcbd22 h1:DwFob7fiqEw1F/tatpE5srVgeINmIUjqN+n7xDjRx4Y=
+github.com/metal-pod/metal-go v0.0.0-20191024093147-ca4186dcbd22/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
 github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b h1:YpbguTdZ3M3O4AF8NEWJQ0JXmvEV2Y6b64Dp7OvPyaI=

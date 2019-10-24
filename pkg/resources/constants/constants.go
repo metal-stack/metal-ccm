@@ -6,7 +6,6 @@ const (
 	MetalAuthHMACEnvVar    = "METAL_AUTH_HMAC"
 	MetalProjectIDEnvVar   = "METAL_PROJECT_ID"
 	MetalPartitionIDEnvVar = "METAL_PARTITION_ID"
-	MetalNetworkIDEnvVar   = "METAL_NETWORK_ID"
 	MetalClusterIDEnvVar   = "METAL_CLUSTER_ID"
 
 	ProviderName = "metal"

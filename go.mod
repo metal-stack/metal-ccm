@@ -35,7 +35,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20191023123822-c1cba586c727
+	github.com/metal-pod/metal-go v0.0.0-20191024093147-ca4186dcbd22
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect

@@ -95,22 +95,22 @@ func AcquireIP(client *metalgo.Driver, namePrefix, project, network, cluster str
 
 // AssociateIP associates an IP with an cluster
 func AssociateIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
-	iar := &metalgo.IPAssociateRequest{
+	iuc := &metalgo.IPUseInClusterRequest{
 		IPAddress: address,
 		ClusterID: cluster,
 		ProjectID: project,
 		Tags:      tags,
 	}
-	return client.IPAssociate(iar)
+	return client.IPUseInCluster(iuc)
 }
 
 // DeassociateIP associates an IP with an cluster
 func DeassociateIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
-	idr := &metalgo.IPDeassociateRequest{
+	irc := &metalgo.IPReleaseFromClusterRequest{
 		IPAddress: address,
 		ClusterID: cluster,
 		ProjectID: project,
 		Tags:      tags,
 	}
-	return client.IPDeassociate(idr)
+	return client.IPReleaseFromCluster(irc)
 }
