@@ -1,4 +1,4 @@
-name: Docker Image from master
+name: Docker Image from pull request
 
 on:
   push:
