@@ -2,8 +2,8 @@ name: Docker Image from pull request
 
 on:
   push:
-    branches:
-    - '!master'
+    branches-ignore:
+    - master
 
 jobs:
   build:
