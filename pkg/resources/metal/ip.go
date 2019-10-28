@@ -72,7 +72,7 @@ func DeleteIP(client *metalgo.Driver, ip string) error {
 }
 
 // AcquireIP acquires an IP within the given network for a given project.
-func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, cluster string) (*models.V1IPResponse, error) {
+func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID, clusterName string) (*models.V1IPResponse, error) {
 	name, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
@@ -82,9 +82,9 @@ func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, netw
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
 		Projectid: project,
 		Networkid: network,
-		Clusterid: &cluster,
+		Clusterid: &clusterID,
 		Type:      "ephemeral",
-		Tags:      GenerateTags(svc),
+		Tags:      GenerateTags(clusterName, svc),
 	}
 
 	resp, err := client.IPAcquire(req)
@@ -121,7 +121,7 @@ func GenerateClusterIPTag(key, value string) string {
 	return fmt.Sprintf("%s/%s=%s", constants.TagClusterPrefix, key, value)
 }
 
-func GenerateTags(s v1.Service) []string {
-	identifier := GenerateClusterIPTag("clustername/namespace/servicename", fmt.Sprintf("%s/%s/%s", s.GetClusterName(), s.GetNamespace(), s.GetName()))
+func GenerateTags(clusterName string, s v1.Service) []string {
+	identifier := GenerateClusterIPTag("clustername/namespace/servicename", fmt.Sprintf("%s/%s/%s", clusterName, s.GetNamespace(), s.GetName()))
 	return []string{identifier}
 }

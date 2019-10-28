@@ -86,7 +86,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
-		err := l.useIPInCluster(fixedIP, l.clusterID, l.projectID, service)
+		err := l.useIPInCluster(fixedIP, l.clusterID, clusterName, service)
 		if err != nil {
 			l.logger.Printf("could not associate fixed ip:%s, err: %v", fixedIP, err)
 			return nil, err
@@ -109,19 +109,9 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		}, nil
 	}
 
-	available, err := metal.FindAvailableProjectIP(l.client, l.projectID)
+	ip, err = l.acquireIP(clusterName, service)
 	if err != nil {
-		ip, err = l.acquireIP(service)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// try to use a free project ip that is not currently associated to a cluster / machine
-		ip = *available.Ipaddress
-		err = l.useIPInCluster(ip, l.clusterID, l.projectID, service)
-		if err != nil {
-			return nil, fmt.Errorf("could not associate ip address to cluster err: %v", err)
-		}
+		return nil, err
 	}
 
 	ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
@@ -166,7 +156,6 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	for _, ingress := range service.Status.LoadBalancer.Ingress {
 		r := &metalgo.IPFindRequest{
 			IPAddress: &ingress.IP,
-			ProjectID: &l.projectID,
 			ClusterID: &l.clusterID,
 		}
 		resp, err := l.client.IPFind(r)
@@ -178,7 +167,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 			continue
 		}
 		ip := resp.IPs[0]
-		err = l.releaseIPFromCluster(*ip.Ipaddress, l.clusterID, l.projectID, service)
+		err = l.releaseIPFromCluster(*ip.Ipaddress, l.clusterID, clusterName, service)
 		if err != nil {
 			return fmt.Errorf("could not release ip from cluster: %v", err)
 		}
@@ -207,15 +196,14 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 	return nil
 }
 
-func (l *LoadBalancerController) useIPInCluster(ip, cluster, project string, s *v1.Service) error {
-	tags := metal.GenerateTags(*s)
-	iuc := &metalgo.IPUseInClusterRequest{
+func (l *LoadBalancerController) useIPInCluster(ip, clusterID, clusterName string, s *v1.Service) error {
+	tags := metal.GenerateTags(clusterName, *s)
+	it := &metalgo.IPTagRequest{
 		IPAddress: ip,
-		ClusterID: cluster,
-		ProjectID: project,
+		ClusterID: &clusterID,
 		Tags:      tags,
 	}
-	details, err := l.client.IPUseInCluster(iuc)
+	details, err := l.client.IPTag(it)
 	if err != nil {
 		return err
 	}
@@ -223,15 +211,14 @@ func (l *LoadBalancerController) useIPInCluster(ip, cluster, project string, s *
 	return nil
 }
 
-func (l *LoadBalancerController) releaseIPFromCluster(ip, cluster, project string, s *v1.Service) error {
-	tags := metal.GenerateTags(*s)
-	irc := &metalgo.IPReleaseFromClusterRequest{
+func (l *LoadBalancerController) releaseIPFromCluster(ip, clusterID, clusterName string, s *v1.Service) error {
+	tags := metal.GenerateTags(clusterName, *s)
+	irc := &metalgo.IPUntagRequest{
 		IPAddress: ip,
-		ClusterID: cluster,
-		ProjectID: project,
+		ClusterID: &clusterID,
 		Tags:      tags,
 	}
-	details, err := l.client.IPReleaseFromCluster(irc)
+	details, err := l.client.IPUntag(irc)
 	if err != nil {
 		return err
 	}
@@ -239,26 +226,26 @@ func (l *LoadBalancerController) releaseIPFromCluster(ip, cluster, project strin
 	return nil
 }
 
-func (l *LoadBalancerController) acquireIP(service *v1.Service) (string, error) {
+func (l *LoadBalancerController) acquireIP(clusterName string, service *v1.Service) (string, error) {
 	annotations := service.GetAnnotations()
 	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
 	if !ok {
-		return l.acquireIPFromDefaultExternalNetwork(service)
+		return l.acquireIPFromDefaultExternalNetwork(clusterName, service)
 	}
-	return l.acquireIPFromSpecificNetwork(service, addressPool)
+	return l.acquireIPFromSpecificNetwork(clusterName, service, addressPool)
 }
 
-func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(service *v1.Service) (string, error) {
+func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(clusterName string, service *v1.Service) (string, error) {
 	nwID, err := l.getExternalNetworkID()
 	if err != nil {
 		return "", err
 	}
 
-	return l.acquireIPFromSpecificNetwork(service, nwID)
+	return l.acquireIPFromSpecificNetwork(clusterName, service, nwID)
 }
 
-func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Service, nwID string) (string, error) {
-	ip, err := metal.AcquireIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
+func (l *LoadBalancerController) acquireIPFromSpecificNetwork(clusterName string, service *v1.Service, nwID string) (string, error) {
+	ip, err := metal.AcquireIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID, clusterName)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
 	}

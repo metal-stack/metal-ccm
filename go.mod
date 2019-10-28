@@ -35,7 +35,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20191024093147-ca4186dcbd22
+	github.com/metal-pod/metal-go v0.0.0-20191028151752-be169be040e8
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
@@ -56,7 +56,7 @@ require (
 	go.uber.org/multierr v0.0.0-20180122172545-ddea229ff1df // indirect
 	go.uber.org/zap v0.0.0-20180814183419-67bc79d13d15 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
-	golang.org/x/net v0.0.0-20191021144547-ec77196f6094 // indirect
+	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271 // indirect
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
