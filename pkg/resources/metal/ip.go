@@ -84,7 +84,7 @@ func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, netw
 		Networkid: network,
 		Clusterid: &cluster,
 		Type:      "ephemeral",
-		Tags:      GenerateTags(svc, cluster),
+		Tags:      GenerateTags(svc),
 	}
 
 	resp, err := client.IPAcquire(req)
@@ -121,8 +121,7 @@ func GenerateClusterIPTag(key, value string) string {
 	return fmt.Sprintf("%s/%s=%s", constants.TagClusterPrefix, key, value)
 }
 
-func GenerateTags(s v1.Service, clusterID string) []string {
+func GenerateTags(s v1.Service) []string {
 	identifier := GenerateClusterIPTag("clustername/namespace/servicename", fmt.Sprintf("%s/%s/%s", s.GetClusterName(), s.GetNamespace(), s.GetName()))
-	tags := []string{identifier}
-	return tags
+	return []string{identifier}
 }

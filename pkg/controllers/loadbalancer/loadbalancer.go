@@ -208,7 +208,7 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 }
 
 func (l *LoadBalancerController) useIPInCluster(ip, cluster, project string, s *v1.Service) error {
-	tags := metal.GenerateTags(*s, cluster)
+	tags := metal.GenerateTags(*s)
 	iuc := &metalgo.IPUseInClusterRequest{
 		IPAddress: ip,
 		ClusterID: cluster,
@@ -224,7 +224,7 @@ func (l *LoadBalancerController) useIPInCluster(ip, cluster, project string, s *
 }
 
 func (l *LoadBalancerController) releaseIPFromCluster(ip, cluster, project string, s *v1.Service) error {
-	tags := metal.GenerateTags(*s, cluster)
+	tags := metal.GenerateTags(*s)
 	irc := &metalgo.IPReleaseFromClusterRequest{
 		IPAddress: ip,
 		ClusterID: cluster,
