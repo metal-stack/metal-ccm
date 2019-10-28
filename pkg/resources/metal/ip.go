@@ -71,14 +71,14 @@ func DeleteIP(client *metalgo.Driver, ip string) error {
 	return nil
 }
 
-// AcquireIP acquires an IP within the given network for a given project.
-func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID, clusterName string) (*models.V1IPResponse, error) {
+// AllocateIP acquires an IP within the given network for a given project.
+func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID, clusterName string) (*models.V1IPResponse, error) {
 	name, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
 	}
 
-	req := &metalgo.IPAcquireRequest{
+	req := &metalgo.IPAllocateRequest{
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
 		Projectid: project,
 		Networkid: network,
@@ -87,7 +87,7 @@ func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, netw
 		Tags:      GenerateTags(clusterName, svc),
 	}
 
-	resp, err := client.IPAcquire(req)
+	resp, err := client.IPAllocate(req)
 	if err != nil {
 		return nil, err
 	}
@@ -95,26 +95,24 @@ func AcquireIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, netw
 	return resp.IP, nil
 }
 
-// AssociateIP associates an IP with an cluster
-func AssociateIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
-	iuc := &metalgo.IPUseInClusterRequest{
+// TagIP associates an IP with an cluster
+func TagIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
+	it := &metalgo.IPTagRequest{
 		IPAddress: address,
-		ClusterID: cluster,
-		ProjectID: project,
+		ClusterID: &cluster,
 		Tags:      tags,
 	}
-	return client.IPUseInCluster(iuc)
+	return client.IPTag(it)
 }
 
-// DeassociateIP associates an IP with an cluster
-func DeassociateIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
-	irc := &metalgo.IPReleaseFromClusterRequest{
+// UntagIP associates an IP with an cluster
+func UntagIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
+	iu := &metalgo.IPUntagRequest{
 		IPAddress: address,
-		ClusterID: cluster,
-		ProjectID: project,
+		ClusterID: &cluster,
 		Tags:      tags,
 	}
-	return client.IPReleaseFromCluster(irc)
+	return client.IPUntag(iu)
 }
 
 func GenerateClusterIPTag(key, value string) string {

@@ -245,7 +245,7 @@ func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(clusterName
 }
 
 func (l *LoadBalancerController) acquireIPFromSpecificNetwork(clusterName string, service *v1.Service, nwID string) (string, error) {
-	ip, err := metal.AcquireIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID, clusterName)
+	ip, err := metal.AllocateIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID, clusterName)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
 	}
