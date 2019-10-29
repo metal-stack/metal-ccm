@@ -11,6 +11,7 @@ import (
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
+	"github.com/metal-pod/metal-go/api/models"
 
 	metalgo "github.com/metal-pod/metal-go"
 	v1 "k8s.io/api/core/v1"
@@ -86,7 +87,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
-		err := l.useIPInCluster(fixedIP, l.clusterID, clusterName, service)
+		err := l.useIPInCluster(fixedIP, l.clusterID, service)
 		if err != nil {
 			l.logger.Printf("could not associate fixed ip:%s, err: %v", fixedIP, err)
 			return nil, err
@@ -153,21 +154,65 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		return err
 	}
 
-	serviceTags := metal.GenerateTags(clusterName, *service)
-	ips, err := metal.FindClusterIPsWithTags(l.client, l.projectID, l.clusterID, serviceTags)
+	serviceTag := metal.GenerateServiceTag(l.clusterID, *service)
+	ips, err := metal.FindClusterIPsWithTag(l.client, l.projectID, l.clusterID, serviceTag)
 	for _, ip := range ips {
-		err = l.releaseIPFromCluster(*ip.Ipaddress, l.clusterID, clusterName, service)
-		if err != nil {
-			return fmt.Errorf("could not release ip from cluster: %v", err)
+		newTags, last := l.removeServiceTag(*ip, l.clusterID, *service)
+		iu := &metalgo.IPUpdateRequest{
+			IPAddress: *ip.Ipaddress,
+			Tags:      newTags,
 		}
-		if *ip.Iptype == "ephemeral" {
-			err := metal.DeleteIP(l.client, *ip.Ipaddress)
+		newIP, err := l.client.IPUpdate(iu)
+		if err != nil {
+			return fmt.Errorf("could not update ip with new tags: %v", err)
+		}
+		l.logger.Printf("updated ip: %v", newIP)
+		if *ip.Type == "ephemeral" && last {
+			err := metal.FreeIP(l.client, *ip.Ipaddress)
 			if err != nil {
 				return fmt.Errorf("unable to delete ip %s: %v", *ip.Ipaddress, err)
 			}
 		}
 	}
 	return l.UpdateMetalLBConfig(nodes)
+}
+
+// removes the service tag and checks whether it is the last service for this cluster.
+// if this is the case: the cluster tag is also removed
+func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, clusterID string, s v1.Service) ([]string, bool) {
+	serviceTag := metal.GenerateServiceTag(l.clusterID, s)
+	count := 0
+	clusterCount := 0
+	newTags := []string{}
+	for _, t := range ip.Tags {
+		if strings.HasPrefix(t, constants.TagServicePrefix) {
+			count++
+		}
+		prefix := fmt.Sprintf("%s=%s", constants.TagServicePrefix, clusterID)
+		if strings.HasPrefix(t, prefix) {
+			clusterCount++
+		}
+		if t == serviceTag {
+			continue
+		}
+		newTags = append(newTags, t)
+	}
+	lastInCluster := (clusterCount <= 1)
+	last := (count <= 1)
+	l.logger.Printf("removing service tag '%s', lastInCluster: %t, last: %t, oldTags: %v, newTags: %v", serviceTag, lastInCluster, last, ip.Tags, newTags)
+	if !lastInCluster {
+		return newTags, last
+	}
+	clusterTag := metal.GenerateClusterTag(clusterID)
+	result := []string{}
+	for _, t := range newTags {
+		if t == clusterTag {
+			continue
+		}
+		result = append(result, t)
+	}
+	l.logger.Printf("removing cluster tag '%s', oldTags: %v, newTags: %v", serviceTag, newTags, result)
+	return result, last
 }
 
 // UpdateMetalLBConfig the metallb config for given nodes
@@ -185,33 +230,18 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 	return nil
 }
 
-func (l *LoadBalancerController) useIPInCluster(ip, clusterID, clusterName string, s *v1.Service) error {
-	tags := metal.GenerateTags(clusterName, *s)
+func (l *LoadBalancerController) useIPInCluster(ip, clusterID string, s *v1.Service) error {
+	tag := metal.GenerateServiceTag(clusterID, *s)
 	it := &metalgo.IPTagRequest{
 		IPAddress: ip,
 		ClusterID: &clusterID,
-		Tags:      tags,
+		Tags:      []string{tag},
 	}
 	details, err := l.client.IPTag(it)
 	if err != nil {
 		return err
 	}
 	l.logger.Printf("associate ip with cluster; ip: %v", details)
-	return nil
-}
-
-func (l *LoadBalancerController) releaseIPFromCluster(ip, clusterID, clusterName string, s *v1.Service) error {
-	tags := metal.GenerateTags(clusterName, *s)
-	irc := &metalgo.IPUntagRequest{
-		IPAddress: ip,
-		ClusterID: &clusterID,
-		Tags:      tags,
-	}
-	details, err := l.client.IPUntag(irc)
-	if err != nil {
-		return err
-	}
-	l.logger.Printf("deassociate ip with cluster; ip: %v", details)
 	return nil
 }
 

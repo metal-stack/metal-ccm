@@ -131,7 +131,7 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 
 // announceIPs appends the given IPs to the network address pools.
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
-	poolType := *ip.Iptype
+	poolType := *ip.Type
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
 	autoAssign := true
 	if poolType == "static" {

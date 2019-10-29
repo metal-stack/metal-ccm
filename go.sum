@@ -61,6 +61,8 @@ github.com/go-openapi/analysis v0.19.4 h1:1TjOzrWkj+9BrjnM1yPAICbaoC0FyfD49oVkTB
 github.com/go-openapi/analysis v0.19.4/go.mod h1:3P1osvZa9jKjb8ed2TPng3f0i/UY9snX6gxi44djMjk=
 github.com/go-openapi/analysis v0.19.5 h1:8b2ZgKfKIUTVQpTb77MoRDIMEIwvDVw40o3aOXdfYzI=
 github.com/go-openapi/analysis v0.19.5/go.mod h1:hkEAkxagaIvIP7VTn8ygJNkd4kAYON2rCu0v0ObL0AU=
+github.com/go-openapi/analysis v0.19.6 h1:5Z7zgx/EAmE9bf7cuTU1hkGQlZGzGDf9a1m57xRfNZk=
+github.com/go-openapi/analysis v0.19.6/go.mod h1:hkEAkxagaIvIP7VTn8ygJNkd4kAYON2rCu0v0ObL0AU=
 github.com/go-openapi/errors v0.17.0/go.mod h1:LcZQpmvG4wyF5j4IhA73wkLFQg+QJXOQHVjmcZxhka0=
 github.com/go-openapi/errors v0.18.0/go.mod h1:LcZQpmvG4wyF5j4IhA73wkLFQg+QJXOQHVjmcZxhka0=
 github.com/go-openapi/errors v0.19.2 h1:a2kIyV3w+OS3S97zxUndRVD46+FhGOUBDFY7nmu4CsY=
@@ -189,8 +191,8 @@ github.com/mailru/easyjson v0.7.0 h1:aizVhC/NAAcKWb+5QsU1iNOZb4Yws5UO2I+aIprQITM
 github.com/mailru/easyjson v0.7.0/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7ldAVICs=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
-github.com/metal-pod/metal-go v0.0.0-20191028151752-be169be040e8 h1:cwMZHrBybnLC2mtQmrorSkEqNRwXhOy2/u7c3EzuaWU=
-github.com/metal-pod/metal-go v0.0.0-20191028151752-be169be040e8/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
+github.com/metal-pod/metal-go v0.0.0-20191029161656-3a2aa40b5c0f h1:YyI20Pwr/LfreykBu4zpZfbXBk8rClB5VnLS5VjE+9M=
+github.com/metal-pod/metal-go v0.0.0-20191029161656-3a2aa40b5c0f/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
 github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b h1:YpbguTdZ3M3O4AF8NEWJQ0JXmvEV2Y6b64Dp7OvPyaI=

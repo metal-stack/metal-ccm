@@ -14,6 +14,7 @@ require (
 	github.com/docker/docker v0.0.0-20180612054059-a9fbbdc8dd87 // indirect
 	github.com/evanphx/json-patch v4.1.1-0.20190203023257-5858425f7550+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
+	github.com/go-openapi/analysis v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/loads v0.19.4 // indirect
 	github.com/go-openapi/runtime v0.19.7 // indirect
@@ -35,7 +36,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20191028151752-be169be040e8
+	github.com/metal-pod/metal-go v0.0.0-20191029161656-3a2aa40b5c0f
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect

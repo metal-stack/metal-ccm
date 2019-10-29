@@ -26,12 +26,12 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 	return resp.IPs, nil
 }
 
-// FindClusterIPsWithTags returns the IPs of the given cluster that also have the given tags.
-func FindClusterIPsWithTags(client *metalgo.Driver, projectID, clusterID string, tags []string) ([]*models.V1IPResponse, error) {
+// FindClusterIPsWithTag returns the IPs of the given cluster that also have the given tag.
+func FindClusterIPsWithTag(client *metalgo.Driver, projectID, clusterID string, tag string) ([]*models.V1IPResponse, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &projectID,
 		ClusterID: &clusterID,
-		Tags:      tags,
+		Tags:      []string{tag},
 	}
 
 	resp, err := client.IPFind(req)
@@ -51,9 +51,9 @@ func IPAddressesOfIPs(ips []*models.V1IPResponse) []string {
 	return result
 }
 
-// DeleteIP deletes the given IP address.
-func DeleteIP(client *metalgo.Driver, ip string) error {
-	_, err := client.IPDelete(ip)
+// FreeIP frees the given IP address.
+func FreeIP(client *metalgo.Driver, ip string) error {
+	_, err := client.IPFree(ip)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, net
 		Networkid: network,
 		Clusterid: &clusterID,
 		Type:      "ephemeral",
-		Tags:      GenerateTags(clusterName, svc),
+		Tags:      []string{GenerateServiceTag(clusterID, svc)},
 	}
 
 	resp, err := client.IPAllocate(req)
@@ -94,21 +94,10 @@ func TagIP(client *metalgo.Driver, address, cluster, project string, tags []stri
 	return client.IPTag(it)
 }
 
-// UntagIP associates an IP with an cluster
-func UntagIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
-	iu := &metalgo.IPUntagRequest{
-		IPAddress: address,
-		ClusterID: &cluster,
-		Tags:      tags,
-	}
-	return client.IPUntag(iu)
+func GenerateServiceTag(clusterID string, s v1.Service) string {
+	return fmt.Sprintf("%s=%s", constants.TagServicePrefix, fmt.Sprintf("%s/%s/%s", clusterID, s.GetNamespace(), s.GetName()))
 }
 
-func GenerateClusterIPTag(key, value string) string {
-	return fmt.Sprintf("%s/%s=%s", constants.TagClusterPrefix, key, value)
-}
-
-func GenerateTags(clusterName string, s v1.Service) []string {
-	identifier := GenerateClusterIPTag("clustername/namespace/servicename", fmt.Sprintf("%s/%s/%s", clusterName, s.GetNamespace(), s.GetName()))
-	return []string{identifier}
+func GenerateClusterTag(clusterID string) string {
+	return fmt.Sprintf("%s/clusterid=%s", constants.TagClusterPrefix, clusterID)
 }
