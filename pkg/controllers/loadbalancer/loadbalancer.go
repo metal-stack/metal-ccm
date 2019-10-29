@@ -153,28 +153,17 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		return err
 	}
 
-	for _, ingress := range service.Status.LoadBalancer.Ingress {
-		r := &metalgo.IPFindRequest{
-			IPAddress: &ingress.IP,
-			ClusterID: &l.clusterID,
-		}
-		resp, err := l.client.IPFind(r)
-		if err != nil {
-			l.logger.Printf("unable to find ip: %v", err)
-			continue
-		}
-		if len(resp.IPs) == 0 {
-			continue
-		}
-		ip := resp.IPs[0]
+	serviceTags := metal.GenerateTags(clusterName, *service)
+	ips, err := metal.FindClusterIPsWithTags(l.client, l.projectID, l.clusterID, serviceTags)
+	for _, ip := range ips {
 		err = l.releaseIPFromCluster(*ip.Ipaddress, l.clusterID, clusterName, service)
 		if err != nil {
 			return fmt.Errorf("could not release ip from cluster: %v", err)
 		}
 		if *ip.Iptype == "ephemeral" {
-			err := metal.DeleteIP(l.client, ingress.IP)
+			err := metal.DeleteIP(l.client, *ip.Ipaddress)
 			if err != nil {
-				return fmt.Errorf("unable to delete ip: %s", ingress.IP)
+				return fmt.Errorf("unable to delete ip %s: %v", *ip.Ipaddress, err)
 			}
 		}
 	}

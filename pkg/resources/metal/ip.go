@@ -2,7 +2,6 @@ package metal
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	metalgo "github.com/metal-pod/metal-go"
@@ -27,30 +26,20 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 	return resp.IPs, nil
 }
 
-// FindAvailableProjectIP returns a free IP of the given project.
-func FindAvailableProjectIP(client *metalgo.Driver, projectID string) (*models.V1IPResponse, error) {
+// FindClusterIPsWithTags returns the IPs of the given cluster that also have the given tags.
+func FindClusterIPsWithTags(client *metalgo.Driver, projectID, clusterID string, tags []string) ([]*models.V1IPResponse, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &projectID,
+		ClusterID: &clusterID,
+		Tags:      tags,
 	}
+
 	resp, err := client.IPFind(req)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, i := range resp.IPs {
-		occupied := false
-		for _, t := range i.Tags {
-			if strings.HasPrefix(t, constants.TagClusterPrefix) || strings.HasPrefix(t, constants.TagMachinePrefix) {
-				occupied = true
-				break
-			}
-		}
-		if !occupied {
-			return i, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no ip available for project")
+	return resp.IPs, nil
 }
 
 // IPAddressesOfIPs returns the IP address strings of the given ips.
