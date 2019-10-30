@@ -36,10 +36,14 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 		},
 	}
 
+	address, err := CalicoTunnelAddress(node)
+	if err != nil {
+		return nil, err
+	}
 	return &Peer{
 		MyASN:   asn,
 		ASN:     asn,
-		Address: "10.244.0.1",
+		Address: address,
 		NodeSelectors: []*NodeSelector{
 			{
 				MatchExpressions: []*MatchExpression{
