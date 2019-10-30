@@ -87,12 +87,16 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
-		err := l.useIPInCluster(fixedIP, l.clusterID, service)
+		ip, err := metal.FindProjectIP(l.client, l.projectID, fixedIP)
+		if err != nil {
+			return nil, err
+		}
+		newIP, err := l.useIPInCluster(*ip, l.clusterID, service)
 		if err != nil {
 			l.logger.Printf("could not associate fixed ip:%s, err: %v", fixedIP, err)
 			return nil, err
 		}
-		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: fixedIP})
+		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: *newIP.IP.Ipaddress})
 		return &v1.LoadBalancerStatus{Ingress: ingressStatus}, nil
 	}
 
@@ -230,19 +234,17 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 	return nil
 }
 
-func (l *LoadBalancerController) useIPInCluster(ip, clusterID string, s *v1.Service) error {
-	tag := metal.GenerateServiceTag(clusterID, *s)
-	it := &metalgo.IPTagRequest{
-		IPAddress: ip,
-		ClusterID: &clusterID,
-		Tags:      []string{tag},
+func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterID string, s *v1.Service) (*metalgo.IPDetailResponse, error) {
+	clusterTag := metal.GenerateClusterTag(clusterID)
+	serviceTag := metal.GenerateServiceTag(clusterID, *s)
+	newTags := ip.Tags
+	newTags = append(newTags, clusterTag, serviceTag)
+	l.logger.Printf("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", ip.Ipaddress, ip.Tags, newTags)
+	iu := &metalgo.IPUpdateRequest{
+		IPAddress: *ip.Ipaddress,
+		Tags:      newTags,
 	}
-	details, err := l.client.IPTag(it)
-	if err != nil {
-		return err
-	}
-	l.logger.Printf("associate ip with cluster; ip: %v", details)
-	return nil
+	return l.client.IPUpdate(iu)
 }
 
 func (l *LoadBalancerController) acquireIP(clusterName string, service *v1.Service) (string, error) {

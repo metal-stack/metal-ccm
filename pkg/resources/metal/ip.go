@@ -26,6 +26,25 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 	return resp.IPs, nil
 }
 
+// FindProjectIP returns the IP
+func FindProjectIP(client *metalgo.Driver, projectID, ip string) (*models.V1IPResponse, error) {
+	req := &metalgo.IPFindRequest{
+		IPAddress: &ip,
+		ProjectID: &projectID,
+	}
+
+	resp, err := client.IPFind(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.IPs) != 1 {
+		return nil, fmt.Errorf("ip %s is ambiguous for projectID: %s", ip, projectID)
+	}
+
+	return resp.IPs[0], nil
+}
+
 // FindClusterIPsWithTag returns the IPs of the given cluster that also have the given tag.
 func FindClusterIPsWithTag(client *metalgo.Driver, projectID, clusterID string, tag string) ([]*models.V1IPResponse, error) {
 	req := &metalgo.IPFindRequest{
