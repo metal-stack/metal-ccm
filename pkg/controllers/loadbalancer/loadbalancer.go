@@ -160,8 +160,11 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 
 	serviceTag := metal.GenerateServiceTag(l.clusterID, *service)
 	ips, err := metal.FindClusterIPsWithTag(l.client, l.projectID, l.clusterID, serviceTag)
+	if err != nil {
+		return err
+	}
 	for _, ip := range ips {
-		newTags, last := l.removeServiceTag(*ip, l.clusterID, *service)
+		newTags, last := l.removeServiceTag(*ip, *service)
 		iu := &metalgo.IPUpdateRequest{
 			IPAddress: *ip.Ipaddress,
 			Tags:      newTags,
@@ -183,7 +186,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 
 // removes the service tag and checks whether it is the last service for this cluster.
 // if this is the case: the cluster tag is also removed
-func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, clusterID string, s v1.Service) ([]string, bool) {
+func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, s v1.Service) ([]string, bool) {
 	serviceTag := metal.GenerateServiceTag(l.clusterID, s)
 	count := 0
 	clusterCount := 0
@@ -192,7 +195,7 @@ func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, cluste
 		if strings.HasPrefix(t, constants.TagServicePrefix) {
 			count++
 		}
-		prefix := fmt.Sprintf("%s=%s", constants.TagServicePrefix, clusterID)
+		prefix := fmt.Sprintf("%s=%s", constants.TagServicePrefix, l.clusterID)
 		if strings.HasPrefix(t, prefix) {
 			clusterCount++
 		}
@@ -207,7 +210,7 @@ func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, cluste
 	if !lastInCluster {
 		return newTags, last
 	}
-	clusterTag := metal.GenerateClusterTag(clusterID)
+	clusterTag := metal.GenerateClusterTag(l.clusterID)
 	result := []string{}
 	for _, t := range newTags {
 		if t == clusterTag {
@@ -239,7 +242,7 @@ func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterI
 	serviceTag := metal.GenerateServiceTag(clusterID, *s)
 	newTags := ip.Tags
 	newTags = append(newTags, clusterTag, serviceTag)
-	l.logger.Printf("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", ip.Ipaddress, ip.Tags, newTags)
+	l.logger.Printf("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", *ip.Ipaddress, ip.Tags, newTags)
 	iu := &metalgo.IPUpdateRequest{
 		IPAddress: *ip.Ipaddress,
 		Tags:      newTags,
