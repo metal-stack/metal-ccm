@@ -219,6 +219,12 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 }
 
 func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterID string, s v1.Service) (*metalgo.IPDetailResponse, error) {
+	for _, t := range ip.Tags {
+		if metalgo.TagIsMachine(t) {
+			return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, machine: %v", ip.Tags)
+		}
+	}
+
 	serviceTag := metalgo.BuildServiceTag(clusterID, s.GetNamespace(), s.GetName())
 	newTags := ip.Tags
 	newTags = append(newTags, serviceTag)

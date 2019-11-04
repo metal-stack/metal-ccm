@@ -36,7 +36,7 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20191104095617-f77f18b100f2
+	github.com/metal-pod/metal-go v0.0.0-20191104112856-8381d618c7b4
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
