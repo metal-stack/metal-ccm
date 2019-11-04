@@ -39,7 +39,6 @@ require (
 	github.com/metal-pod/metal-go v0.0.0-20191104090501-89e23522d368
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/metal-pod/v v0.0.2
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
@@ -86,7 +85,6 @@ require (
 )
 
 replace (
-	github.com/metal-pod/metal-go => /home/markus/metal-pod/metal-go
 	k8s.io/api => k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 )
