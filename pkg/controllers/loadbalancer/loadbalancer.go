@@ -162,7 +162,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	serviceTag := metalgo.BuildServiceTag(l.clusterID, s.GetNamespace(), s.GetName())
 	ips, err := metal.FindProjectIPsWithTag(l.client, l.projectID, serviceTag)
 	for _, ip := range ips {
-		newTags, last := l.removeServiceTag(*ip, l.clusterID, s)
+		newTags, last := l.removeServiceTag(*ip, serviceTag)
 		iu := &metalgo.IPUpdateRequest{
 			IPAddress: *ip.Ipaddress,
 			Tags:      newTags,
@@ -172,7 +172,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 			return fmt.Errorf("could not update ip with new tags: %v", err)
 		}
 		l.logger.Printf("updated ip: %v", newIP)
-		if *ip.Type == "ephemeral" && last {
+		if *ip.Type == metalgo.IPTypeEphemeral && last {
 			err := metal.FreeIP(l.client, *ip.Ipaddress)
 			if err != nil {
 				return fmt.Errorf("unable to delete ip %s: %v", *ip.Ipaddress, err)
@@ -183,8 +183,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 }
 
 // removes the service tag and checks whether it is the last service tag.
-func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, clusterID string, s v1.Service) ([]string, bool) {
-	serviceTag := metalgo.BuildServiceTag(l.clusterID, s.GetNamespace(), s.GetName())
+func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, serviceTag string) ([]string, bool) {
 	count := 0
 	newTags := []string{}
 	for _, t := range ip.Tags {
@@ -220,7 +219,7 @@ func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterI
 	serviceTag := metalgo.BuildServiceTag(clusterID, s.GetNamespace(), s.GetName())
 	newTags := ip.Tags
 	newTags = append(newTags, serviceTag)
-	l.logger.Printf("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", ip.Ipaddress, ip.Tags, newTags)
+	l.logger.Printf("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", *ip.Ipaddress, ip.Tags, newTags)
 	iu := &metalgo.IPUpdateRequest{
 		IPAddress: *ip.Ipaddress,
 		Tags:      newTags,

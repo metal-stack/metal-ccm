@@ -7,6 +7,7 @@ import (
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	metalgo "github.com/metal-pod/metal-go"
 
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -132,10 +133,10 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 // announceIPs appends the given IPs to the network address pools.
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
-	poolType := "ephemeral"
+	poolType := metalgo.IPTypeEphemeral
 	autoAssign := true
-	if t != nil && *t == "static" {
-		poolType = "static"
+	if t != nil && *t == metalgo.IPTypeStatic {
+		poolType = metalgo.IPTypeStatic
 		autoAssign = false
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
@@ -150,12 +151,4 @@ func (cfg *MetalLBConfig) ToYAML() (string, error) {
 		return "", err
 	}
 	return string(bb), nil
-}
-
-func (cfg *MetalLBConfig) StringAddressPools() string {
-	result := ""
-	for _, pool := range cfg.AddressPools {
-		result += pool.String() + " "
-	}
-	return result
 }

@@ -2,7 +2,6 @@ package metal
 
 import (
 	"fmt"
-	"strings"
 
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"
@@ -23,10 +22,9 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 	}
 
 	result := []*models.V1IPResponse{}
-	clusterPrefix := metalgo.BuildServiceTagClusterPrefix(clusterID)
 	for _, i := range resp.IPs {
 		for _, t := range i.Tags {
-			if strings.HasPrefix(t, clusterPrefix) {
+			if metalgo.TagIsMemberOfCluster(t, clusterID) {
 				result = append(result, i)
 				break
 			}
@@ -99,7 +97,7 @@ func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, net
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
 		Projectid: project,
 		Networkid: network,
-		Type:      "ephemeral",
+		Type:      metalgo.IPTypeEphemeral,
 		Tags:      []string{metalgo.BuildServiceTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
