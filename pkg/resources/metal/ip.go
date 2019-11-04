@@ -2,8 +2,8 @@ package metal
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
@@ -15,12 +15,22 @@ import (
 func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*models.V1IPResponse, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &projectID,
-		ClusterID: &clusterID,
 	}
 
 	resp, err := client.IPFind(req)
 	if err != nil {
 		return nil, err
+	}
+
+	result := []*models.V1IPResponse{}
+	clusterPrefix := metalgo.BuildServiceTagClusterPrefix(clusterID)
+	for _, i := range resp.IPs {
+		for _, t := range i.Tags {
+			if strings.HasPrefix(t, clusterPrefix) {
+				result = append(result, i)
+				break
+			}
+		}
 	}
 
 	return resp.IPs, nil
@@ -45,11 +55,10 @@ func FindProjectIP(client *metalgo.Driver, projectID, ip string) (*models.V1IPRe
 	return resp.IPs[0], nil
 }
 
-// FindClusterIPsWithTag returns the IPs of the given cluster that also have the given tag.
-func FindClusterIPsWithTag(client *metalgo.Driver, projectID, clusterID string, tag string) ([]*models.V1IPResponse, error) {
+// FindProjectIPsWithTag returns the IPs of the given project that also have the given tag.
+func FindProjectIPsWithTag(client *metalgo.Driver, projectID, tag string) ([]*models.V1IPResponse, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &projectID,
-		ClusterID: &clusterID,
 		Tags:      []string{tag},
 	}
 
@@ -80,7 +89,7 @@ func FreeIP(client *metalgo.Driver, ip string) error {
 }
 
 // AllocateIP acquires an IP within the given network for a given project.
-func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID, clusterName string) (*models.V1IPResponse, error) {
+func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
 	name, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
@@ -90,9 +99,8 @@ func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, net
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
 		Projectid: project,
 		Networkid: network,
-		Clusterid: &clusterID,
 		Type:      "ephemeral",
-		Tags:      []string{GenerateServiceTag(clusterID, svc)},
+		Tags:      []string{metalgo.BuildServiceTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
 	resp, err := client.IPAllocate(req)
@@ -101,22 +109,4 @@ func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, net
 	}
 
 	return resp.IP, nil
-}
-
-// TagIP associates an IP with an cluster
-func TagIP(client *metalgo.Driver, address, cluster, project string, tags []string) (*metalgo.IPDetailResponse, error) {
-	it := &metalgo.IPTagRequest{
-		IPAddress: address,
-		ClusterID: &cluster,
-		Tags:      tags,
-	}
-	return client.IPTag(it)
-}
-
-func GenerateServiceTag(clusterID string, s v1.Service) string {
-	return fmt.Sprintf("%s=%s", constants.TagServicePrefix, fmt.Sprintf("%s/%s/%s", clusterID, s.GetNamespace(), s.GetName()))
-}
-
-func GenerateClusterTag(clusterID string) string {
-	return fmt.Sprintf("%s/clusterid=%s", constants.TagClusterPrefix, clusterID)
 }

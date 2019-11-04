@@ -17,10 +17,6 @@ const (
 
 	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
 
-	TagClusterPrefix = "cluster.metal-pod.io"
-	TagServicePrefix = "service.metal-pod.io/clusterid/namespace/servicename"
-	TagMachinePrefix = "machine.metal-pod.io"
-
 	IPPrefix = "metallb-"
 )
 
