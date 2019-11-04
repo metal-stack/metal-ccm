@@ -31,7 +31,7 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 		}
 	}
 
-	return resp.IPs, nil
+	return result, nil
 }
 
 // FindProjectIP returns the IP

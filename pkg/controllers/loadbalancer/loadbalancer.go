@@ -161,6 +161,9 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	s := *service
 	serviceTag := metalgo.BuildServiceTag(l.clusterID, s.GetNamespace(), s.GetName())
 	ips, err := metal.FindProjectIPsWithTag(l.client, l.projectID, serviceTag)
+	if err != nil {
+		return err
+	}
 	for _, ip := range ips {
 		newTags, last := l.removeServiceTag(*ip, serviceTag)
 		iu := &metalgo.IPUpdateRequest{
