@@ -7,6 +7,7 @@ import (
 
 	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
 	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	metalgo "github.com/metal-pod/metal-go"
 
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -61,10 +62,6 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 		if *nw.Underlay {
 			continue
 		}
-		// If ip has a machineID this is a ip which was acquired for a machine an cannot be used for metallb
-		if *ip.Machineid != "" {
-			continue
-		}
 		// we do not want IPs from networks where the parent networks are private
 		if nw.Parentnetworkid != nil && *nw.Parentnetworkid != "" {
 			parent, ok := nws[*nw.Parentnetworkid]
@@ -75,7 +72,8 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 				continue
 			}
 		}
-		cfg.addIPToPool(*ip.Networkid, *ip.Ipaddress)
+		net := *ip.Networkid
+		cfg.addIPToPool(net, *ip)
 	}
 	return nil
 }
@@ -119,23 +117,31 @@ func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 
 // getOrCreateAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *MetalLBConfig) getOrCreateAddressPool(networkID string) *AddressPool {
+func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign bool) *AddressPool {
 	for _, pool := range cfg.AddressPools {
-		if pool.NetworkID == networkID {
+		if pool.Name == poolName {
 			return pool
 		}
 	}
 
-	pool := NewBGPAddressPool(networkID)
+	pool := NewBGPAddressPool(poolName, autoAssign)
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *MetalLBConfig) addIPToPool(network string, ip string) {
-	pool := cfg.getOrCreateAddressPool(network)
-	pool.AppendIP(ip)
+func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
+	t := ip.Type
+	poolType := metalgo.IPTypeEphemeral
+	autoAssign := true
+	if t != nil && *t == metalgo.IPTypeStatic {
+		poolType = metalgo.IPTypeStatic
+		autoAssign = false
+	}
+	poolName := fmt.Sprintf("%s-%s", network, poolType)
+	pool := cfg.getOrCreateAddressPool(poolName, autoAssign)
+	pool.AppendIP(*ip.Ipaddress)
 }
 
 // ToYAML returns this config in YAML format.
@@ -145,12 +151,4 @@ func (cfg *MetalLBConfig) ToYAML() (string, error) {
 		return "", err
 	}
 	return string(bb), nil
-}
-
-func (cfg *MetalLBConfig) StringAddressPools() string {
-	result := ""
-	for _, pool := range cfg.AddressPools {
-		result += pool.String() + " "
-	}
-	return result
 }

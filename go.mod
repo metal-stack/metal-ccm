@@ -14,7 +14,12 @@ require (
 	github.com/docker/docker v0.0.0-20180612054059-a9fbbdc8dd87 // indirect
 	github.com/evanphx/json-patch v4.1.1-0.20190203023257-5858425f7550+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/gogo/protobuf v1.2.0 // indirect
+	github.com/go-openapi/analysis v0.19.6 // indirect
+	github.com/go-openapi/jsonreference v0.19.3 // indirect
+	github.com/go-openapi/loads v0.19.4 // indirect
+	github.com/go-openapi/runtime v0.19.7 // indirect
+	github.com/go-openapi/spec v0.19.4 // indirect
+	github.com/go-openapi/validate v0.19.4 // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
@@ -29,7 +34,10 @@ require (
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20190906074518-f002e94f3db0
+	github.com/json-iterator/go v1.1.8 // indirect
+	github.com/mailru/easyjson v0.7.0 // indirect
+	github.com/metal-pod/metal-go v0.0.0-20191104112856-8381d618c7b4
+	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/metal-pod/v v0.0.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
@@ -44,10 +52,12 @@ require (
 	github.com/ugorji/go v1.1.1 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.2 // indirect
+	go.mongodb.org/mongo-driver v1.1.2 // indirect
 	go.uber.org/atomic v0.0.0-20181018215023-8dc6146f7569 // indirect
 	go.uber.org/multierr v0.0.0-20180122172545-ddea229ff1df // indirect
 	go.uber.org/zap v0.0.0-20180814183419-67bc79d13d15 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
+	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9 // indirect
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
@@ -58,9 +68,9 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3 // indirect
 	gopkg.in/square/go-jose.v2 v2.1.7-0.20180411045311-89060dee6a84 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
+	k8s.io/api v0.0.0-20191102065807-b98ecd433b91
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8 // indirect
-	k8s.io/apimachinery v0.0.0-20190409092423-760d1845f48b
+	k8s.io/apimachinery v0.0.0-20191102025618-50aa20a7b23f
 	k8s.io/apiserver v0.0.0-20190409021813-1ec86e4da56c // indirect
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/cloud-provider v0.0.0-20190409023720-1bc0c81fa51d
@@ -74,4 +84,7 @@ require (
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
 
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
+replace (
+	k8s.io/api => k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
+)
