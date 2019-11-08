@@ -254,7 +254,9 @@ func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(service *v1
 	return l.acquireIPFromSpecificNetwork(service, nwID)
 }
 
-func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Service, nwID string) (string, error) {
+func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Service, addressPoolName string) (string, error) {
+	nwID := strings.TrimSuffix(addressPoolName, "-"+metalgo.IPTypeEphemeral)
+	nwID = strings.TrimSuffix(nwID, "-"+metalgo.IPTypeEphemeral)
 	ip, err := metal.AllocateIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
