@@ -42,8 +42,8 @@ golint:
 
 .PHONY: dockerimage
 dockerimage:
-	docker build --no-cache -t metalpod/metal-ccm:${DOCKER_TAG} .
+	docker build --no-cache -t metalstack/metal-ccm:${DOCKER_TAG} .
 
 .PHONY: dockerpush
 dockerpush:
-	docker push metalpod/metal-ccm:${DOCKER_TAG}
+	docker push metalstack/metal-ccm:${DOCKER_TAG}
