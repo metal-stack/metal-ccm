@@ -30,4 +30,4 @@ To build a docker image, run:
 make dockerimage
 ```
 
-The image will be tagged with `:latest`
+The image will be tagged with `:latest`.
