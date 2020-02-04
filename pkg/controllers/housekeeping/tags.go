@@ -7,8 +7,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
+	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 )
 
 const (

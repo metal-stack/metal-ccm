@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
-	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
+	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 	"github.com/metal-pod/metal-go/api/models"
 
 	metalgo "github.com/metal-pod/metal-go"

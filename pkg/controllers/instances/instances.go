@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/metal"
+	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"

@@ -5,8 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
-	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	metalgo "github.com/metal-pod/metal-go"
 
 	v1 "k8s.io/api/core/v1"

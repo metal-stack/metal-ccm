@@ -1,6 +1,6 @@
-module github.com/metal-pod/metal-ccm
+module github.com/metal-stack/metal-ccm
 
-go 1.12
+go 1.13
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect

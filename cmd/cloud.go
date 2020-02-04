@@ -8,11 +8,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/component-base/logs"
 
-	"github.com/metal-pod/metal-ccm/pkg/controllers/housekeeping"
-	"github.com/metal-pod/metal-ccm/pkg/controllers/instances"
-	"github.com/metal-pod/metal-ccm/pkg/controllers/loadbalancer"
-	"github.com/metal-pod/metal-ccm/pkg/controllers/zones"
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 
 	cloudprovider "k8s.io/cloud-provider"
 )

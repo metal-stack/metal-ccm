@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"

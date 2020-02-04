@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/kubernetes"
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 )
 
 const (

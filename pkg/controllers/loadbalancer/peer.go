@@ -3,7 +3,7 @@ package loadbalancer
 import (
 	"fmt"
 
-	"github.com/metal-pod/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 
 	v1 "k8s.io/api/core/v1"
 )
