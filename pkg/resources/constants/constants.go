@@ -10,6 +10,7 @@ const (
 
 	ProviderName = "metal"
 
+	// ASNNodeLabel FIXME migrate to metal-stack
 	ASNNodeLabel = "machine.metal-pod.io/network.primary.asn"
 
 	CalicoIPv4IPIPTunnelAddr  = "projectcalico.org/IPv4IPIPTunnelAddr"
