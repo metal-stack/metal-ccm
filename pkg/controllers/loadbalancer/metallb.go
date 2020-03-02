@@ -7,13 +7,13 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	metalgo "github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-stack/metal-go"
 
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/component-base/logs"
 
-	"github.com/metal-pod/metal-go/api/models"
+	"github.com/metal-stack/metal-go/api/models"
 
 	"github.com/ghodss/yaml"
 )

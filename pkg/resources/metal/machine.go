@@ -7,8 +7,8 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 
-	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
+	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/models"
 
 	"k8s.io/apimachinery/pkg/types"
 

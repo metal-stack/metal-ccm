@@ -3,8 +3,8 @@ package metal
 import (
 	"fmt"
 
-	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
+	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/google/uuid"

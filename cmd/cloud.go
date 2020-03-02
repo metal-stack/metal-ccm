@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	metalgo "github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-stack/metal-go"
 	"github.com/pkg/errors"
 	"k8s.io/component-base/logs"
 

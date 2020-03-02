@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/cmd/cloud-controller-manager/app"
 
 	_ "github.com/metal-stack/metal-ccm/cmd"
-	"github.com/metal-pod/v"
+	"github.com/metal-stack/v"
 	"github.com/spf13/pflag"
 )
 
