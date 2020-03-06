@@ -10,8 +10,8 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
-	github.com/metal-stack/metal-go v0.3.1
-	github.com/metal-stack/security v0.3.0
+	github.com/metal-stack/metal-go v0.3.2
+	github.com/metal-stack/metal-lib v0.3.3
 	github.com/metal-stack/v v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v0.9.4 // indirect
