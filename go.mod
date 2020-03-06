@@ -11,7 +11,7 @@ require (
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
 	github.com/metal-stack/metal-go v0.3.1
-	github.com/metal-stack/metal-lib v0.3.3-0.20200305123033-e73ad372a7cf
+	github.com/metal-stack/metal-lib v0.3.3-0.20200306093957-48ff663d3cd9
 	github.com/metal-stack/v v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v0.9.4 // indirect

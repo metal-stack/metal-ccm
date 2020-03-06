@@ -82,9 +82,9 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
 		labels := n.GetLabels()
-		asnString, ok := labels[tag.PrimaryNetworkASN]
+		asnString, ok := labels[tag.MachineNetworkPrimaryASN]
 		if !ok {
-			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.PrimaryNetworkASN)
+			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.MachineNetworkPrimaryASN)
 		}
 		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {
