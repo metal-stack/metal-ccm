@@ -18,6 +18,7 @@ all:: bin/$(BINARY);
 
 bin/$(BINARY): $(GOSRC)
 	$(GO) build \
+		-trimpath \
 		-tags netgo \
 		-ldflags \
 			"-X 'github.com/metal-stack/v.Version=$(VERSION)' \
