@@ -6,7 +6,7 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/pkg/errors"
-	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
@@ -28,8 +28,6 @@ type cloud struct {
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
-	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm | ")
 	url := os.Getenv(constants.MetalAPIUrlEnvVar)
 	token := os.Getenv(constants.MetalAuthTokenEnvVar)
 	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
@@ -67,7 +65,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	zonesController := zones.New(client)
 	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID)
 
-	logger.Println("initialized cloud controller manager")
+	klog.Info("initialized cloud controller manager")
 	return &cloud{
 		instances:    instancesController,
 		zones:        zonesController,

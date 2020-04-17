@@ -2,7 +2,6 @@ package zones
 
 import (
 	"context"
-	"log"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
@@ -11,12 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/component-base/logs"
 )
 
 type ZonesController struct {
 	client    *metalgo.Driver
-	logger    *log.Logger
 	K8sClient clientset.Interface
 }
 
@@ -26,12 +23,8 @@ var (
 
 // New returns a new zones controller that satisfies the kubernetes cloud provider zones interface
 func New(client *metalgo.Driver) *ZonesController {
-	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm zones | ")
-
 	return &ZonesController{
 		client: client,
-		logger: logger,
 	}
 }
 

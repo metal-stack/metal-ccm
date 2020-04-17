@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
@@ -11,7 +10,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 
 	"github.com/metal-stack/metal-go/api/models"
 
@@ -28,16 +27,10 @@ const (
 type MetalLBConfig struct {
 	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	logger       *log.Logger
 }
 
 func newMetalLBConfig() *MetalLBConfig {
-	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm metallbcfg-renderer | ")
-
-	return &MetalLBConfig{
-		logger: logger,
-	}
+	return &MetalLBConfig{}
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
@@ -93,7 +86,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 
 		peer, err := newPeer(n, asn)
 		if err != nil {
-			cfg.logger.Printf("skipping peer: %v", err)
+			klog.Infof("skipping peer: %v", err)
 			continue
 		}
 
