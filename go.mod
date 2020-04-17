@@ -1,6 +1,6 @@
 module github.com/metal-stack/metal-ccm
 
-go 1.13
+go 1.14
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
@@ -9,7 +9,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
-	github.com/metal-stack/metal-go v0.4.0
+	github.com/metal-stack/metal-go v0.7.0
 	github.com/metal-stack/metal-lib v0.3.4
 	github.com/metal-stack/v v1.0.2
 	github.com/pkg/errors v0.9.1

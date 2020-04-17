@@ -15,6 +15,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 )
 
+// Housekeeper periodically updates nodes, loadbalancers and metallb
 type Housekeeper struct {
 	client                *metalgo.Driver
 	stop                  <-chan struct{}
@@ -65,9 +66,8 @@ func (h *Housekeeper) watchNodes() {
 				if err != nil {
 					h.logger.Printf("synching tags failed: %v", err)
 					return
-				} else {
-					h.logger.Printf("labels synched successfully")
 				}
+				h.logger.Printf("labels synched successfully")
 			},
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 				oldNode := oldObj.(*v1.Node)
