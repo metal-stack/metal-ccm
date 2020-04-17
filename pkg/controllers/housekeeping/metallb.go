@@ -8,16 +8,16 @@ import (
 )
 
 const (
-	SyncMetalLBInterval         = 1 * time.Minute
-	SyncMetalLBMinimalInternval = 5 * time.Second
+	syncMetalLBInterval         = 1 * time.Minute
+	syncMetalLBMinimalInternval = 5 * time.Second
 )
 
 func (h *Housekeeper) startMetalLBConfigSynching() {
-	go h.ticker.Start("metallb syncher", SyncMetalLBInterval, h.stop, h.updateMetalLBConfig)
+	go h.ticker.Start("metallb syncher", syncMetalLBInterval, h.stop, h.updateMetalLBConfig)
 }
 
 func (h *Housekeeper) updateMetalLBConfig() error {
-	if time.Since(h.lastMetalLBConfigSync) < SyncMetalLBMinimalInternval {
+	if time.Since(h.lastMetalLBConfigSync) < syncMetalLBMinimalInternval {
 		return nil
 	}
 	nodes, err := kubernetes.GetNodes(h.k8sClient)
