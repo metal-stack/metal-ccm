@@ -2,9 +2,10 @@ package metal
 
 import (
 	"fmt"
+	"github.com/metal-stack/metal-ccm/pkg/tags"
 
-	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
+	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/google/uuid"
@@ -24,7 +25,7 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 	result := []*models.V1IPResponse{}
 	for _, i := range resp.IPs {
 		for _, t := range i.Tags {
-			if metalgo.TagIsMemberOfCluster(t, clusterID) {
+			if tags.IsMemberOfCluster(t, clusterID) {
 				result = append(result, i)
 				break
 			}
@@ -98,7 +99,7 @@ func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, net
 		Projectid: project,
 		Networkid: network,
 		Type:      metalgo.IPTypeEphemeral,
-		Tags:      []string{metalgo.BuildServiceTag(clusterID, svc.GetNamespace(), svc.GetName())},
+		Tags:      []string{tags.BuildClusterServiceFQNTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
 	resp, err := client.IPAllocate(req)

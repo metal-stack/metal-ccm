@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	SyncTagsInterval        = 1 * time.Minute
+	// SyncTagsInterval defines how often tags are synced to nodes
+	SyncTagsInterval = 1 * time.Minute
+	// SyncTagsMinimalInterval defines the minimal interval how often tags are synced to nodes
 	SyncTagsMinimalInterval = 5 * time.Second
 )
 

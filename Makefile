@@ -18,12 +18,13 @@ all:: bin/$(BINARY);
 
 bin/$(BINARY): $(GOSRC)
 	$(GO) build \
+		-trimpath \
 		-tags netgo \
 		-ldflags \
-			"-X 'github.com/metal-pod/v.Version=$(VERSION)' \
-			-X 'github.com/metal-pod/v.Revision=$(GITVERSION)' \
-			-X 'github.com/metal-pod/v.GitSHA1=$(SHA)' \
-			-X 'github.com/metal-pod/v.BuildDate=$(BUILDDATE)'" \
+			"-X 'github.com/metal-stack/v.Version=$(VERSION)' \
+			-X 'github.com/metal-stack/v.Revision=$(GITVERSION)' \
+			-X 'github.com/metal-stack/v.GitSHA1=$(SHA)' \
+			-X 'github.com/metal-stack/v.BuildDate=$(BUILDDATE)'" \
 		-o bin/$(BINARY) \
 		$(MAINMODULE) \
 	&& strip bin/$(BINARY)

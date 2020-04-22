@@ -5,15 +5,15 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	metalgo "github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/component-base/logs"
 
-	"github.com/metal-pod/metal-go/api/models"
+	"github.com/metal-stack/metal-go/api/models"
 
 	"github.com/ghodss/yaml"
 )
@@ -82,9 +82,9 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
 		labels := n.GetLabels()
-		asnString, ok := labels[constants.ASNNodeLabel]
+		asnString, ok := labels[tag.MachineNetworkPrimaryASN]
 		if !ok {
-			return fmt.Errorf("node %q misses label: %s", n.GetName(), constants.ASNNodeLabel)
+			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.MachineNetworkPrimaryASN)
 		}
 		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {

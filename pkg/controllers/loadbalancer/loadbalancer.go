@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/metal-stack/metal-ccm/pkg/tags"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"log"
 	"strings"
 	"sync"
@@ -11,9 +13,9 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
-	"github.com/metal-pod/metal-go/api/models"
+	"github.com/metal-stack/metal-go/api/models"
 
-	metalgo "github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-stack/metal-go"
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
@@ -159,7 +161,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	}
 
 	s := *service
-	serviceTag := metalgo.BuildServiceTag(l.clusterID, s.GetNamespace(), s.GetName())
+	serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, s.GetNamespace(), s.GetName())
 	ips, err := metal.FindProjectIPsWithTag(l.client, l.projectID, serviceTag)
 	if err != nil {
 		return err
@@ -190,7 +192,7 @@ func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, servic
 	count := 0
 	newTags := []string{}
 	for _, t := range ip.Tags {
-		if strings.HasPrefix(t, metalgo.TagServicePrefix) {
+		if strings.HasPrefix(t, tag.ClusterServiceFQN) {
 			count++
 		}
 		if t == serviceTag {
@@ -220,12 +222,12 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 
 func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterID string, s v1.Service) (*metalgo.IPDetailResponse, error) {
 	for _, t := range ip.Tags {
-		if metalgo.TagIsMachine(t) {
+		if tags.IsMachine(t) {
 			return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, machine: %v", ip.Tags)
 		}
 	}
 
-	serviceTag := metalgo.BuildServiceTag(clusterID, s.GetNamespace(), s.GetName())
+	serviceTag := tags.BuildClusterServiceFQNTag(clusterID, s.GetNamespace(), s.GetName())
 	newTags := ip.Tags
 	newTags = append(newTags, serviceTag)
 	l.logger.Printf("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", *ip.Ipaddress, ip.Tags, newTags)

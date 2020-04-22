@@ -6,7 +6,7 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
-	metalgo "github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-stack/metal-go"
 
 	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"

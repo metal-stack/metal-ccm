@@ -3,8 +3,8 @@ package metal
 import (
 	"fmt"
 
-	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
+	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/models"
 )
 
 // FindExternalNetworksInPartition returns the external networks of a partition.

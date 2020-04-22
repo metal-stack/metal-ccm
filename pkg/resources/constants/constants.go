@@ -10,8 +10,6 @@ const (
 
 	ProviderName = "metal"
 
-	ASNNodeLabel = "machine.metal-pod.io/network.primary.asn"
-
 	CalicoIPv4IPIPTunnelAddr  = "projectcalico.org/IPv4IPIPTunnelAddr"
 	CalicoIPv4VXLANTunnelAddr = "projectcalico.org/IPv4VXLANTunnelAddr"
 
