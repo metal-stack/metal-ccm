@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/metal-stack/metal-ccm/pkg/tags"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/metal-stack/metal-ccm/pkg/tags"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
@@ -32,6 +33,10 @@ type LoadBalancerController struct {
 	configWriteMutex *sync.Mutex
 	ipAllocateMutex  *sync.Mutex
 }
+
+// we use the network that starts with "internet" as the default external network... this is a convention
+// it would be nicer if there was a field in the network entity though
+var defaultExternalNetworkPrefix = "internet"
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
 func New(client *metalgo.Driver, partitionID, projectID, clusterID string) *LoadBalancerController {
@@ -269,22 +274,35 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 	return *ip.Ipaddress, nil
 }
 
+// if there is an external network available for the partition => return that
+// otherwise check for an external network that is not bound to a partition
 func (l *LoadBalancerController) getExternalNetworkID() (string, error) {
 	externalNWs, err := metal.FindExternalNetworksInPartition(l.client, l.partitionID)
 	if err != nil {
 		return "", err
 	}
 
-	if len(externalNWs) == 0 {
-		return "", fmt.Errorf("no external network(s) found: %v", err)
-	}
-
-	// we use the network that starts with "internet" as the default external network... this is a convention
-	// it would be nicer if there was a field in the network entity though
 	for _, enw := range externalNWs {
-		if strings.HasPrefix(*enw.ID, "internet") {
+		if strings.HasPrefix(*enw.ID, defaultExternalNetworkPrefix) {
 			return *enw.ID, nil
 		}
+	}
+
+	falseFlag := false
+	nfr := &metalgo.NetworkFindRequest{
+		Name:         &defaultExternalNetworkPrefix,
+		PrivateSuper: &falseFlag,
+		Underlay:     &falseFlag,
+	}
+
+	resp, err := l.client.NetworkFind(nfr)
+	if err != nil {
+		return "", err
+	}
+
+	externalNWs = resp.Networks
+	if len(externalNWs) == 1 {
+		return *externalNWs[0].ID, nil
 	}
 
 	return "", errors.New("no default external network(s) found")
