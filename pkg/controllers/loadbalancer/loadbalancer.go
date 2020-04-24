@@ -290,7 +290,7 @@ func (l *LoadBalancerController) getExternalNetworkID() (string, error) {
 
 	falseFlag := false
 	nfr := &metalgo.NetworkFindRequest{
-		Name:         &defaultExternalNetworkPrefix,
+		ID:           &defaultExternalNetworkPrefix,
 		PrivateSuper: &falseFlag,
 		Underlay:     &falseFlag,
 	}
