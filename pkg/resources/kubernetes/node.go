@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 
 // GetNodes returns all nodes of this cluster.
 func GetNodes(client clientset.Interface) ([]v1.Node, error) {
-	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list nodes: %s", err)
 	}
@@ -25,7 +26,7 @@ func GetNodes(client clientset.Interface) ([]v1.Node, error) {
 // UpdateNodeWithBackoff update a given node with a given backoff retry.
 func UpdateNodeWithBackoff(client clientset.Interface, node v1.Node, backoff wait.Backoff) error {
 	return retry.RetryOnConflict(backoff, func() error {
-		_, err := client.CoreV1().Nodes().Update(&node)
+		_, err := client.CoreV1().Nodes().Update(context.Background(), &node, metav1.UpdateOptions{})
 		return err
 	})
 }

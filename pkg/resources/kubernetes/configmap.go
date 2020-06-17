@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"context"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -8,12 +10,13 @@ import (
 
 // Apply inserts or updates given config map.
 func ApplyConfigMap(client kubernetes.Interface, namespace, name string, configMap map[string]string) error {
+	ctx := context.Background()
 	cmi := client.CoreV1().ConfigMaps(namespace)
-	cm, err := cmi.Get(name, metav1.GetOptions{})
+	cm, err := cmi.Get(ctx, name, metav1.GetOptions{})
 	if err == nil {
 		cm.Data = configMap
 
-		_, err = cmi.Update(cm)
+		_, err = cmi.Update(ctx, cm, metav1.UpdateOptions{})
 		return err
 	}
 
@@ -32,6 +35,6 @@ func ApplyConfigMap(client kubernetes.Interface, namespace, name string, configM
 		Data: configMap,
 	}
 
-	_, err = cmi.Create(cm)
+	_, err = cmi.Create(ctx, cm, metav1.CreateOptions{})
 	return err
 }
