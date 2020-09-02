@@ -36,6 +36,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
+	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
 
 	if projectID == "" {
 		return nil, errors.Errorf("environment variable %q is required", constants.MetalProjectIDEnvVar)
@@ -65,7 +66,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(client)
 	zonesController := zones.New(client)
-	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID)
+	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID, defaultExternalNetworkID)
 
 	logger.Println("initialized cloud controller manager")
 	return &cloud{
