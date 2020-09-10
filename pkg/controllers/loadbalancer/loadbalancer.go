@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -24,14 +23,15 @@ import (
 )
 
 type LoadBalancerController struct {
-	client           *metalgo.Driver
-	partitionID      string
-	projectID        string
-	clusterID        string
-	logger           *log.Logger
-	K8sClient        clientset.Interface
-	configWriteMutex *sync.Mutex
-	ipAllocateMutex  *sync.Mutex
+	client                   *metalgo.Driver
+	partitionID              string
+	projectID                string
+	clusterID                string
+	defaultExternalNetworkID string
+	logger                   *log.Logger
+	K8sClient                clientset.Interface
+	configWriteMutex         *sync.Mutex
+	ipAllocateMutex          *sync.Mutex
 }
 
 // we use the network that starts with "internet" as the default external network... this is a convention
@@ -39,18 +39,19 @@ type LoadBalancerController struct {
 var defaultExternalNetworkPrefix = "internet"
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(client *metalgo.Driver, partitionID, projectID, clusterID string) *LoadBalancerController {
+func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExternalNetworkID string) *LoadBalancerController {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
 	return &LoadBalancerController{
-		client:           client,
-		logger:           logger,
-		partitionID:      partitionID,
-		projectID:        projectID,
-		clusterID:        clusterID,
-		configWriteMutex: &sync.Mutex{},
-		ipAllocateMutex:  &sync.Mutex{},
+		client:                   client,
+		logger:                   logger,
+		partitionID:              partitionID,
+		projectID:                projectID,
+		clusterID:                clusterID,
+		defaultExternalNetworkID: defaultExternalNetworkID,
+		configWriteMutex:         &sync.Mutex{},
+		ipAllocateMutex:          &sync.Mutex{},
 	}
 }
 
@@ -253,12 +254,7 @@ func (l *LoadBalancerController) acquireIP(service *v1.Service) (string, error) 
 }
 
 func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(service *v1.Service) (string, error) {
-	nwID, err := l.getExternalNetworkID()
-	if err != nil {
-		return "", err
-	}
-
-	return l.acquireIPFromSpecificNetwork(service, nwID)
+	return l.acquireIPFromSpecificNetwork(service, l.defaultExternalNetworkID)
 }
 
 func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Service, addressPoolName string) (string, error) {
@@ -272,40 +268,6 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 	l.logger.Printf("acquired ip in network %q: %v", nwID, *ip.Ipaddress)
 
 	return *ip.Ipaddress, nil
-}
-
-// if there is an external network available for the partition => return that
-// otherwise check for an external network that is not bound to a partition
-func (l *LoadBalancerController) getExternalNetworkID() (string, error) {
-	externalNWs, err := metal.FindExternalNetworksInPartition(l.client, l.partitionID)
-	if err != nil {
-		return "", err
-	}
-
-	for _, enw := range externalNWs {
-		if strings.HasPrefix(*enw.ID, defaultExternalNetworkPrefix) {
-			return *enw.ID, nil
-		}
-	}
-
-	falseFlag := false
-	nfr := &metalgo.NetworkFindRequest{
-		ID:           &defaultExternalNetworkPrefix,
-		PrivateSuper: &falseFlag,
-		Underlay:     &falseFlag,
-	}
-
-	resp, err := l.client.NetworkFind(nfr)
-	if err != nil {
-		return "", err
-	}
-
-	externalNWs = resp.Networks
-	if len(externalNWs) == 1 {
-		return *externalNWs[0].ID, nil
-	}
-
-	return "", errors.New("no default external network(s) found")
 }
 
 func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error {
