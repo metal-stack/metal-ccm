@@ -1,0 +1,24 @@
+name: Build image from release tag
+
+on:
+  release:
+    types:
+      - published
+
+env:
+  GCS_BUCKET: images.metal-pod.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build the Docker images
+        run: |
+          export GIT_TAG_NAME=${GITHUB_REF##*/}
+          docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+          make dockerimage
+          make dockerpush
+      - uses: release-drafter/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

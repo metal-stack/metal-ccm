@@ -1,7 +1,7 @@
-name: Build latest image
+name: Build from pull request
 
 on:
-  push:
+  pull_request:
     branches:
       - master
 
@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Branch name
+      run: echo running on branch ${GITHUB_HEAD_REF##*/}
     - name: Build the Docker images
       run: |
+        export GIT_TAG_NAME=${GITHUB_HEAD_REF##*/}
         docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
         make dockerimage
         make dockerpush
-    - uses: release-drafter/release-drafter@v5
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
