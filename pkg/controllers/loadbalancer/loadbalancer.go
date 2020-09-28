@@ -281,7 +281,7 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error
 	}
 	networkMap := metal.NetworksByID(networks)
 
-	config := newMetalLBConfig()
+	config := newMetalLBConfig(l.defaultExternalNetworkID)
 	err = config.CalculateConfig(ips, networkMap, nodes)
 	if err != nil {
 		return err

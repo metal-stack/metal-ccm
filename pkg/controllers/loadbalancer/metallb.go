@@ -26,17 +26,19 @@ const (
 
 // MetalLBConfig is a struct containing a config for metallb
 type MetalLBConfig struct {
-	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	logger       *log.Logger
+	Peers            []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
+	AddressPools     []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	logger           *log.Logger
+	defaultNetworkID string
 }
 
-func newMetalLBConfig() *MetalLBConfig {
+func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm metallbcfg-renderer | ")
 
 	return &MetalLBConfig{
-		logger: logger,
+		logger:           logger,
+		defaultNetworkID: defaultNetworkID,
 	}
 }
 
@@ -134,7 +136,7 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := metalgo.IPTypeEphemeral
-	autoAssign := true
+	autoAssign := network == cfg.defaultNetworkID
 	if t != nil && *t == metalgo.IPTypeStatic {
 		poolType = metalgo.IPTypeStatic
 		autoAssign = false
