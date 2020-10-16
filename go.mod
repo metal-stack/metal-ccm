@@ -1,14 +1,14 @@
 module github.com/metal-stack/metal-ccm
 
-go 1.14
+go 1.15
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.2.0 // indirect
-	github.com/metal-stack/metal-go v0.8.3
-	github.com/metal-stack/metal-lib v0.5.0
+	github.com/metal-stack/metal-go v0.9.4
+	github.com/metal-stack/metal-lib v0.6.2
 	github.com/metal-stack/v v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
