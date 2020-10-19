@@ -34,10 +34,6 @@ type LoadBalancerController struct {
 	ipAllocateMutex          *sync.Mutex
 }
 
-// we use the network that starts with "internet" as the default external network... this is a convention
-// it would be nicer if there was a field in the network entity though
-var defaultExternalNetworkPrefix = "internet"
-
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
 func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExternalNetworkID string) *LoadBalancerController {
 	logs.InitLogs()
