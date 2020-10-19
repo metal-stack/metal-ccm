@@ -68,7 +68,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
 	}
 
-	instancesController := instances.New(client)
+	instancesController := instances.New(client, defaultExternalNetworkID)
 	zonesController := zones.New(client)
 	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID, defaultExternalNetworkID)
 
