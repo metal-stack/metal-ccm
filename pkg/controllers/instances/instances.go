@@ -68,13 +68,13 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 
 	var addresses []v1.NodeAddress
 	for _, nw := range machine.Allocation.Networks {
-		if nw == nil {
+		if nw == nil || nw.Networktype == nil || nw.Networktype.Name == nil {
 			continue
 		}
 		// The primary private network
 		// FIXME if we want to produce kubernetes clusters in shared networks
 		// all existing machine allocations must be migrated to the new scheme.
-		if nw.Private != nil && *nw.Private && nw.Shared != nil && !*nw.Shared {
+		if *nw.Networktype.Name == "privateprimaryunshared" || *nw.Networktype.Name == "privateprimaryshared" {
 			if len(nw.Ips) == 0 {
 				continue
 			}
