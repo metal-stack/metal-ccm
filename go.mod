@@ -7,7 +7,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.2.0 // indirect
-	github.com/metal-stack/metal-go v0.9.5-0.20201020124655-8ed97bd2c6b1
+	github.com/metal-stack/metal-go v0.9.5-0.20201020134718-e43893f68206
 	github.com/metal-stack/metal-lib v0.6.2
 	github.com/metal-stack/v v1.0.2
 	github.com/pkg/errors v0.9.1
