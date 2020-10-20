@@ -71,9 +71,7 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 		if nw == nil || nw.Networktype == nil {
 			continue
 		}
-		// The primary private network
-		// FIXME if we want to produce kubernetes clusters in shared networks
-		// all existing machine allocations must be migrated to the new scheme.
+		// The primary private network either shared or unshared
 		if nw.Networktype.Name == "privateprimaryunshared" || nw.Networktype.Name == "privateprimaryshared" {
 			if len(nw.Ips) == 0 {
 				continue
