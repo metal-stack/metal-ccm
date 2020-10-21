@@ -8,6 +8,7 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,7 +73,7 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 			continue
 		}
 		// The primary private network either shared or unshared
-		if nw.Networktype.Name == "privateprimaryunshared" || nw.Networktype.Name == "privateprimaryshared" {
+		if *nw.Networktype == mn.PrivatePrimaryUnshared || *nw.Networktype == mn.PrivatePrimaryShared {
 			if len(nw.Ips) == 0 {
 				continue
 			}
