@@ -8,6 +8,7 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,19 +18,21 @@ import (
 )
 
 type InstancesController struct {
-	client    *metalgo.Driver
-	logger    *log.Logger
-	K8sClient clientset.Interface
+	client                 *metalgo.Driver
+	logger                 *log.Logger
+	K8sClient              clientset.Interface
+	defaultExternalNetwork string
 }
 
 // New returns a new instance controller that satisfies the kubernetes cloud provider instances interface
-func New(client *metalgo.Driver) *InstancesController {
+func New(client *metalgo.Driver, defaultExternalNetwork string) *InstancesController {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm instances | ")
 
 	return &InstancesController{
-		client: client,
-		logger: logger,
+		client:                 client,
+		logger:                 logger,
+		defaultExternalNetwork: defaultExternalNetwork,
 	}
 }
 
@@ -41,7 +44,7 @@ func (i *InstancesController) NodeAddresses(_ context.Context, name types.NodeNa
 		return nil, err
 	}
 
-	return nodeAddresses(machine)
+	return nodeAddresses(machine, i.defaultExternalNetwork)
 }
 
 // NodeAddressesByProviderID returns the addresses of the specified instance.
@@ -56,20 +59,30 @@ func (i *InstancesController) NodeAddressesByProviderID(_ context.Context, provi
 		return nil, err
 	}
 
-	return nodeAddresses(machine)
+	return nodeAddresses(machine, i.defaultExternalNetwork)
 }
 
-func nodeAddresses(machine *models.V1MachineResponse) ([]v1.NodeAddress, error) {
+func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork string) ([]v1.NodeAddress, error) {
 	if machine == nil || machine.Allocation == nil {
 		return nil, nil
 	}
 
 	var addresses []v1.NodeAddress
 	for _, nw := range machine.Allocation.Networks {
-		if nw == nil || (nw.Private != nil && *nw.Private) {
-			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: nw.Ips[0]})
+		if nw == nil || nw.Networktype == nil {
+			continue
+		}
+		// The primary private network either shared or unshared
+		if *nw.Networktype == mn.PrivatePrimaryUnshared || *nw.Networktype == mn.PrivatePrimaryShared {
+			if len(nw.Ips) == 0 {
+				continue
+			}
+			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: *machine.Allocation.Hostname})
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: nw.Ips[0]})
-		} else {
+			continue
+		}
+
+		if *nw.Networkid == defaultExternalNetwork {
 			for _, ip := range nw.Ips {
 				addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: ip})
 			}
