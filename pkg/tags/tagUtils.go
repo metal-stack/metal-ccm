@@ -2,8 +2,9 @@ package tags
 
 import (
 	"fmt"
-	t "github.com/metal-stack/metal-lib/pkg/tag"
 	"strings"
+
+	t "github.com/metal-stack/metal-lib/pkg/tag"
 )
 
 // BuildClusterServiceFQNTag returns the ClusterServiceFQN tag populated with the given arguments.
@@ -14,6 +15,11 @@ func BuildClusterServiceFQNTag(clusterID string, namespace, serviceName string) 
 // IsMachine returns true if the given tag is a machine-tag.
 func IsMachine(tag string) bool {
 	return strings.HasPrefix(tag, t.MachineID)
+}
+
+// IsEgress returns true if the given tag is an egress-tag
+func IsEgress(tag string) bool {
+	return strings.HasPrefix(tag, t.ClusterEgress)
 }
 
 // IsMemberOfCluster returns true of the given tag is a cluster-tag and clusterID matches.
@@ -29,4 +35,3 @@ func IsMemberOfCluster(tag, clusterID string) bool {
 	}
 	return false
 }
-

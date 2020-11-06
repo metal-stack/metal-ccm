@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/metal-stack/metal-go v0.10.0
-	github.com/metal-stack/metal-lib v0.6.3
+	github.com/metal-stack/metal-lib v0.6.4
 	github.com/metal-stack/v v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
