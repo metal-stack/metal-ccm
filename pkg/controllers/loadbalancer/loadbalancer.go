@@ -225,7 +225,10 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterID string, s v1.Service) (*metalgo.IPDetailResponse, error) {
 	for _, t := range ip.Tags {
 		if tags.IsMachine(t) {
-			return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, machine: %v", ip.Tags)
+			return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, ip tags: %v", ip.Tags)
+		}
+		if tags.IsEgress(t) {
+			return nil, fmt.Errorf("ip is used for egress purposes, can not use it for a service, ip tags: %v", ip.Tags)
 		}
 	}
 
