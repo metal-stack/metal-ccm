@@ -43,8 +43,8 @@ golint:
 
 .PHONY: dockerimage
 dockerimage:
-	docker build --no-cache -t metalstack/metal-ccm:${DOCKER_TAG} .
+	docker build --no-cache -t ghcr.io/metal-stack/metal-ccm:${DOCKER_TAG} .
 
 .PHONY: dockerpush
 dockerpush:
-	docker push metalstack/metal-ccm:${DOCKER_TAG}
+	docker push ghcr.io/metal-stack/metal-ccm:${DOCKER_TAG}
