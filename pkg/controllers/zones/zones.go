@@ -2,7 +2,9 @@ package zones
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
@@ -52,10 +54,14 @@ func (z ZonesController) GetZoneByProviderID(_ context.Context, providerID strin
 		return noZone, err
 	}
 
+	region, err := getRegionFromPartitionID(machine.Partition.ID)
+	if err != nil {
+		return noZone, err
+	}
 	// TODO: check if failureDomain == Partition
 	return cloudprovider.Zone{
 		FailureDomain: *machine.Partition.ID,
-		Region:        *machine.Partition.ID,
+		Region:        region,
 	}, nil
 }
 
@@ -68,9 +74,23 @@ func (z ZonesController) GetZoneByNodeName(_ context.Context, nodeName types.Nod
 		return noZone, err
 	}
 
+	region, err := getRegionFromPartitionID(machine.Partition.ID)
+	if err != nil {
+		return noZone, err
+	}
+
 	// TODO: check if failureDomain == Partition
 	return cloudprovider.Zone{
 		FailureDomain: *machine.Partition.ID,
-		Region:        *machine.Partition.ID,
+		Region:        region,
 	}, nil
+}
+
+// getRegionFromPartitionID extracts the region from a given partitionID
+func getRegionFromPartitionID(partitionID *string) (string, error) {
+	split := strings.Split(*partitionID, "-")
+	if len(split) == 1 {
+		return "", fmt.Errorf("unexpected partitionID format %q, format should be %q", *partitionID, "<region>-<zone>")
+	}
+	return split[0], nil
 }
