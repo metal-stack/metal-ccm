@@ -138,9 +138,10 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		return err
 	}
 
+	s := service.DeepCopy()
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		service.Spec.LoadBalancerIP = ip
-		_, err := l.K8sClient.CoreV1().Services(service.Namespace).Update(ctx, service, metav1.UpdateOptions{})
+		s.Spec.LoadBalancerIP = ip
+		_, err := l.K8sClient.CoreV1().Services(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
 		return err
 	})
 	if err != nil {
