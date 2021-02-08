@@ -154,7 +154,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 	}
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		s, err := l.K8sClient.CoreV1().Services(service.Name).Get(ctx, service.Name, metav1.GetOptions{})
+		s, err := l.K8sClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
