@@ -17,7 +17,10 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/component-base/logs"
 )
@@ -123,11 +126,52 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		return nil, err
 	}
 
+	rollback := func(err error) error {
+		if err == nil {
+			return nil
+		}
+
+		l.logger.Printf("error while trying to ensure load balancer, rolling back ip acquisition: %v", err)
+
+		// clearing tags before release
+		// we can do this because here we know that we freshly acquired a new IP that's not used for anything else
+		_, err2 := l.client.IPUpdate(&metalgo.IPUpdateRequest{
+			IPAddress: ip,
+			Tags:      []string{},
+		})
+		if err != nil {
+			l.logger.Printf("error during ip rollback occurred: %v", err2)
+			return err
+		}
+
+		_, err2 = l.client.IPFree(ip)
+		if err2 != nil {
+			l.logger.Printf("error during ip rollback occurred: %v", err2)
+			return err
+		}
+
+		return err
+	}
+
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		s, err := l.K8sClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		s.Spec.LoadBalancerIP = ip
+		_, err = l.K8sClient.CoreV1().Services(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
+		return err
+	})
+	if err != nil {
+		return nil, rollback(err)
+	}
+
 	ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 
 	err = l.UpdateMetalLBConfig(ns)
 	if err != nil {
-		return nil, err
+		return nil, rollback(err)
 	}
 
 	return &v1.LoadBalancerStatus{
