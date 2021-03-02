@@ -220,13 +220,13 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		}
 		newIP, err := l.client.IPUpdate(iu)
 		if err != nil {
-			return fmt.Errorf("could not update ip with new tags: %v", err)
+			return fmt.Errorf("could not update ip with new tags: %w", err)
 		}
 		l.logger.Printf("updated ip: %v", newIP)
 		if *ip.Type == metalgo.IPTypeEphemeral && last {
 			err := metal.FreeIP(l.client, *ip.Ipaddress)
 			if err != nil {
-				return fmt.Errorf("unable to delete ip %s: %v", *ip.Ipaddress, err)
+				return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
 			}
 		}
 	}

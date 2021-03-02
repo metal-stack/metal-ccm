@@ -77,7 +77,7 @@ func main() {
 	// the flags could be set before execute
 	command.Flags().VisitAll(func(flag *pflag.Flag) {
 		if flag.Name == "cloud-provider" {
-			flag.Value.Set("SampleCloudProviderFlagValue")
+			_ = flag.Value.Set("SampleCloudProviderFlagValue")
 			return
 		}
 	})
