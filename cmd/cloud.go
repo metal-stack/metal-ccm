@@ -110,6 +110,11 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 	return c.instances, true
 }
 
+// Instances returns an machines interface. Also returns true if the interface is supported, false otherwise.
+func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
+	return c.instances, true
+}
+
 // Zones returns a zones interface. Also returns true if the interface is supported, false otherwise.
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
 	return c.zones, true
