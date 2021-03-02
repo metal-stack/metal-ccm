@@ -20,5 +20,5 @@ require (
 )
 
 // specify a lower transitive dependency to grpc otherwise
-// endpoint.go:114:78: undefined: resolver.BuildOption
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
+// cannot use &errPicker literal (type *errPicker) as type Picker in return argument:
+replace google.golang.org/grpc => google.golang.org/grpc v1.29.1
