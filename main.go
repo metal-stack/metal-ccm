@@ -32,6 +32,7 @@ func main() {
 	// Otherwise it complains that --cloud-provider is empty
 	s.KubeCloudShared.CloudProvider.Name = "metal"
 	s.KubeCloudShared.AllowUntaggedCloud = true
+	s.KubeCloudShared.UseServiceAccountCredentials = true
 	s.Authentication.SkipInClusterLookup = true
 
 	c, err := s.Config([]string{}, app.ControllersDisabledByDefault.List())
