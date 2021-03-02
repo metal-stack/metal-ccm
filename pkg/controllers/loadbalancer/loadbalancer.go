@@ -220,13 +220,13 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		}
 		newIP, err := l.client.IPUpdate(iu)
 		if err != nil {
-			return fmt.Errorf("could not update ip with new tags: %v", err)
+			return fmt.Errorf("could not update ip with new tags: %w", err)
 		}
 		l.logger.Printf("updated ip: %v", newIP)
 		if *ip.Type == metalgo.IPTypeEphemeral && last {
 			err := metal.FreeIP(l.client, *ip.Ipaddress)
 			if err != nil {
-				return fmt.Errorf("unable to delete ip %s: %v", *ip.Ipaddress, err)
+				return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
 			}
 		}
 	}
@@ -305,7 +305,7 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 	nwID = strings.TrimSuffix(nwID, "-"+metalgo.IPTypeEphemeral)
 	ip, err := metal.AllocateIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
 	if err != nil {
-		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
+		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %w", l.projectID, nwID, err)
 	}
 
 	l.logger.Printf("acquired ip in network %q: %v", nwID, *ip.Ipaddress)
@@ -316,11 +316,11 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error {
 	ips, err := metal.FindClusterIPs(l.client, l.projectID, l.clusterID)
 	if err != nil {
-		return fmt.Errorf("could not find ips of this project's cluster: %v", err)
+		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 	networks, err := metal.ListNetworks(l.client)
 	if err != nil {
-		return fmt.Errorf("could not list networks: %v", err)
+		return fmt.Errorf("could not list networks: %w", err)
 	}
 	networkMap := metal.NetworksByID(networks)
 

@@ -1,7 +1,8 @@
 package constants
 
 const (
-	MetalAPIUrlEnvVar                 = "METAL_API_URL"
+	MetalAPIUrlEnvVar = "METAL_API_URL"
+	//nolint
 	MetalAuthTokenEnvVar              = "METAL_AUTH_TOKEN"
 	MetalAuthHMACEnvVar               = "METAL_AUTH_HMAC"
 	MetalProjectIDEnvVar              = "METAL_PROJECT_ID"
