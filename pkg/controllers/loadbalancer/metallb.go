@@ -90,7 +90,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 		}
 		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
+			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 		}
 
 		peer, err := newPeer(n, asn)
