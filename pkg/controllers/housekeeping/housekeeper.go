@@ -25,6 +25,7 @@ type Housekeeper struct {
 	lbController          *loadbalancer.LoadBalancerController
 	lastTagSync           time.Time
 	lastMetalLBConfigSync time.Time
+	metalAPIErrors        int32
 }
 
 // New returns a new house keeper
@@ -47,6 +48,7 @@ func (h *Housekeeper) Run() {
 	h.startTagSynching()
 	h.startMetalLBConfigSynching()
 	h.watchNodes()
+	h.runHealthCheck()
 }
 
 func (h *Housekeeper) watchNodes() {
