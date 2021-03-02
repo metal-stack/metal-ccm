@@ -17,6 +17,7 @@ func (h *Housekeeper) runHealthCheck() {
 }
 
 func (h *Housekeeper) checkMetalAPIHealth() error {
+	h.logger.Printf("checking metal-api health, total errors:%d", h.metalAPIErrors)
 	resp, err := h.client.HealthGet()
 	if err != nil {
 		h.incrementAPIErrorAndPanic()
