@@ -29,6 +29,9 @@ func main() {
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
 	}
+	// Otherwise it complains that --cloud-provider is empty
+	s.KubeCloudShared.CloudProvider.Name = "metal"
+
 	c, err := s.Config([]string{}, app.ControllersDisabledByDefault.List())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -77,7 +80,7 @@ func main() {
 	// the flags could be set before execute
 	command.Flags().VisitAll(func(flag *pflag.Flag) {
 		if flag.Name == "cloud-provider" {
-			_ = flag.Value.Set("SampleCloudProviderFlagValue")
+			_ = flag.Value.Set("metal")
 			return
 		}
 	})
