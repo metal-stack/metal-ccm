@@ -31,6 +31,8 @@ func main() {
 	}
 	// Otherwise it complains that --cloud-provider is empty
 	s.KubeCloudShared.CloudProvider.Name = "metal"
+	s.KubeCloudShared.AllowUntaggedCloud = true
+	s.Authentication.SkipInClusterLookup = true
 
 	c, err := s.Config([]string{}, app.ControllersDisabledByDefault.List())
 	if err != nil {
@@ -75,34 +77,6 @@ func main() {
 	defer logs.FlushLogs()
 	logger := logs.NewLogger("metal-ccm ")
 	logger.Printf("starting version %q", v.V)
-
-	// TODO do we need some flags ?
-	// the flags could be set before execute
-	command.Flags().VisitAll(func(fl *pflag.Flag) {
-		var err error
-		switch fl.Name {
-		case "allow-untagged-cloud",
-			// Untagged clouds must be enabled explicitly as they were once marked
-			// deprecated. See
-			// https://github.com/kubernetes/cloud-provider/issues/12 for an ongoing
-			// discussion on whether that is to be changed or not.
-			"authentication-skip-lookup":
-			// Prevent reaching out to an authentication-related ConfigMap that
-			// we do not need, and thus do not intend to create RBAC permissions
-			// for. See also
-			// https://github.com/digitalocean/digitalocean-cloud-controller-manager/issues/217
-			// and https://github.com/kubernetes/cloud-provider/issues/29.
-			err = fl.Value.Set("true")
-		case "cloud-provider":
-			// Specify the name we register our own cloud provider implementation
-			// for.
-			err = fl.Value.Set(providerName)
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to set flag %q: %s\n", fl.Name, err)
-			os.Exit(1)
-		}
-	})
 
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
