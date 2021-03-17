@@ -75,8 +75,8 @@ func (h *Housekeeper) watchNodes() {
 				oldNode := oldObj.(*v1.Node)
 				newNode := newObj.(*v1.Node)
 
-				oldTunnelAddress, _ := loadbalancer.CalicoTunnelAddress(*oldNode)
-				newTunnelAddress, err := loadbalancer.CalicoTunnelAddress(*newNode)
+				oldTunnelAddress, _ := loadbalancer.NodeAddress(*oldNode)
+				newTunnelAddress, err := loadbalancer.NodeAddress(*newNode)
 				if err != nil {
 					h.logger.Printf("newNode does not have a tunnelAddress, ignoring")
 					return
