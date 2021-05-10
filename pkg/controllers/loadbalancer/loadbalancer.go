@@ -52,6 +52,7 @@ func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExter
 		defaultExternalNetworkID: defaultExternalNetworkID,
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
+		ipUpdateMutex:            &sync.Mutex{},
 	}
 }
 
