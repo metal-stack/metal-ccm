@@ -35,6 +35,7 @@ type LoadBalancerController struct {
 	K8sClient                clientset.Interface
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
+	ipUpdateMutex            *sync.Mutex
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
@@ -94,6 +95,9 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
+		l.ipUpdateMutex.Lock()
+		defer l.ipUpdateMutex.Unlock()
+
 		ip, err := metal.FindProjectIP(l.client, l.projectID, fixedIP)
 		if err != nil {
 			return nil, err
