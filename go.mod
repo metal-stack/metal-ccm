@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
 	github.com/ghodss/yaml v1.0.0
+	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.2.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/metal-stack/metal-go v0.12.2
@@ -12,6 +13,7 @@ require (
 	github.com/metal-stack/v v1.0.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/testify v1.6.1
 	k8s.io/api v0.18.16
 	k8s.io/apimachinery v0.18.16
 	k8s.io/client-go v0.18.16
