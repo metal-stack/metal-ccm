@@ -136,13 +136,11 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := metalgo.IPTypeEphemeral
-	autoAssign := network == cfg.defaultNetworkID
 	if t != nil && *t == metalgo.IPTypeStatic {
 		poolType = metalgo.IPTypeStatic
-		autoAssign = false
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
-	pool := cfg.getOrCreateAddressPool(poolName, autoAssign)
+	pool := cfg.getOrCreateAddressPool(poolName, false)
 	pool.AppendIP(*ip.Ipaddress)
 }
 
