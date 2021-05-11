@@ -5,6 +5,7 @@ import (
 	"os"
 
 	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-lib/rest"
 	"github.com/pkg/errors"
 	"k8s.io/component-base/logs"
 
@@ -66,6 +67,14 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	client, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
+	}
+
+	resp, err := client.HealthGet()
+	if err != nil {
+		return nil, errors.Errorf("metal-api health endpoint not reachable:%v", err)
+	}
+	if resp.Health.Status != nil && *resp.Health.Status != rest.HealthStatusHealthy {
+		return nil, errors.Errorf("metal-api not healthy, restarting")
 	}
 
 	instancesController := instances.New(client, defaultExternalNetworkID)

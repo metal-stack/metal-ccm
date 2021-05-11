@@ -3,6 +3,7 @@ package zones
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
@@ -55,7 +56,7 @@ func (z ZonesController) GetZoneByProviderID(_ context.Context, providerID strin
 	// TODO: check if failureDomain == Partition
 	return cloudprovider.Zone{
 		FailureDomain: *machine.Partition.ID,
-		Region:        *machine.Partition.ID,
+		Region:        getRegionFromPartitionID(machine.Partition.ID),
 	}, nil
 }
 
@@ -71,6 +72,13 @@ func (z ZonesController) GetZoneByNodeName(_ context.Context, nodeName types.Nod
 	// TODO: check if failureDomain == Partition
 	return cloudprovider.Zone{
 		FailureDomain: *machine.Partition.ID,
-		Region:        *machine.Partition.ID,
+		Region:        getRegionFromPartitionID(machine.Partition.ID),
 	}, nil
+}
+
+// getRegionFromPartitionID extracts the region from a given partitionID
+func getRegionFromPartitionID(partitionID *string) string {
+	// if partitionID contains a hyphen, return part before first hyphen as region, otherwise return partitionID
+	split := strings.Split(*partitionID, "-")
+	return split[0]
 }

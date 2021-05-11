@@ -22,11 +22,11 @@ func (h *Housekeeper) updateMetalLBConfig() error {
 	}
 	nodes, err := kubernetes.GetNodes(h.k8sClient)
 	if err != nil {
-		return fmt.Errorf("error listing nodes: %v", err)
+		return fmt.Errorf("error listing nodes: %w", err)
 	}
 	err = h.lbController.UpdateMetalLBConfig(nodes)
 	if err != nil {
-		return fmt.Errorf("error updating metallb config: %v", err)
+		return fmt.Errorf("error updating metallb config: %w", err)
 	}
 	h.lastMetalLBConfigSync = time.Now()
 	return nil

@@ -18,7 +18,7 @@ import (
 func GetNodes(client clientset.Interface) ([]v1.Node, error) {
 	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list nodes: %s", err)
+		return nil, fmt.Errorf("failed to list nodes: %w", err)
 	}
 	return nodes.Items, nil
 }

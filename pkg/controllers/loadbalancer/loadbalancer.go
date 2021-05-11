@@ -17,7 +17,10 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/component-base/logs"
 )
@@ -32,6 +35,7 @@ type LoadBalancerController struct {
 	K8sClient                clientset.Interface
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
+	ipUpdateMutex            *sync.Mutex
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
@@ -48,6 +52,7 @@ func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExter
 		defaultExternalNetworkID: defaultExternalNetworkID,
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
+		ipUpdateMutex:            &sync.Mutex{},
 	}
 }
 
@@ -91,6 +96,9 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
+		l.ipUpdateMutex.Lock()
+		defer l.ipUpdateMutex.Unlock()
+
 		ip, err := metal.FindProjectIP(l.client, l.projectID, fixedIP)
 		if err != nil {
 			return nil, err
@@ -123,11 +131,52 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		return nil, err
 	}
 
+	rollback := func(err error) error {
+		if err == nil {
+			return nil
+		}
+
+		l.logger.Printf("error while trying to ensure load balancer, rolling back ip acquisition: %v", err)
+
+		// clearing tags before release
+		// we can do this because here we know that we freshly acquired a new IP that's not used for anything else
+		_, err2 := l.client.IPUpdate(&metalgo.IPUpdateRequest{
+			IPAddress: ip,
+			Tags:      []string{},
+		})
+		if err != nil {
+			l.logger.Printf("error during ip rollback occurred: %v", err2)
+			return err
+		}
+
+		_, err2 = l.client.IPFree(ip)
+		if err2 != nil {
+			l.logger.Printf("error during ip rollback occurred: %v", err2)
+			return err
+		}
+
+		return err
+	}
+
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		s, err := l.K8sClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		s.Spec.LoadBalancerIP = ip
+		_, err = l.K8sClient.CoreV1().Services(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
+		return err
+	})
+	if err != nil {
+		return nil, rollback(err)
+	}
+
 	ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 
 	err = l.UpdateMetalLBConfig(ns)
 	if err != nil {
-		return nil, err
+		return nil, rollback(err)
 	}
 
 	return &v1.LoadBalancerStatus{
@@ -176,13 +225,13 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		}
 		newIP, err := l.client.IPUpdate(iu)
 		if err != nil {
-			return fmt.Errorf("could not update ip with new tags: %v", err)
+			return fmt.Errorf("could not update ip with new tags: %w", err)
 		}
 		l.logger.Printf("updated ip: %v", newIP)
 		if *ip.Type == metalgo.IPTypeEphemeral && last {
 			err := metal.FreeIP(l.client, *ip.Ipaddress)
 			if err != nil {
-				return fmt.Errorf("unable to delete ip %s: %v", *ip.Ipaddress, err)
+				return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
 			}
 		}
 	}
@@ -261,7 +310,7 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 	nwID = strings.TrimSuffix(nwID, "-"+metalgo.IPTypeEphemeral)
 	ip, err := metal.AllocateIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
 	if err != nil {
-		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
+		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %w", l.projectID, nwID, err)
 	}
 
 	l.logger.Printf("acquired ip in network %q: %v", nwID, *ip.Ipaddress)
@@ -272,11 +321,11 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error {
 	ips, err := metal.FindClusterIPs(l.client, l.projectID, l.clusterID)
 	if err != nil {
-		return fmt.Errorf("could not find ips of this project's cluster: %v", err)
+		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 	networks, err := metal.ListNetworks(l.client)
 	if err != nil {
-		return fmt.Errorf("could not list networks: %v", err)
+		return fmt.Errorf("could not list networks: %w", err)
 	}
 	networkMap := metal.NetworksByID(networks)
 
