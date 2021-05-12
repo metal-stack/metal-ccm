@@ -108,7 +108,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 	yaml, err := cfg.ToYAML()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	cm := make(map[string]string, 1)
