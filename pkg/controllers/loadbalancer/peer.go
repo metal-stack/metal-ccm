@@ -3,8 +3,6 @@ package loadbalancer
 import (
 	"fmt"
 
-	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
-
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -36,7 +34,7 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 		},
 	}
 
-	address, err := CalicoTunnelAddress(node)
+	address, err := NodeAddress(node)
 	if err != nil {
 		return nil, err
 	}
@@ -54,13 +52,11 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 	}, nil
 }
 
-func CalicoTunnelAddress(node v1.Node) (string, error) {
-	annotations := node.GetAnnotations()
-	for _, ca := range constants.CalicoAnnotations {
-		tunnelAddress, ok := annotations[ca]
-		if ok {
-			return tunnelAddress, nil
+func NodeAddress(node v1.Node) (string, error) {
+	for _, a := range node.Status.Addresses {
+		if a.Type == v1.NodeInternalIP {
+			return a.Address, nil
 		}
 	}
-	return "", fmt.Errorf("unable to determine tunnel address, calico has not yet added a node annotation")
+	return "", fmt.Errorf("unable to determine node address")
 }
