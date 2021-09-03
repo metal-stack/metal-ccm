@@ -82,7 +82,7 @@ func (h *Housekeeper) watchNodes() {
 					return
 				}
 				if oldTunnelAddress == newTunnelAddress {
-					h.logger.Printf("node was not modified and calico tunnel address has not changed, not updating metallb config")
+					// node was not modified and calico tunnel address has not changed, not updating metallb config
 					return
 				}
 
