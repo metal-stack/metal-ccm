@@ -16,7 +16,7 @@ require (
 	k8s.io/client-go v0.20.1
 	k8s.io/cloud-provider v0.19.10
 	k8s.io/component-base v0.20.1
-	k8s.io/kubernetes v1.19.10
+	k8s.io/kubernetes v1.19.11
 	sigs.k8s.io/yaml v1.2.0
 )
 

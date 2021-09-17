@@ -1637,8 +1637,8 @@ k8s.io/kube-scheduler v0.19.10/go.mod h1:qx3ZwxYs6V5CxJij4a+xU70b86s3hO120/K6E/b
 k8s.io/kubectl v0.19.10/go.mod h1:G1yOYR8unVtDsBiXsXXkJjH0oy0OMfvhAFswhipiZ6A=
 k8s.io/kubelet v0.19.10/go.mod h1:Bqr/c9tCHbwovrS91SXMKaUeJgZ5P6KvyfKI2m95CXg=
 k8s.io/kubernetes v1.13.0/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
-k8s.io/kubernetes v1.19.10 h1:c3VGYjsQF404dJDcQIn6Xx2V64x6Ozx+BpomXs6Plo8=
-k8s.io/kubernetes v1.19.10/go.mod h1:f09eWYx+kAUzGrdf+qSQElQ1+HgCsN/ezDXq/XWyaOM=
+k8s.io/kubernetes v1.19.11 h1:5EjBuGr2Lg6dDMHkhsfaE4G7axq+0JnK19jcoSWdER4=
+k8s.io/kubernetes v1.19.11/go.mod h1:f09eWYx+kAUzGrdf+qSQElQ1+HgCsN/ezDXq/XWyaOM=
 k8s.io/legacy-cloud-providers v0.19.10/go.mod h1:M+aK+VsdyYzcQN0hMS2MUQJVS7FRnkDyJQMr4Rc72XQ=
 k8s.io/metrics v0.19.10/go.mod h1:smnHGFw6yGhVS/DvMzi19tMQSAopPLbl2fafOF0DsUA=
 k8s.io/sample-apiserver v0.19.10/go.mod h1:YEc44AFMDd323DZTuC/HdQ/TGe/+aTfx9YsiBJI5rHk=
