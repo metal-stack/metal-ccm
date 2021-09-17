@@ -15,7 +15,7 @@ import (
 
 	"github.com/metal-stack/metal-go/api/models"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 const (
