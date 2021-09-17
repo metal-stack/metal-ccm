@@ -21,16 +21,15 @@ import (
 	"k8s.io/klog/v2"
 
 	_ "github.com/metal-stack/metal-ccm/cmd"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/spf13/pflag"
 )
-
-const providerName = "metal"
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	opts, err := options.NewCloudControllerManagerOptions()
-	opts.KubeCloudShared.CloudProvider.Name = providerName
+	opts.KubeCloudShared.CloudProvider.Name = constants.ProviderName
 
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
