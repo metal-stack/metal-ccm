@@ -66,12 +66,12 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	var err error
 	client, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize metal ccm:%v", err)
+		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
 
 	resp, err := client.HealthGet()
 	if err != nil {
-		return nil, fmt.Errorf("metal-api health endpoint not reachable:%v", err)
+		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
 	if resp.Health.Status != nil && *resp.Health.Status != rest.HealthStatusHealthy {
 		return nil, fmt.Errorf("metal-api not healthy, restarting")
