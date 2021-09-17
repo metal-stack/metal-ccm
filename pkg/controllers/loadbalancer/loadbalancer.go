@@ -35,6 +35,7 @@ type LoadBalancerController struct {
 	K8sClient                clientset.Interface
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
+	ipUpdateMutex            *sync.Mutex
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
@@ -51,6 +52,7 @@ func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExter
 		defaultExternalNetworkID: defaultExternalNetworkID,
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
+		ipUpdateMutex:            &sync.Mutex{},
 	}
 }
 
@@ -94,6 +96,9 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
+		l.ipUpdateMutex.Lock()
+		defer l.ipUpdateMutex.Unlock()
+
 		ip, err := metal.FindProjectIP(l.client, l.projectID, fixedIP)
 		if err != nil {
 			return nil, err
@@ -305,7 +310,7 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 	nwID = strings.TrimSuffix(nwID, "-"+metalgo.IPTypeEphemeral)
 	ip, err := metal.AllocateIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
 	if err != nil {
-		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %v", l.projectID, nwID, err)
+		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %w", l.projectID, nwID, err)
 	}
 
 	l.logger.Printf("acquired ip in network %q: %v", nwID, *ip.Ipaddress)
@@ -316,11 +321,11 @@ func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Servic
 func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error {
 	ips, err := metal.FindClusterIPs(l.client, l.projectID, l.clusterID)
 	if err != nil {
-		return fmt.Errorf("could not find ips of this project's cluster: %v", err)
+		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 	networks, err := metal.ListNetworks(l.client)
 	if err != nil {
-		return fmt.Errorf("could not list networks: %v", err)
+		return fmt.Errorf("could not list networks: %w", err)
 	}
 	networkMap := metal.NetworksByID(networks)
 

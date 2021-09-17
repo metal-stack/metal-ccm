@@ -190,7 +190,7 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 // translated into specific fields in the Node object on registration.
 // Use the node.name or node.spec.providerID field to find the node in the cloud provider.
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
-	i.logger.Printf("InstanceShutdown: node %q", node.GetName())
+	i.logger.Printf("InstanceMetadata: node %q", node.GetName())
 	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
 	if err != nil {
 		return nil, err

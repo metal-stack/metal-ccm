@@ -15,7 +15,7 @@ import (
 
 	"github.com/metal-stack/metal-go/api/models"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -65,7 +65,7 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 			continue
 		}
 		// we do not want IPs from networks where the parent networks are private
-		if nw.Parentnetworkid != "" {
+		if nw.Parentnetworkid != "" && !nw.Shared {
 			parent, ok := nws[nw.Parentnetworkid]
 			if !ok {
 				continue
@@ -90,7 +90,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 		}
 		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to parse valid integer from asn annotation: %v", err)
+			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 		}
 
 		peer, err := newPeer(n, asn)
@@ -108,7 +108,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 	yaml, err := cfg.ToYAML()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	cm := make(map[string]string, 1)

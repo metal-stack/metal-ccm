@@ -1,24 +1,21 @@
 module github.com/metal-stack/metal-ccm
 
-go 1.15
+go 1.16
 
 require (
-	github.com/NYTimes/gziphandler v1.0.1 // indirect
-	github.com/ghodss/yaml v1.0.0
-	github.com/google/uuid v1.2.0
-	github.com/metal-stack/metal-go v0.12.2
-	github.com/metal-stack/metal-lib v0.6.9
+	github.com/google/uuid v1.3.0
+	github.com/metal-stack/metal-go v0.15.7
+	github.com/metal-stack/metal-lib v0.8.1
 	github.com/metal-stack/v v1.0.3
-	github.com/pkg/errors v0.9.1
+	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/spf13/pflag v1.0.5
-	k8s.io/api v0.20.4
-	k8s.io/apimachinery v0.20.4
-	k8s.io/client-go v0.20.4
-	k8s.io/cloud-provider v0.20.4
-	k8s.io/component-base v0.20.4
-	k8s.io/klog/v2 v2.5.0
+	k8s.io/api v0.22.1
+	k8s.io/apimachinery v0.22.1
+	k8s.io/client-go v0.22.1
+	k8s.io/cloud-provider v0.22.1
+	k8s.io/component-base v0.22.1
+	k8s.io/klog/v2 v2.10.0
+	sigs.k8s.io/yaml v1.2.0
 )
 
-// specify a lower transitive dependency to grpc otherwise
-// cannot use &errPicker literal (type *errPicker) as type Picker in return argument:
-replace google.golang.org/grpc => google.golang.org/grpc v1.29.1
+replace github.com/go-logr/logr => github.com/go-logr/logr v0.4.0

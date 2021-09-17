@@ -1,16 +1,20 @@
 package main
 
 import (
+	goflag "flag"
 	"fmt"
 	"math/rand"
 	"os"
 	"time"
 
-	"github.com/metal-stack/v"
+	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/cloud-provider/app"
 	"k8s.io/cloud-provider/options"
-	"k8s.io/component-base/cli/flag"
+
+	cloudcontrollerconfig "k8s.io/cloud-provider/app/config"
+
+	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
@@ -23,63 +27,52 @@ import (
 const providerName = "metal"
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UTC().UnixNano())
 
-	s, err := options.NewCloudControllerManagerOptions()
+	opts, err := options.NewCloudControllerManagerOptions()
+	opts.KubeCloudShared.CloudProvider.Name = providerName
+
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
 	}
-	// Otherwise it complains that --cloud-provider is empty
-	s.KubeCloudShared.CloudProvider.Name = "metal"
-	s.KubeCloudShared.AllowUntaggedCloud = true
-	s.KubeCloudShared.UseServiceAccountCredentials = true
-	s.Authentication.SkipInClusterLookup = true
+	controllerInitializers := app.DefaultInitFuncConstructors
+	// remove unneeded controllers
+	delete(controllerInitializers, "route")
+	fss := cliflag.NamedFlagSets{
+		NormalizeNameFunc: cliflag.WordSepNormalizeFunc,
+	}
+	// TODO: how do we alias cloud-config (in the "generic" flagset) as provider-config, or offer a secondary (legacy) argument
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
-	c, err := s.Config([]string{}, app.ControllersDisabledByDefault.List())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, fss, wait.NeverStop)
+
+	logs.InitLogs()
+	defer logs.FlushLogs()
+
+	if err := command.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-
+}
+func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovider.Interface {
+	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
 	// initialize cloud provider with the cloud provider name and config file provided
-	cloud, err := cloudprovider.InitCloudProvider(providerName, c.ComponentConfig.KubeCloudShared.CloudProvider.CloudConfigFile)
+	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
 	if err != nil {
 		klog.Fatalf("Cloud provider could not be initialized: %v", err)
 	}
 	if cloud == nil {
-		klog.Fatalf("cloud provider is nil")
+		klog.Fatalf("Cloud provider is nil")
 	}
 
 	if !cloud.HasClusterID() {
-		if c.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
+		if config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
 			klog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
 		} else {
 			klog.Fatalf("no ClusterID found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
 		}
 	}
 
-	// Initialize the cloud provider with a reference to the clientBuilder
-	cloud.Initialize(c.ClientBuilder, make(chan struct{}))
-	// Set the informer on the user cloud object
-	if informerUserCloud, ok := cloud.(cloudprovider.InformerUser); ok {
-		informerUserCloud.SetInformers(c.SharedInformers)
-	}
-
-	controllerInitializers := app.DefaultControllerInitializers(c.Complete(), cloud)
-	command := app.NewCloudControllerManagerCommand(s, c, controllerInitializers)
-
-	// TODO: once we switch everything over to Cobra commands, we can go back to calling
-	// utilflag.InitFlags() (by removing its pflag.Parse() call). For now, we have to set the
-	// normalize func and add the go flag set by hand.
-	// Here is an sample
-	pflag.CommandLine.SetNormalizeFunc(flag.WordSepNormalizeFunc)
-	// utilflag.InitFlags()
-	logs.InitLogs()
-	defer logs.FlushLogs()
-	logger := logs.NewLogger("metal-ccm ")
-	logger.Printf("starting version %q", v.V)
-
-	if err := command.Execute(); err != nil {
-		os.Exit(1)
-	}
+	return cloud
 }
