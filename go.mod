@@ -3,23 +3,25 @@ module github.com/metal-stack/metal-ccm
 go 1.16
 
 require (
-	github.com/NYTimes/gziphandler v1.0.1 // indirect
-	github.com/ghodss/yaml v1.0.0
-	github.com/google/uuid v1.2.0
-	github.com/metal-stack/metal-go v0.14.0
-	github.com/metal-stack/metal-lib v0.8.0
+	github.com/NYTimes/gziphandler v1.1.1 // indirect
+	github.com/google/uuid v1.3.0
+	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/metal-stack/metal-go v0.15.7
+	github.com/metal-stack/metal-lib v0.8.1
 	github.com/metal-stack/v v1.0.3
-	github.com/pkg/errors v0.9.1
+	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/spf13/pflag v1.0.5
-	k8s.io/api v0.19.10
-	k8s.io/apimachinery v0.19.10
-	k8s.io/client-go v0.19.10
+	k8s.io/api v0.20.1
+	k8s.io/apimachinery v0.20.1
+	k8s.io/client-go v0.20.1
 	k8s.io/cloud-provider v0.19.10
-	k8s.io/component-base v0.19.10
+	k8s.io/component-base v0.20.1
 	k8s.io/kubernetes v1.19.10
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
+	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	// specify a lower transitive dependency to grpc otherwise
 	// endpoint.go:114:78: undefined: resolver.BuildOption
 	google.golang.org/grpc => google.golang.org/grpc v1.26.0
