@@ -30,5 +30,6 @@ jobs:
       - name: Build the Docker images
         run: |
           export GIT_TAG_NAME=${GITHUB_REF##*/}
+          make test
           make dockerimage
           make dockerpush

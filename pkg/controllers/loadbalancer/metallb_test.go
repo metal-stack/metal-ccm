@@ -10,6 +10,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 )
 
@@ -17,74 +18,74 @@ var (
 	testNetworks = map[string]*models.V1NetworkResponse{
 		"internet": {
 			Destinationprefixes: []string{"0.0.0.0/0"},
-			ID:                  StrPtr("internet"),
+			ID:                  pointer.StringPtr("internet"),
 			Labels: map[string]string{
 				"network.metal-stack.io/default":          "",
 				"network.metal-stack.io/default-external": "",
 			},
-			Nat:             BoolPtr(true),
+			Nat:             pointer.BoolPtr(true),
 			Parentnetworkid: "",
 			Partitionid:     "",
-			Privatesuper:    BoolPtr(false),
+			Privatesuper:    pointer.BoolPtr(false),
 			Projectid:       "",
 			Shared:          false,
-			Underlay:        BoolPtr(false),
+			Underlay:        pointer.BoolPtr(false),
 			Vrf:             104009,
 			Vrfshared:       false,
 		},
 		"tenant-super-network-partition-a": {
 			Destinationprefixes: []string{},
-			ID:                  StrPtr("tenant-super-network-partition-a"),
+			ID:                  pointer.StringPtr("tenant-super-network-partition-a"),
 			Labels:              map[string]string{},
-			Nat:                 BoolPtr(false),
+			Nat:                 pointer.BoolPtr(false),
 			Parentnetworkid:     "",
 			Partitionid:         "",
-			Privatesuper:        BoolPtr(true),
+			Privatesuper:        pointer.BoolPtr(true),
 			Projectid:           "",
 			Shared:              false,
-			Underlay:            BoolPtr(false),
+			Underlay:            pointer.BoolPtr(false),
 			Vrf:                 0,
 			Vrfshared:           false,
 		},
 		"underlay-partition-a": {
 			Destinationprefixes: []string{},
-			ID:                  StrPtr("underlay-partition-a"),
+			ID:                  pointer.StringPtr("underlay-partition-a"),
 			Labels:              map[string]string{},
-			Nat:                 BoolPtr(false),
+			Nat:                 pointer.BoolPtr(false),
 			Parentnetworkid:     "",
 			Partitionid:         "",
-			Privatesuper:        BoolPtr(false),
+			Privatesuper:        pointer.BoolPtr(false),
 			Projectid:           "",
 			Shared:              false,
-			Underlay:            BoolPtr(true),
+			Underlay:            pointer.BoolPtr(true),
 			Vrf:                 0,
 			Vrfshared:           false,
 		},
 		"this-cluster-private-network": {
 			Destinationprefixes: []string{"10.129.28.0/22"},
-			ID:                  StrPtr("this-cluster-private-network"),
+			ID:                  pointer.StringPtr("this-cluster-private-network"),
 			Labels:              map[string]string{},
-			Nat:                 BoolPtr(false),
+			Nat:                 pointer.BoolPtr(false),
 			Parentnetworkid:     "tenant-super-network-partition-a",
 			Partitionid:         "partition-a",
-			Privatesuper:        BoolPtr(false),
+			Privatesuper:        pointer.BoolPtr(false),
 			Projectid:           "project-a",
 			Shared:              false,
-			Underlay:            BoolPtr(false),
+			Underlay:            pointer.BoolPtr(false),
 			Vrf:                 30,
 			Vrfshared:           false,
 		},
 		"foreign-cluster-private-network": {
 			Destinationprefixes: []string{"10.128.244.0/22"},
-			ID:                  StrPtr("foreign-cluster-private-network"),
+			ID:                  pointer.StringPtr("foreign-cluster-private-network"),
 			Labels:              map[string]string{},
-			Nat:                 BoolPtr(false),
+			Nat:                 pointer.BoolPtr(false),
 			Parentnetworkid:     "tenant-super-network-partition-a",
 			Partitionid:         "partition-a",
-			Privatesuper:        BoolPtr(false),
+			Privatesuper:        pointer.BoolPtr(false),
 			Projectid:           "project-b",
 			Shared:              false,
-			Underlay:            BoolPtr(false),
+			Underlay:            pointer.BoolPtr(false),
 			Vrf:                 40,
 			Vrfshared:           false,
 		},
@@ -107,14 +108,14 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: StrPtr("84.1.1.1"),
+					Ipaddress: pointer.StringPtr("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: StrPtr("internet"),
-					Projectid: StrPtr("project-a"),
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: StrPtr("ephemeral"),
+					Type: pointer.StringPtr("ephemeral"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -138,24 +139,24 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: StrPtr("84.1.1.1"),
+					Ipaddress: pointer.StringPtr("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: StrPtr("internet"),
-					Projectid: StrPtr("project-a"),
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: StrPtr("ephemeral"),
+					Type: pointer.StringPtr("ephemeral"),
 				},
 				{
-					Ipaddress: StrPtr("84.1.1.2"),
+					Ipaddress: pointer.StringPtr("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: StrPtr("internet"),
-					Projectid: StrPtr("project-a"),
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: StrPtr("ephemeral"),
+					Type: pointer.StringPtr("ephemeral"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -180,34 +181,34 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: StrPtr("84.1.1.1"),
+					Ipaddress: pointer.StringPtr("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: StrPtr("internet"),
-					Projectid: StrPtr("project-a"),
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: StrPtr("ephemeral"),
+					Type: pointer.StringPtr("ephemeral"),
 				},
 				{
-					Ipaddress: StrPtr("84.1.1.2"),
+					Ipaddress: pointer.StringPtr("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: StrPtr("internet"),
-					Projectid: StrPtr("project-a"),
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: StrPtr("ephemeral"),
+					Type: pointer.StringPtr("ephemeral"),
 				},
 				{
-					Ipaddress: StrPtr("84.1.1.3"),
+					Ipaddress: pointer.StringPtr("84.1.1.3"),
 					Name:      "static-ip",
-					Networkid: StrPtr("internet"),
-					Projectid: StrPtr("project-a"),
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: StrPtr("static"),
+					Type: pointer.StringPtr("static"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -251,22 +252,14 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			yaml, err := cfg.ToYAML()
 			require.NoError(t, err)
 
-			if diff := cmp.Diff(yaml, MustYAML(tt.want)); diff != "" {
+			if diff := cmp.Diff(yaml, mustYAML(tt.want)); diff != "" {
 				t.Errorf("MetalLBConfig.CalculateConfig() = %v", diff)
 			}
 		})
 	}
 }
 
-func StrPtr(s string) *string {
-	return &s
-}
-
-func BoolPtr(b bool) *bool {
-	return &b
-}
-
-func MustYAML(data interface{}) string {
+func mustYAML(data interface{}) string {
 	res, _ := yaml.Marshal(data)
 	return string(res)
 }

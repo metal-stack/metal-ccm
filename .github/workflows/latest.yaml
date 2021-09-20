@@ -26,6 +26,7 @@ jobs:
 
       - name: Build the Docker images
         run: |
+          make test
           make dockerimage
           make dockerpush
 
