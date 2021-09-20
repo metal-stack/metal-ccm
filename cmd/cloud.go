@@ -7,7 +7,6 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-lib/rest"
-	"github.com/metal-stack/v"
 	"k8s.io/component-base/logs"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
@@ -29,11 +28,9 @@ type cloud struct {
 	loadBalancer *loadbalancer.LoadBalancerController
 }
 
-func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
+func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm | ")
-
-	logger.Printf("starting version:%s", v.V.String())
 
 	url := os.Getenv(constants.MetalAPIUrlEnvVar)
 	token := os.Getenv(constants.MetalAuthTokenEnvVar)
@@ -91,12 +88,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		zones:        zonesController,
 		loadBalancer: loadBalancerController,
 	}, nil
-}
-
-func init() {
-	cloudprovider.RegisterCloudProvider(constants.ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
-		return newCloud(config)
-	})
 }
 
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines

@@ -3,6 +3,7 @@ package main
 import (
 	goflag "flag"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"time"
@@ -20,8 +21,10 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
 	"k8s.io/klog/v2"
 
+	"github.com/metal-stack/metal-ccm/cmd"
 	_ "github.com/metal-stack/metal-ccm/cmd"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/v"
 	"github.com/spf13/pflag"
 )
 
@@ -49,6 +52,7 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
+	klog.Infof("starting version %s", v.V.String())
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -56,6 +60,10 @@ func main() {
 }
 func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovider.Interface {
 	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
+
+	cloudprovider.RegisterCloudProvider(constants.ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
+		return cmd.NewCloud(config)
+	})
 	// initialize cloud provider with the cloud provider name and config file provided
 	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
 	if err != nil {
