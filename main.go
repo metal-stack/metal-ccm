@@ -1,7 +1,7 @@
 package main
 
 import (
-	goflag "flag"
+	"flag"
 	"io"
 	"math/rand"
 	"time"
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, fss, wait.NeverStop)
 
