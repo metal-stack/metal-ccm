@@ -5,12 +5,12 @@ import (
 	"log"
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 var (
