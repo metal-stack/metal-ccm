@@ -2,6 +2,7 @@ package instances
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -159,4 +160,53 @@ func (i *InstancesController) InstanceShutdownByProviderID(_ context.Context, pr
 		return true, err
 	}
 	return false, nil
+}
+
+// ------------- InstanceV2 interface functions ---------------------------
+
+// InstanceExists returns true if the instance for the given node exists according to the cloud provider.
+// Use the node.name or node.spec.providerID field to find the node in the cloud provider.
+func (i *InstancesController) InstanceExists(ctx context.Context, node *v1.Node) (bool, error) {
+	i.logger.Printf("InstanceExists: node %q", node.GetName())
+	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
+	if err != nil {
+		return false, err
+	}
+	return machine.Allocation != nil, nil
+}
+
+// InstanceShutdown returns true if the instance is shutdown according to the cloud provider.
+// Use the node.name or node.spec.providerID field to find the node in the cloud provider.
+func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, error) {
+	i.logger.Printf("InstanceShutdown: node %q", node.GetName())
+	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
+	if err != nil || machine.Allocation == nil {
+		return true, err
+	}
+	return false, nil
+}
+
+// InstanceMetadata returns the instance's metadata. The values returned in InstanceMetadata are
+// translated into specific fields in the Node object on registration.
+// Use the node.name or node.spec.providerID field to find the node in the cloud provider.
+func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
+	i.logger.Printf("InstanceMetadata: node %q", node.GetName())
+	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if machine == nil {
+		return nil, fmt.Errorf("machine is nil for node:%s", node.Name)
+	}
+	nas, err := nodeAddresses(machine, i.defaultExternalNetwork)
+	if err != nil {
+		return nil, err
+	}
+	md := &cloudprovider.InstanceMetadata{
+		InstanceType:  *machine.Size.ID,
+		ProviderID:    fmt.Sprintf("metal://%s", *machine.ID),
+		NodeAddresses: nas,
+	}
+	return md, nil
 }

@@ -19,6 +19,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	retrygo "github.com/avast/retry-go/v3"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	cloudprovider "k8s.io/cloud-provider"
@@ -35,6 +36,7 @@ type LoadBalancerController struct {
 	K8sClient                clientset.Interface
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
+	ipUpdateMutex            *sync.Mutex
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
@@ -51,6 +53,7 @@ func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExter
 		defaultExternalNetworkID: defaultExternalNetworkID,
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
+		ipUpdateMutex:            &sync.Mutex{},
 	}
 }
 
@@ -94,6 +97,9 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	fixedIP := service.Spec.LoadBalancerIP
 	if fixedIP != "" {
+		l.ipUpdateMutex.Lock()
+		defer l.ipUpdateMutex.Unlock()
+
 		ip, err := metal.FindProjectIP(l.client, l.projectID, fixedIP)
 		if err != nil {
 			return nil, err
@@ -212,22 +218,36 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	if err != nil {
 		return err
 	}
+
+	l.ipUpdateMutex.Lock()
+	defer l.ipUpdateMutex.Unlock()
+
 	for _, ip := range ips {
-		newTags, last := l.removeServiceTag(*ip, serviceTag)
-		iu := &metalgo.IPUpdateRequest{
-			IPAddress: *ip.Ipaddress,
-			Tags:      newTags,
-		}
-		newIP, err := l.client.IPUpdate(iu)
+		ip := ip
+		err := retrygo.Do(
+			func() error {
+				newTags, last := l.removeServiceTag(*ip, serviceTag)
+				iu := &metalgo.IPUpdateRequest{
+					IPAddress: *ip.Ipaddress,
+					Tags:      newTags,
+				}
+				newIP, err := l.client.IPUpdate(iu)
+				if err != nil {
+					return fmt.Errorf("could not update ip with new tags: %w", err)
+				}
+				l.logger.Printf("updated ip: %v", newIP)
+				if *ip.Type == metalgo.IPTypeEphemeral && last {
+					l.logger.Printf("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, newTags)
+					err := metal.FreeIP(l.client, *ip.Ipaddress)
+					if err != nil {
+						return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
+					}
+				}
+				return nil
+			},
+		)
 		if err != nil {
-			return fmt.Errorf("could not update ip with new tags: %w", err)
-		}
-		l.logger.Printf("updated ip: %v", newIP)
-		if *ip.Type == metalgo.IPTypeEphemeral && last {
-			err := metal.FreeIP(l.client, *ip.Ipaddress)
-			if err != nil {
-				return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
-			}
+			return err
 		}
 	}
 	return l.UpdateMetalLBConfig(nodes)

@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-lib/rest"
-	"github.com/pkg/errors"
 	"k8s.io/component-base/logs"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
@@ -40,41 +40,41 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
 
 	if projectID == "" {
-		return nil, errors.Errorf("environment variable %q is required", constants.MetalProjectIDEnvVar)
+		return nil, fmt.Errorf("environment variable %q is required", constants.MetalProjectIDEnvVar)
 	}
 
 	if partitionID == "" {
-		return nil, errors.Errorf("environment variable %q is required", constants.MetalPartitionIDEnvVar)
+		return nil, fmt.Errorf("environment variable %q is required", constants.MetalPartitionIDEnvVar)
 	}
 
 	if clusterID == "" {
-		return nil, errors.Errorf("environment variable %q is required", constants.MetalClusterIDEnvVar)
+		return nil, fmt.Errorf("environment variable %q is required", constants.MetalClusterIDEnvVar)
 	}
 
 	if defaultExternalNetworkID == "" {
-		return nil, errors.Errorf("environment variable %q is required", constants.MetalDefaultExternalNetworkEnvVar)
+		return nil, fmt.Errorf("environment variable %q is required", constants.MetalDefaultExternalNetworkEnvVar)
 	}
 
 	if url == "" {
-		return nil, errors.Errorf("environment variable %q is required", constants.MetalAPIUrlEnvVar)
+		return nil, fmt.Errorf("environment variable %q is required", constants.MetalAPIUrlEnvVar)
 	}
 
 	if (token == "") == (hmac == "") {
-		return nil, errors.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
+		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
 	}
 
 	var err error
 	client, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
-		return nil, errors.Errorf("unable to initialize metal ccm:%v", err)
+		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
 
 	resp, err := client.HealthGet()
 	if err != nil {
-		return nil, errors.Errorf("metal-api health endpoint not reachable:%v", err)
+		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
 	if resp.Health.Status != nil && *resp.Health.Status != rest.HealthStatusHealthy {
-		return nil, errors.Errorf("metal-api not healthy, restarting")
+		return nil, fmt.Errorf("metal-api not healthy, restarting")
 	}
 
 	instancesController := instances.New(client, defaultExternalNetworkID)
@@ -116,6 +116,11 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 
 // Instances returns an machines interface. Also returns true if the interface is supported, false otherwise.
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
+	return c.instances, true
+}
+
+// Instances returns an machines interface. Also returns true if the interface is supported, false otherwise.
+func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
 	return c.instances, true
 }
 
