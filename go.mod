@@ -3,6 +3,7 @@ module github.com/metal-stack/metal-ccm
 go 1.16
 
 require (
+	github.com/avast/retry-go/v3 v3.1.1
 	github.com/google/uuid v1.3.0
 	github.com/metal-stack/metal-go v0.15.7
 	github.com/metal-stack/metal-lib v0.8.1
