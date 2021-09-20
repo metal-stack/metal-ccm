@@ -22,7 +22,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/cmd"
-	_ "github.com/metal-stack/metal-ccm/cmd"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/v"
 	"github.com/spf13/pflag"
