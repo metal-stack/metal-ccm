@@ -237,6 +237,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 				}
 				l.logger.Printf("updated ip: %v", newIP)
 				if *ip.Type == metalgo.IPTypeEphemeral && last {
+					l.logger.Printf("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, newTags)
 					err := metal.FreeIP(l.client, *ip.Ipaddress)
 					if err != nil {
 						return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
