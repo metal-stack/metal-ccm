@@ -2,10 +2,8 @@ package main
 
 import (
 	goflag "flag"
-	"fmt"
 	"io"
 	"math/rand"
-	"os"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -31,18 +29,19 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	opts, err := options.NewCloudControllerManagerOptions()
-	opts.KubeCloudShared.CloudProvider.Name = constants.ProviderName
-
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
 	}
+	opts.KubeCloudShared.CloudProvider.Name = constants.ProviderName
+
 	controllerInitializers := app.DefaultInitFuncConstructors
-	// remove unneeded controllers
+	// remove unneeded controllers,
+	// TODO add once we support the route interface
 	delete(controllerInitializers, "route")
 	fss := cliflag.NamedFlagSets{
 		NormalizeNameFunc: cliflag.WordSepNormalizeFunc,
 	}
-	// TODO: how do we alias cloud-config (in the "generic" flagset) as provider-config, or offer a secondary (legacy) argument
+
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
@@ -53,8 +52,7 @@ func main() {
 
 	klog.Infof("starting version %s", v.V.String())
 	if err := command.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		klog.Fatalf("error: %v", err)
 	}
 }
 func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovider.Interface {
@@ -66,10 +64,10 @@ func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovid
 	// initialize cloud provider with the cloud provider name and config file provided
 	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
 	if err != nil {
-		klog.Fatalf("Cloud provider could not be initialized: %v", err)
+		klog.Fatalf("cloud provider could not be initialized: %v", err)
 	}
 	if cloud == nil {
-		klog.Fatalf("Cloud provider is nil")
+		klog.Fatal("cloud provider is nil")
 	}
 
 	if !cloud.HasClusterID() {
