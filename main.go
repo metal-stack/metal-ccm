@@ -21,7 +21,7 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
 	"k8s.io/klog/v2"
 
-	"github.com/metal-stack/metal-ccm/cmd"
+	"github.com/metal-stack/metal-ccm/metal"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/v"
 	"github.com/spf13/pflag"
@@ -61,7 +61,7 @@ func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovid
 	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
 
 	cloudprovider.RegisterCloudProvider(constants.ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
-		return cmd.NewCloud(config)
+		return metal.NewCloud(config)
 	})
 	// initialize cloud provider with the cloud provider name and config file provided
 	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
