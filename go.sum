@@ -720,8 +720,9 @@ github.com/metal-stack/masterdata-api v0.8.8/go.mod h1:rpwFGYKHAtoZ/Phi6WQCt4Vgs
 github.com/metal-stack/metal-go v0.15.7 h1:1L/iF4eakNf0JPQtZg+elVoVScowAVEHgfgj2TaOlCI=
 github.com/metal-stack/metal-go v0.15.7/go.mod h1:a7FMw1er+Ix0qLiYoeUSvqSAxc00DcqEa8LKEwaVOoM=
 github.com/metal-stack/metal-lib v0.8.0/go.mod h1:eDBJ88yC8jUk+bAJXpF1Upw6j3lbbgv3UIF0D+llMec=
-github.com/metal-stack/metal-lib v0.8.1 h1:SYx+Rel/SgrbHRShwGV6p4B3R8XD4KVexV4PF0esMbk=
 github.com/metal-stack/metal-lib v0.8.1/go.mod h1:0sl2RZhnh8oS5NPsloQFtpDcYhSRjSGMwbeXWmJubcc=
+github.com/metal-stack/metal-lib v0.8.2 h1:JOV1a43TQBexzRxDDFIgSKwGLObQ/X/RMVPAI5sC+dc=
+github.com/metal-stack/metal-lib v0.8.2/go.mod h1:0sl2RZhnh8oS5NPsloQFtpDcYhSRjSGMwbeXWmJubcc=
 github.com/metal-stack/security v0.5.3/go.mod h1:t7P93F6/iSDR729OS/3x5t69ewBCsHUYqRVaHb5nxjc=
 github.com/metal-stack/security v0.6.0/go.mod h1:EpAld8OK8R7oJ8wuDFEud1BywZTiF585QHlvICoIINY=
 github.com/metal-stack/security v0.6.2 h1:odPzCZZ/z8WKtcZwQqargedwAEoyy6sJ2X4fjHTSmb4=
@@ -1620,5 +1621,6 @@ sigs.k8s.io/structured-merge-diff/v4 v4.0.2/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK
 sigs.k8s.io/structured-merge-diff/v4 v4.1.2 h1:Hr/htKFmJEbtMgS/UD0N+gtgctAqz81t3nu+sPzynno=
 sigs.k8s.io/structured-merge-diff/v4 v4.1.2/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
-sigs.k8s.io/yaml v1.2.0 h1:kr/MCeFWJWTwyaHoR9c8EjH9OumOmoF9YGiZd7lFm/Q=
 sigs.k8s.io/yaml v1.2.0/go.mod h1:yfXDCHCao9+ENCvLSE62v9VSji2MKu5jeNfTrofGhJc=
+sigs.k8s.io/yaml v1.3.0 h1:a2VclLzOGrwOHDiV8EfBGhvjHvP46CtW5j6POvhYGGo=
+sigs.k8s.io/yaml v1.3.0/go.mod h1:GeOyir5tyXNByN85N/dRIT9es5UQNerPYEKK56eTBm8=
