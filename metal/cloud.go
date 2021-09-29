@@ -1,4 +1,4 @@
-package cmd
+package metal
 
 import (
 	"fmt"
@@ -28,9 +28,10 @@ type cloud struct {
 	loadBalancer *loadbalancer.LoadBalancerController
 }
 
-func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
+func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm | ")
+
 	url := os.Getenv(constants.MetalAPIUrlEnvVar)
 	token := os.Getenv(constants.MetalAuthTokenEnvVar)
 	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
@@ -89,12 +90,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}, nil
 }
 
-func init() {
-	cloudprovider.RegisterCloudProvider(constants.ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
-		return newCloud(config)
-	})
-}
-
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
@@ -146,5 +141,5 @@ func (c *cloud) ProviderName() string {
 
 // HasClusterID returns true if a ClusterID is required and set.
 func (c *cloud) HasClusterID() bool {
-	return false
+	return true
 }

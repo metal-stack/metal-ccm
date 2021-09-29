@@ -1,60 +1,82 @@
 package main
 
 import (
-	"fmt"
+	"flag"
+	"io"
 	"math/rand"
-	"os"
 	"time"
 
-	"k8s.io/component-base/logs"
-	"k8s.io/kubernetes/cmd/cloud-controller-manager/app"
+	"k8s.io/apimachinery/pkg/util/wait"
+	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/cloud-provider/app"
+	"k8s.io/cloud-provider/options"
 
-	_ "github.com/metal-stack/metal-ccm/cmd"
+	cloudcontrollerconfig "k8s.io/cloud-provider/app/config"
+
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
+	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
+	"k8s.io/klog/v2"
+
+	"github.com/metal-stack/metal-ccm/metal"
+	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/v"
 	"github.com/spf13/pflag"
 )
 
-const providerName = "metal"
-
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	command := app.NewCloudControllerManagerCommand()
+	opts, err := options.NewCloudControllerManagerOptions()
+	if err != nil {
+		klog.Fatalf("unable to initialize command options: %v", err)
+	}
+	opts.KubeCloudShared.CloudProvider.Name = constants.ProviderName
 
-	// Set static flags for which we know the values.
-	command.Flags().VisitAll(func(fl *pflag.Flag) {
-		var err error
-		switch fl.Name {
-		case "allow-untagged-cloud",
-			// Untagged clouds must be enabled explicitly as they were once marked
-			// deprecated. See
-			// https://github.com/kubernetes/cloud-provider/issues/12 for an ongoing
-			// discussion on whether that is to be changed or not.
-			"authentication-skip-lookup":
-			// Prevent reaching out to an authentication-related ConfigMap that
-			// we do not need, and thus do not intend to create RBAC permissions
-			// for. See also
-			// https://github.com/digitalocean/digitalocean-cloud-controller-manager/issues/217
-			// and https://github.com/kubernetes/cloud-provider/issues/29.
-			err = fl.Value.Set("true")
-		case "cloud-provider":
-			// Specify the name we register our own cloud provider implementation
-			// for.
-			err = fl.Value.Set(providerName)
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to set flag %q: %s\n", fl.Name, err)
-			os.Exit(1)
-		}
-	})
+	controllerInitializers := app.DefaultInitFuncConstructors
+	// remove unneeded controllers,
+	// TODO add once we support the route interface
+	delete(controllerInitializers, "route")
+	fss := cliflag.NamedFlagSets{
+		NormalizeNameFunc: cliflag.WordSepNormalizeFunc,
+	}
+
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
+	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, fss, wait.NeverStop)
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	logger := logs.NewLogger("metal-ccm ")
-	logger.Printf("starting version %q", v.V)
 
+	klog.Infof("starting version %s", v.V.String())
 	if err := command.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		klog.Fatalf("error: %v", err)
 	}
+}
+func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovider.Interface {
+	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
+
+	cloudprovider.RegisterCloudProvider(constants.ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
+		return metal.NewCloud(config)
+	})
+	// initialize cloud provider with the cloud provider name and config file provided
+	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
+	if err != nil {
+		klog.Fatalf("cloud provider could not be initialized: %v", err)
+	}
+	if cloud == nil {
+		klog.Fatal("cloud provider is nil")
+	}
+
+	if !cloud.HasClusterID() {
+		if config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
+			klog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
+		} else {
+			klog.Fatalf("no ClusterID found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
+		}
+	}
+
+	return cloud
 }
