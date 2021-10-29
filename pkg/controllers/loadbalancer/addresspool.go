@@ -21,7 +21,7 @@ func NewBGPAddressPool(name string, autoAssign bool) *AddressPool {
 	}
 }
 
-func (pool *AddressPool) ContainsCIDR(cidr string) bool {
+func (pool *AddressPool) containsCIDR(cidr string) bool {
 	for _, CIDR := range pool.CIDRs {
 		if cidr == CIDR {
 			return true
@@ -33,7 +33,7 @@ func (pool *AddressPool) ContainsCIDR(cidr string) bool {
 func (pool *AddressPool) AppendIP(ip string) {
 	cidr := ip + "/32"
 
-	if pool.ContainsCIDR(cidr) {
+	if pool.containsCIDR(cidr) {
 		return
 	}
 

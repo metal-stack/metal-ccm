@@ -43,7 +43,7 @@ func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1MachineNetwork, nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[st
 	return nil
 }
 
-func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse) error {
+func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws map[string]*models.V1MachineNetwork) error {
 	for _, ip := range ips {
 		nw, ok := nws[*ip.Networkid]
 		if !ok {
@@ -63,16 +63,6 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws ma
 		}
 		if *nw.Underlay {
 			continue
-		}
-		// we do not want IPs from networks where the parent networks are private
-		if nw.Parentnetworkid != "" && !nw.Shared {
-			parent, ok := nws[nw.Parentnetworkid]
-			if !ok {
-				continue
-			}
-			if *parent.Privatesuper {
-				continue
-			}
 		}
 		net := *ip.Networkid
 		cfg.addIPToPool(net, *ip)

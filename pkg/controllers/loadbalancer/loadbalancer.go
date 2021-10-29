@@ -338,14 +338,13 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error
 	if err != nil {
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
-	networks, err := metal.ListNetworks(l.client)
+	networks, err := metal.ListNetworksOfNodes(l.client, nodes)
 	if err != nil {
 		return fmt.Errorf("could not list networks: %w", err)
 	}
-	networkMap := metal.NetworksByID(networks)
 
 	config := newMetalLBConfig(l.defaultExternalNetworkID)
-	err = config.CalculateConfig(ips, networkMap, nodes)
+	err = config.CalculateConfig(ips, networks, nodes)
 	if err != nil {
 		return err
 	}
