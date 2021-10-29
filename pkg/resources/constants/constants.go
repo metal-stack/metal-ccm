@@ -9,6 +9,7 @@ const (
 	MetalPartitionIDEnvVar            = "METAL_PARTITION_ID"
 	MetalClusterIDEnvVar              = "METAL_CLUSTER_ID"
 	MetalDefaultExternalNetworkEnvVar = "METAL_DEFAULT_EXTERNAL_NETWORK_ID"
+	MetalAdditionalNetworks           = "METAL_ADDITIONAL_NETWORKS"
 
 	ProviderName = "metal"
 
