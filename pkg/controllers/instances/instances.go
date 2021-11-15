@@ -205,7 +205,7 @@ func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Nod
 	}
 	md := &cloudprovider.InstanceMetadata{
 		InstanceType:  *machine.Size.ID,
-		ProviderID:    fmt.Sprintf("metal://%s", *machine.ID),
+		ProviderID:    fmt.Sprintf("metal://%s/%s", *machine.Partition.ID, *machine.ID),
 		NodeAddresses: nas,
 	}
 	return md, nil
