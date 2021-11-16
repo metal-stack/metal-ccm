@@ -35,7 +35,7 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 		},
 		{
 			name:       "wrong format",
-			providerID: "aws:/apartition/amachineid",
+			providerID: "metal:/apartition/amachineid",
 			want:       "",
 			wantErr:    true,
 		},
