@@ -66,22 +66,18 @@ func GetMachineFromProviderID(client *metalgo.Driver, providerID string) (*model
 // machineIDFromProviderID returns a machine's ID from providerID.
 //
 // The providerID spec should be retrievable from the Kubernetes
-// node object. The expected format is: metal://machine-id.
+// node object. The expected format is: metal://partition-id/machine-id.
 func decodeMachineIDFromProviderID(providerID string) (string, error) {
 	if providerID == "" {
 		return "", errors.New("providerID cannot be empty")
 	}
 
-	split := strings.Split(providerID, "://")
-	if len(split) != 2 {
-		return "", fmt.Errorf("unexpected providerID format %q, format should be %q", providerID, "metal://<machine-id>")
+	if !strings.HasPrefix(providerID, constants.ProviderName+"://") {
+		return "", fmt.Errorf("unexpected providerID format %q, format should be %q or %q", providerID, constants.ProviderName+"://<machine-id>", constants.ProviderName+"://<partition-id>/<machine-id>")
 	}
 
-	if split[0] != constants.ProviderName {
-		return "", fmt.Errorf("provider name from providerID %q should be metal", providerID)
-	}
-
-	return split[1], nil
+	idparts := strings.Split(providerID, "/")
+	return idparts[len(idparts)-1], nil
 }
 
 // GetMachine returns a metal machine by its ID.
