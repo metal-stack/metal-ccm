@@ -29,6 +29,12 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 			wantErr:    false,
 		},
 		{
+			name:       "new format with three slashes",
+			providerID: "metal:///apartition/withslashes/amachineid",
+			want:       "amachineid",
+			wantErr:    false,
+		},
+		{
 			name:       "wrong provider",
 			providerID: "aws://apartition/amachineid",
 			want:       "",
