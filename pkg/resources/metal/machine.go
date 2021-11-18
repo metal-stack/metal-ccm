@@ -72,23 +72,12 @@ func decodeMachineIDFromProviderID(providerID string) (string, error) {
 		return "", errors.New("providerID cannot be empty")
 	}
 
-	split := strings.Split(providerID, "://")
-	if len(split) != 2 {
-		return "", fmt.Errorf("unexpected providerID format %q, format should be %q", providerID, "metal://<machine-id>")
+	if !strings.HasPrefix(providerID, constants.ProviderName+"://") {
+		return "", fmt.Errorf("unexpected providerID format %q, format should be %q", providerID, constants.ProviderName+"://<machine-id>")
 	}
 
-	if split[0] != constants.ProviderName {
-		return "", fmt.Errorf("provider name from providerID %q should be metal", providerID)
-	}
-
-	idpart := split[1]
-
-	if strings.Contains(idpart, "/") {
-		idparts := strings.Split(idpart, "/")
-		return idparts[len(idparts)-1], nil
-	}
-
-	return idpart, nil
+	idparts := strings.Split(providerID, "/")
+	return idparts[len(idparts)-1], nil
 }
 
 // GetMachine returns a metal machine by its ID.

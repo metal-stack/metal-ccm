@@ -8,6 +8,7 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 		providerID string
 		want       string
 		wantErr    bool
+		err        string
 	}{
 		{
 			name:       "old format",
@@ -32,12 +33,14 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 			providerID: "aws://apartition/amachineid",
 			want:       "",
 			wantErr:    true,
+			err:        "unexpected providerID format \"aws://apartition/amachineid\", format should be \"metal://<machine-id>\"",
 		},
 		{
 			name:       "wrong format",
 			providerID: "metal:/apartition/amachineid",
 			want:       "",
 			wantErr:    true,
+			err:        "unexpected providerID format \"metal:/apartition/amachineid\", format should be \"metal://<machine-id>\"",
 		},
 	}
 	for _, tt := range tests {
@@ -46,6 +49,10 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 			got, err := decodeMachineIDFromProviderID(tt.providerID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("decodeMachineIDFromProviderID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && tt.wantErr && (err.Error() != tt.err) {
+				t.Errorf("decodeMachineIDFromProviderID() error = %v, wantErr %v", err, tt.err)
 				return
 			}
 			if got != tt.want {
