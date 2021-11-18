@@ -73,7 +73,7 @@ func decodeMachineIDFromProviderID(providerID string) (string, error) {
 	}
 
 	if !strings.HasPrefix(providerID, constants.ProviderName+"://") {
-		return "", fmt.Errorf("unexpected providerID format %q, format should be %q", providerID, constants.ProviderName+"://<machine-id>")
+		return "", fmt.Errorf("unexpected providerID format %q, format should be %q or %q", providerID, constants.ProviderName+"://<machine-id>", constants.ProviderName+"://<partition-id>/<machine-id>")
 	}
 
 	idparts := strings.Split(providerID, "/")

@@ -39,14 +39,14 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 			providerID: "aws://apartition/amachineid",
 			want:       "",
 			wantErr:    true,
-			err:        "unexpected providerID format \"aws://apartition/amachineid\", format should be \"metal://<machine-id>\"",
+			err:        "unexpected providerID format \"aws://apartition/amachineid\", format should be \"metal://<machine-id>\" or \"metal://<partition-id>/<machine-id>\"",
 		},
 		{
 			name:       "wrong format",
 			providerID: "metal:/apartition/amachineid",
 			want:       "",
 			wantErr:    true,
-			err:        "unexpected providerID format \"metal:/apartition/amachineid\", format should be \"metal://<machine-id>\"",
+			err:        "unexpected providerID format \"metal:/apartition/amachineid\", format should be \"metal://<machine-id>\" or \"metal://<partition-id>/<machine-id>\"",
 		},
 	}
 	for _, tt := range tests {
