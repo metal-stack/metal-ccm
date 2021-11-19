@@ -23,6 +23,8 @@ func IsEgress(tag string) bool {
 }
 
 // IsMemberOfCluster returns true of the given tag is a cluster-tag and clusterID matches.
+// tag is in the form of:
+//    cluster.metal-stack.io/id/namespace/service=<clusterid>/namespace/servicename
 func IsMemberOfCluster(tag, clusterID string) bool {
 	if strings.HasPrefix(tag, t.ClusterID) {
 		parts := strings.Split(tag, "=")

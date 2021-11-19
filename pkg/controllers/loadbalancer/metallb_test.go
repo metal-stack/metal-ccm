@@ -19,6 +19,9 @@ var (
 	testNetworks = sets.NewString(
 		"internet",
 		"foreign-cluster-private-network",
+		"shared-storage-network",
+		"mpls-network",
+		"dmz-network",
 	)
 )
 
@@ -160,6 +163,139 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 						},
 						"auto-assign": false,
 						"name":        "internet-static",
+						"protocol":    "bgp",
+					},
+				},
+			},
+		},
+
+		{
+			name:             "connected to internet,storage,dmz and mpls, two ips acquired, one static ip, no nodes",
+			defaultNetworkID: "internet",
+			nws:              testNetworks,
+			ips: []*models.V1IPResponse{
+				{
+					Ipaddress: pointer.StringPtr("84.1.1.1"),
+					Name:      "acquired-before",
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("ephemeral"),
+				},
+				{
+					Ipaddress: pointer.StringPtr("84.1.1.2"),
+					Name:      "acquired-before-2",
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("ephemeral"),
+				},
+				{
+					Ipaddress: pointer.StringPtr("84.1.1.3"),
+					Name:      "static-ip",
+					Networkid: pointer.StringPtr("internet"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("static"),
+				},
+				{
+					Ipaddress: pointer.StringPtr("10.131.44.2"),
+					Name:      "static-ip",
+					Networkid: pointer.StringPtr("shared-storage-network"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("static"),
+				},
+				{
+					Ipaddress: pointer.StringPtr("100.127.130.2"),
+					Name:      "static-ip",
+					Networkid: pointer.StringPtr("mpls-network"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("static"),
+				},
+				{
+					Ipaddress: pointer.StringPtr("100.127.130.3"),
+					Name:      "ephemeral-mpls-ip",
+					Networkid: pointer.StringPtr("mpls-network"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("ephemeral"),
+				},
+				{
+					Ipaddress: pointer.StringPtr("10.129.172.2"),
+					Name:      "static-ip",
+					Networkid: pointer.StringPtr("dmz-network"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+					Type: pointer.StringPtr("static"),
+				},
+			},
+			nodes:   []v1.Node{},
+			wantErr: nil,
+			want: map[string]interface{}{
+				"address-pools": []map[string]interface{}{
+					{
+						"addresses": []string{
+							"84.1.1.1/32",
+							"84.1.1.2/32",
+						},
+						"auto-assign": true,
+						"name":        "internet-ephemeral",
+						"protocol":    "bgp",
+					},
+					{
+						"addresses": []string{
+							"84.1.1.3/32",
+						},
+						"auto-assign": false,
+						"name":        "internet-static",
+						"protocol":    "bgp",
+					},
+					{
+						"addresses": []string{
+							"10.131.44.2/32",
+						},
+						"auto-assign": false,
+						"name":        "shared-storage-network-static",
+						"protocol":    "bgp",
+					},
+					{
+						"addresses": []string{
+							"100.127.130.2/32",
+						},
+						"auto-assign": false,
+						"name":        "mpls-network-static",
+						"protocol":    "bgp",
+					},
+					{
+						"addresses": []string{
+							"100.127.130.3/32",
+						},
+						"auto-assign": false,
+						"name":        "mpls-network-ephemeral",
+						"protocol":    "bgp",
+					},
+					{
+						"addresses": []string{
+							"10.129.172.2/32",
+						},
+						"auto-assign": false,
+						"name":        "dmz-network-static",
 						"protocol":    "bgp",
 					},
 				},
