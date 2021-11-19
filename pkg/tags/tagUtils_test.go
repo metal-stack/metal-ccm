@@ -1,6 +1,10 @@
 package tags
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
+)
 
 func TestIsMemberOfCluster(t *testing.T) {
 	tests := []struct {
@@ -17,7 +21,7 @@ func TestIsMemberOfCluster(t *testing.T) {
 		},
 		{
 			name:      "valid cluster pod tag on ip",
-			tag:       "cluster.metal-stack.io/id/namespace/pod=e0ab89d8-c087-4c5a-9e86-7656a2371c24/default/echoserver-ext",
+			tag:       tag.ClusterID + "/id/namespace/pod=e0ab89d8-c087-4c5a-9e86-7656a2371c24/default/echoserver-ext",
 			clusterID: "e0ab89d8-c087-4c5a-9e86-7656a2371c24",
 			want:      true,
 		},
