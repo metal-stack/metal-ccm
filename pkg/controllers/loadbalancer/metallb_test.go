@@ -345,6 +345,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
+					Type: pointer.StringPtr("ephemeral"),
 				},
 				{
 					Ipaddress: pointer.StringPtr("10.129.172.2"),
