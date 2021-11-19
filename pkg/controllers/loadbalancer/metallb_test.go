@@ -18,7 +18,6 @@ import (
 var (
 	testNetworks = sets.NewString(
 		"internet",
-		"foreign-cluster-private-network",
 		"shared-storage-network",
 		"mpls-network",
 		"dmz-network",

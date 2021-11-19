@@ -130,7 +130,7 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
 	pool := cfg.getOrCreateAddressPool(poolName, autoAssign)
-	pool.AppendIP(*ip.Ipaddress)
+	pool.appendIP(*ip.Ipaddress)
 }
 
 // ToYAML returns this config in YAML format.

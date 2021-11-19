@@ -30,7 +30,7 @@ func (pool *AddressPool) containsCIDR(cidr string) bool {
 	return false
 }
 
-func (pool *AddressPool) AppendIP(ip string) {
+func (pool *AddressPool) appendIP(ip string) {
 	cidr := ip + "/32"
 
 	if pool.containsCIDR(cidr) {
