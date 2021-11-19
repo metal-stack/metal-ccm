@@ -10,6 +10,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/component-base/logs"
 
@@ -43,7 +44,7 @@ func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse, nodes []v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.String, nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -55,24 +56,10 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws map[st
 	return nil
 }
 
-func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws map[string]*models.V1NetworkResponse) error {
+func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.String) error {
 	for _, ip := range ips {
-		nw, ok := nws[*ip.Networkid]
-		if !ok {
+		if !nws.Has(*ip.Networkid) {
 			continue
-		}
-		if *nw.Underlay {
-			continue
-		}
-		// we do not want IPs from networks where the parent networks are private
-		if nw.Parentnetworkid != "" && !nw.Shared {
-			parent, ok := nws[nw.Parentnetworkid]
-			if !ok {
-				continue
-			}
-			if *parent.Privatesuper {
-				continue
-			}
 		}
 		net := *ip.Networkid
 		cfg.addIPToPool(net, *ip)
@@ -143,7 +130,7 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
 	pool := cfg.getOrCreateAddressPool(poolName, autoAssign)
-	pool.AppendIP(*ip.Ipaddress)
+	pool.appendIP(*ip.Ipaddress)
 }
 
 // ToYAML returns this config in YAML format.

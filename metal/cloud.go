@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-lib/rest"
@@ -39,6 +40,17 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
+
+	var (
+		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
+		additionalNetworks       []string
+	)
+	for _, n := range strings.Split(additionalNetworksString, ",") {
+		n := strings.TrimSpace(n)
+		if n != "" {
+			additionalNetworks = append(additionalNetworks, n)
+		}
+	}
 
 	if projectID == "" {
 		return nil, fmt.Errorf("environment variable %q is required", constants.MetalProjectIDEnvVar)
@@ -80,7 +92,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(client, defaultExternalNetworkID)
 	zonesController := zones.New(client)
-	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID, defaultExternalNetworkID)
+	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
 
 	logger.Println("initialized cloud controller manager")
 	return &cloud{

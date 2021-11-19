@@ -18,6 +18,7 @@ import (
 	metalgo "github.com/metal-stack/metal-go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	retrygo "github.com/avast/retry-go/v3"
 	clientset "k8s.io/client-go/kubernetes"
@@ -32,6 +33,7 @@ type LoadBalancerController struct {
 	projectID                string
 	clusterID                string
 	defaultExternalNetworkID string
+	additionalNetworks       sets.String
 	logger                   *log.Logger
 	K8sClient                clientset.Interface
 	configWriteMutex         *sync.Mutex
@@ -40,7 +42,7 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExternalNetworkID string) *LoadBalancerController {
+func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string) *LoadBalancerController {
 	logs.InitLogs()
 	logger := logs.NewLogger("metal-ccm loadbalancer | ")
 
@@ -51,6 +53,7 @@ func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExter
 		projectID:                projectID,
 		clusterID:                clusterID,
 		defaultExternalNetworkID: defaultExternalNetworkID,
+		additionalNetworks:       sets.NewString(additionalNetworks...),
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
 		ipUpdateMutex:            &sync.Mutex{},
@@ -338,14 +341,9 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(nodes []v1.Node) error
 	if err != nil {
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
-	networks, err := metal.ListNetworks(l.client)
-	if err != nil {
-		return fmt.Errorf("could not list networks: %w", err)
-	}
-	networkMap := metal.NetworksByID(networks)
 
 	config := newMetalLBConfig(l.defaultExternalNetworkID)
-	err = config.CalculateConfig(ips, networkMap, nodes)
+	err = config.CalculateConfig(ips, l.additionalNetworks, nodes)
 	if err != nil {
 		return err
 	}
