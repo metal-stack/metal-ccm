@@ -186,9 +186,18 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 	return false, nil
 }
 
-// InstanceMetadata returns the instance's metadata. The values returned in InstanceMetadata are
-// translated into specific fields in the Node object on registration.
-// Use the node.name or node.spec.providerID field to find the node in the cloud provider.
+// InstanceMetadata contains metadata about a specific instance.
+// Values returned in InstanceMetadata are translated into specific fields and labels for Node.
+//
+// ProviderID is a unique ID used to identify an instance on the cloud provider.
+// The ProviderID set here will be set on the node's spec.providerID field.
+// The provider ID format can be set by the cloud provider but providers should
+// ensure the format does not change in any incompatible way.
+//
+// The provider ID format used by existing cloud provider has been:
+//    <provider-name>://<instance-id>
+// Existing providers setting this field should preserve the existing format
+// currently being set in node.spec.providerID.
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
 	i.logger.Printf("InstanceMetadata: node %q", node.GetName())
 	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
