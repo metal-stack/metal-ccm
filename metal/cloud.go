@@ -40,7 +40,17 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
-	additionalNetworks := strings.Split(os.Getenv(constants.MetalAdditionalNetworks), ",")
+
+	var (
+		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
+		additionalNetworks       []string
+	)
+	for _, n := range strings.Split(additionalNetworksString, ",") {
+		n := strings.TrimSpace(n)
+		if n != "" {
+			additionalNetworks = append(additionalNetworks, n)
+		}
+	}
 
 	if projectID == "" {
 		return nil, fmt.Errorf("environment variable %q is required", constants.MetalProjectIDEnvVar)
