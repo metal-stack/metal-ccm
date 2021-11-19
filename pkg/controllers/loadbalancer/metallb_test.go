@@ -338,6 +338,15 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 					Type: pointer.StringPtr("static"),
 				},
 				{
+					Ipaddress: pointer.StringPtr("100.127.130.3"),
+					Name:      "ephemeral-mpls-ip",
+					Networkid: pointer.StringPtr("mpls-network"),
+					Projectid: pointer.StringPtr("project-a"),
+					Tags: []string{
+						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					},
+				},
+				{
 					Ipaddress: pointer.StringPtr("10.129.172.2"),
 					Name:      "static-ip",
 					Networkid: pointer.StringPtr("dmz-network"),
@@ -383,6 +392,14 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 						},
 						"auto-assign": false,
 						"name":        "mpls-network-static",
+						"protocol":    "bgp",
+					},
+					{
+						"addresses": []string{
+							"100.127.130.3/32",
+						},
+						"auto-assign": false,
+						"name":        "mpls-network-ephemeral",
 						"protocol":    "bgp",
 					},
 					{
