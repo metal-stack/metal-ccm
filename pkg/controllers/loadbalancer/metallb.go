@@ -59,6 +59,7 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.String) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
+			cfg.logger.Printf("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
 		net := *ip.Networkid
