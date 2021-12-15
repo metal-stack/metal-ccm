@@ -82,11 +82,11 @@ func (h *Housekeeper) watchNodes() {
 					return
 				}
 				if oldTunnelAddress == newTunnelAddress {
-					// node was not modified and calico tunnel address has not changed, not updating metallb config
+					// node was not modified and ip address has not changed, not updating metallb config
 					return
 				}
 
-				h.logger.Printf("node was modified and calico tunnel address has changed, updating metallb config")
+				h.logger.Printf("node was modified and ip address has changed, updating metallb config")
 
 				nodes, err := kubernetes.GetNodes(h.k8sClient)
 				if err != nil {
