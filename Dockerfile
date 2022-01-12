@@ -1,7 +1,7 @@
 FROM golang:1.17-buster as builder
 WORKDIR /work
 COPY . .
-RUN make all
+RUN make
 
 FROM alpine:3.14
 RUN apk --update add ca-certificates
