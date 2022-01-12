@@ -24,7 +24,7 @@ func (h *Housekeeper) checkMetalAPIHealth() error {
 		return err
 	}
 
-	if resp.Health.Status != nil && *resp.Health.Status == rest.HealthStatusHealthy {
+	if resp.Health.Status != nil && rest.HealthStatus(*resp.Health.Status) == rest.HealthStatusHealthy {
 		h.resetAPIError()
 		return nil
 	}
