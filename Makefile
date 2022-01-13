@@ -1,10 +1,7 @@
-.ONESHELL:
 SHA := $(shell git rev-parse --short=8 HEAD)
 GITVERSION := $(shell git describe --long --all)
 BUILDDATE := $(shell date -Iseconds)
 VERSION := $(or ${VERSION},devel)
-GO := go
-GOSRC = $(shell find . -not \( -path vendor -prune \) -type f -name '*.go')
 DOCKER_TAG := $(or ${GIT_TAG_NAME}, latest)
 
 export GO111MODULE := on
@@ -13,11 +10,9 @@ export CGO_ENABLED := 0
 BINARY := metal-cloud-controller-manager
 MAINMODULE := github.com/metal-stack/metal-ccm
 
-.PHONY: all
-all:: bin/$(BINARY);
-
-bin/$(BINARY): $(GOSRC)
-	$(GO) build \
+.PHONY: build
+build: test
+	go build \
 		-trimpath \
 		-tags netgo \
 		-ldflags \
@@ -28,6 +23,10 @@ bin/$(BINARY): $(GOSRC)
 		-o bin/$(BINARY) \
 		$(MAINMODULE) \
 	&& strip bin/$(BINARY)
+
+.PHONY: test
+test:
+	go test -coverprofile cover.out -cover ./... && go tool cover -func cover.out
 
 .PHONY: clean
 clean:
