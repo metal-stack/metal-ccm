@@ -9,15 +9,15 @@ const (
 type AddressPool struct {
 	Name       string   `json:"name" yaml:"name"`
 	Protocol   string   `json:"protocol" yaml:"protocol"`
-	AutoAssign *bool    `json:"auto-assign" yaml:"auto-assign,omitempty"`
+	AutoAssign bool     `json:"auto-assign" yaml:"auto-assign"`
 	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only /32 addresses are used.
 }
 
-func NewBGPAddressPool(name string, autoAssign bool) *AddressPool {
+func NewBGPAddressPool(name string) *AddressPool {
 	return &AddressPool{
 		Name:       name,
 		Protocol:   bgpProtocol,
-		AutoAssign: &autoAssign,
+		AutoAssign: false,
 	}
 }
 

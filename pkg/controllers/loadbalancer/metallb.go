@@ -107,14 +107,14 @@ func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 
 // getOrCreateAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign bool) *AddressPool {
+func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.Name == poolName {
 			return pool
 		}
 	}
 
-	pool := NewBGPAddressPool(poolName, autoAssign)
+	pool := NewBGPAddressPool(poolName)
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
@@ -124,13 +124,11 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := metalgo.IPTypeEphemeral
-	autoAssign := network == cfg.defaultNetworkID
 	if t != nil && *t == metalgo.IPTypeStatic {
 		poolType = metalgo.IPTypeStatic
-		autoAssign = false
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
-	pool := cfg.getOrCreateAddressPool(poolName, autoAssign)
+	pool := cfg.getOrCreateAddressPool(poolName)
 	pool.appendIP(*ip.Ipaddress)
 }
 
