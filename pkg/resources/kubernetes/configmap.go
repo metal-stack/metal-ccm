@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -21,7 +22,7 @@ func ApplyConfigMap(client kubernetes.Interface, namespace, name string, configM
 				Annotations: map[string]string{
 					// we enforce updating the metallb config every time such that
 					// deleted service ips will be cleaned up from the config regularly.
-					"cluster.metal-stack.io.metal-ccm/last-update-time": time.Now().String(),
+					"cluster.metal-stack.io.metal-ccm/last-update-time": strconv.FormatInt(time.Now().Unix(), 10),
 				},
 			},
 			Data: configMap,
