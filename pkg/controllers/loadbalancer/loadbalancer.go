@@ -210,11 +210,6 @@ func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, cluster
 func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
 	l.logger.Printf("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q, serviceStatus: %v\n", clusterName, service.Namespace, service.Name, service.Status)
 
-	nodes, err := kubernetes.GetNodes(l.K8sClient)
-	if err != nil {
-		return err
-	}
-
 	s := *service
 	serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, s.GetNamespace(), s.GetName())
 	ips, err := metal.FindProjectIPsWithTag(l.client, l.projectID, serviceTag)
@@ -253,7 +248,13 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 			return err
 		}
 	}
-	return l.UpdateMetalLBConfig(nodes)
+
+	// we do not update the metallb config here because then the metallb controller will report a stale config
+	// this is because the service gets deleted after updating the metallb config map
+	//
+	// therefore, we let the housekeeping update the config map
+
+	return nil
 }
 
 // removes the service tag and checks whether it is the last service tag.
