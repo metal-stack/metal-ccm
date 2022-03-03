@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// FindClusterIPs returns the IPs of the given cluster.
+// FindClusterIPs returns the allowed IPs of the given cluster.
 func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*models.V1IPResponse, error) {
 	req := &metalgo.IPFindRequest{
 		ProjectID: &projectID,
@@ -26,6 +26,12 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 	result := []*models.V1IPResponse{}
 	for _, i := range resp.IPs {
 		for _, t := range i.Tags {
+			if tags.IsEgress(t) {
+				continue
+			}
+			if tags.IsMachine(t) {
+				continue
+			}
 			if tags.IsMemberOfCluster(t, clusterID) {
 				result = append(result, i)
 				break
