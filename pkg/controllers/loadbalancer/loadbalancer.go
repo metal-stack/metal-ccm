@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	retrygo "github.com/avast/retry-go/v3"
+	retrygo "github.com/avast/retry-go/v4"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	cloudprovider "k8s.io/cloud-provider"

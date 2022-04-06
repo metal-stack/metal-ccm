@@ -86,7 +86,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
-	if resp.Health.Status != nil && *resp.Health.Status != rest.HealthStatusHealthy {
+	if resp.Health != nil && resp.Health.Status != nil && *resp.Health.Status != string(rest.HealthStatusHealthy) {
 		return nil, fmt.Errorf("metal-api not healthy, restarting")
 	}
 
