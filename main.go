@@ -14,7 +14,6 @@ import (
 	cloudcontrollerconfig "k8s.io/cloud-provider/app/config"
 
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
 	"k8s.io/klog/v2"
@@ -46,9 +45,6 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, fss, wait.NeverStop)
-
-	logs.InitLogs()
-	defer logs.FlushLogs()
 
 	klog.Infof("starting version %s", v.V.String())
 	if err := command.Execute(); err != nil {

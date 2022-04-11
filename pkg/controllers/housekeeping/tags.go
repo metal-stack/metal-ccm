@@ -6,6 +6,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -24,7 +25,7 @@ func (h *Housekeeper) startTagSynching() {
 
 // syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
 func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
-	h.logger.Println("start syncing machine tags to node labels")
+	klog.Infof("start syncing machine tags to node labels")
 
 	nodes, err := kubernetes.GetNodes(h.k8sClient)
 	if err != nil {
@@ -40,7 +41,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
 		if !ok {
-			h.logger.Printf("warning: node:%s not a machine", nodeName)
+			klog.Warningf("warning: node:%s not a machine", nodeName)
 			continue
 		}
 		labels := h.buildLabelsFromMachineTags(tags)

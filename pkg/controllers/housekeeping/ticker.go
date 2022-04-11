@@ -1,18 +1,16 @@
 package housekeeping
 
 import (
-	"log"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 type tickerSyncer struct {
-	logger *log.Logger
 }
 
-func newTickerSyncer(logger *log.Logger) *tickerSyncer {
-	return &tickerSyncer{
-		logger: logger,
-	}
+func newTickerSyncer() *tickerSyncer {
+	return &tickerSyncer{}
 }
 
 func (s *tickerSyncer) Start(name string, period time.Duration, stopCh <-chan struct{}, fn func() error) {
@@ -21,14 +19,14 @@ func (s *tickerSyncer) Start(name string, period time.Duration, stopCh <-chan st
 
 	// manually call to avoid initial tick delay
 	if err := fn(); err != nil {
-		s.logger.Printf("%s failed: %s", name, err)
+		klog.Errorf("%s failed: %s", name, err)
 	}
 
 	for {
 		select {
 		case <-ticker.C:
 			if err := fn(); err != nil {
-				s.logger.Printf("%s failed: %s", name, err)
+				klog.Errorf("%s failed: %s", name, err)
 			}
 		case <-stopCh:
 			return

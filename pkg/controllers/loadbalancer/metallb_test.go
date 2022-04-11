@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -305,7 +304,6 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &MetalLBConfig{
-				logger:           log.New(log.Writer(), "testing", log.LstdFlags),
 				defaultNetworkID: tt.defaultNetworkID,
 			}
 
