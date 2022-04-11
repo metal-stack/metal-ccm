@@ -57,7 +57,8 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 
 		err := kubernetes.UpdateNodeLabelsWithBackoff(h.k8sClient, n.Name, labels, updateNodeSpecBackoff)
 		if err != nil {
-			return err
+			h.logger.Printf("warning: tags syncher failed to update tags on node:%s: %v", nodeName, err)
+			continue
 		}
 	}
 
