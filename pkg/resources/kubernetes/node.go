@@ -23,10 +23,20 @@ func GetNodes(client clientset.Interface) ([]v1.Node, error) {
 	return nodes.Items, nil
 }
 
-// UpdateNodeWithBackoff update a given node with a given backoff retry.
-func UpdateNodeWithBackoff(client clientset.Interface, node v1.Node, backoff wait.Backoff) error {
+// UpdateNodeLabelsWithBackoff updates labels on a given node with a given backoff retry.
+func UpdateNodeLabelsWithBackoff(client clientset.Interface, nodeName string, labels map[string]string, backoff wait.Backoff) error {
 	return retry.RetryOnConflict(backoff, func() error {
-		_, err := client.CoreV1().Nodes().Update(context.Background(), &node, metav1.UpdateOptions{})
+
+		node, err := client.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		for key, value := range labels {
+			node.Labels[key] = value
+		}
+
+		_, err = client.CoreV1().Nodes().Update(context.Background(), node, metav1.UpdateOptions{})
 		return err
 	})
 }

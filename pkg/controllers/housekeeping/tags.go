@@ -36,6 +36,12 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		return err
 	}
 
+	updateNodeSpecBackoff := wait.Backoff{
+		Steps:    20,
+		Duration: 50 * time.Millisecond,
+		Jitter:   1.0,
+	}
+
 	for _, n := range nodes {
 		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
@@ -48,15 +54,8 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		for key, value := range labels {
 			n.Labels[key] = value
 		}
-	}
 
-	updateNodeSpecBackoff := wait.Backoff{
-		Steps:    20,
-		Duration: 50 * time.Millisecond,
-		Jitter:   1.0,
-	}
-	for _, node := range nodes {
-		err := kubernetes.UpdateNodeWithBackoff(h.k8sClient, node, updateNodeSpecBackoff)
+		err := kubernetes.UpdateNodeLabelsWithBackoff(h.k8sClient, n.Name, labels, updateNodeSpecBackoff)
 		if err != nil {
 			return err
 		}
