@@ -72,7 +72,7 @@ func (h *Housekeeper) watchNodes() {
 				oldTunnelAddress, _ := loadbalancer.NodeAddress(*oldNode)
 				newTunnelAddress, err := loadbalancer.NodeAddress(*newNode)
 				if err != nil {
-					klog.Errorf("newNode does not have a tunnelAddress, ignoring")
+					klog.Error("newNode does not have a tunnelAddress, ignoring")
 					return
 				}
 				if oldTunnelAddress == newTunnelAddress {
@@ -80,7 +80,7 @@ func (h *Housekeeper) watchNodes() {
 					return
 				}
 
-				klog.Infof("node was modified and ip address has changed, updating metallb config")
+				klog.Info("node was modified and ip address has changed, updating metallb config")
 
 				nodes, err := kubernetes.GetNodes(h.k8sClient)
 				if err != nil {

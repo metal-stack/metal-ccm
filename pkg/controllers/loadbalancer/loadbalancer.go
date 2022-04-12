@@ -134,7 +134,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 			return nil
 		}
 
-		klog.Infof("error while trying to ensure load balancer, rolling back ip acquisition: %v", err)
+		klog.Errorf("error while trying to ensure load balancer, rolling back ip acquisition: %v", err)
 
 		// clearing tags before release
 		// we can do this because here we know that we freshly acquired a new IP that's not used for anything else
@@ -279,7 +279,7 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 		return err
 	}
 
-	klog.Infof("metallb config updated successfully")
+	klog.Info("metallb config updated successfully")
 
 	return nil
 }

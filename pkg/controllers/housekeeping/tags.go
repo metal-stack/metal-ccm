@@ -25,7 +25,7 @@ func (h *Housekeeper) startTagSynching() {
 
 // syncMachineTagsToNodeLabels synchronizes tags of machines in this project to labels of that node.
 func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
-	klog.Infof("start syncing machine tags to node labels")
+	klog.Info("start syncing machine tags to node labels")
 
 	nodes, err := kubernetes.GetNodes(h.k8sClient)
 	if err != nil {
@@ -47,13 +47,13 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
 		if !ok {
-			klog.Warningf("warning: node:%s not a machine", nodeName)
+			klog.Warningf("node:%s not a machine", nodeName)
 			continue
 		}
 		labels := h.buildLabelsFromMachineTags(tags)
 		err := kubernetes.UpdateNodeLabelsWithBackoff(h.k8sClient, n.Name, labels, updateNodeSpecBackoff)
 		if err != nil {
-			h.logger.Printf("warning: tags syncher failed to update tags on node:%s: %v", nodeName, err)
+			klog.Warningf("tags syncher failed to update tags on node:%s: %v", nodeName, err)
 			continue
 		}
 	}
