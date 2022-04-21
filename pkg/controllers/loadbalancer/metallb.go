@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
@@ -12,7 +11,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-go/api/models"
 
@@ -29,16 +28,11 @@ const (
 type MetalLBConfig struct {
 	Peers            []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools     []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	logger           *log.Logger
 	defaultNetworkID string
 }
 
 func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
-	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm metallbcfg-renderer | ")
-
 	return &MetalLBConfig{
-		logger:           logger,
 		defaultNetworkID: defaultNetworkID,
 	}
 }
@@ -59,7 +53,7 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.String) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
-			cfg.logger.Printf("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
+			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
 		net := *ip.Networkid
@@ -83,7 +77,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 
 		peer, err := newPeer(n, asn)
 		if err != nil {
-			cfg.logger.Printf("skipping peer: %v", err)
+			klog.Warningf("skipping peer: %v", err)
 			continue
 		}
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-lib/rest"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -17,7 +18,7 @@ func (h *Housekeeper) runHealthCheck() {
 }
 
 func (h *Housekeeper) checkMetalAPIHealth() error {
-	h.logger.Printf("checking metal-api health, total errors:%d", h.metalAPIErrors)
+	klog.Infof("checking metal-api health, total errors:%d", h.metalAPIErrors)
 	resp, err := h.client.HealthGet()
 	if err != nil {
 		h.incrementAPIErrorAndPanic()
@@ -35,7 +36,7 @@ func (h *Housekeeper) checkMetalAPIHealth() error {
 func (h *Housekeeper) incrementAPIErrorAndPanic() {
 	h.metalAPIErrors++
 	if h.metalAPIErrors > maxAPIErrors {
-		h.logger.Fatalf("metal-api was not healthy for more than:%d times, panic", maxAPIErrors)
+		klog.Fatalf("metal-api was not healthy for more than:%d times, panic", maxAPIErrors)
 	}
 }
 
