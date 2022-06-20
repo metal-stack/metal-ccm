@@ -12,6 +12,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
+	metalip "github.com/metal-stack/metal-go/api/client/ip"
 	"github.com/metal-stack/metal-go/api/models"
 
 	metalgo "github.com/metal-stack/metal-go"
@@ -27,7 +28,7 @@ import (
 )
 
 type LoadBalancerController struct {
-	client                   *metalgo.Driver
+	client                   metalgo.Client
 	partitionID              string
 	projectID                string
 	clusterID                string
@@ -40,7 +41,7 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(client *metalgo.Driver, partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string) *LoadBalancerController {
+func New(client metalgo.Client, partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string) *LoadBalancerController {
 	return &LoadBalancerController{
 		client:                   client,
 		partitionID:              partitionID,
@@ -106,7 +107,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 			klog.Errorf("could not associate fixed ip:%s, err: %v", fixedIP, err)
 			return nil, err
 		}
-		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: *newIP.IP.Ipaddress})
+		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: *newIP.Ipaddress})
 		return &v1.LoadBalancerStatus{Ingress: ingressStatus}, nil
 	}
 
@@ -138,16 +139,16 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 		// clearing tags before release
 		// we can do this because here we know that we freshly acquired a new IP that's not used for anything else
-		_, err2 := l.client.IPUpdate(&metalgo.IPUpdateRequest{
-			IPAddress: ip,
+		_, err2 := l.client.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(&models.V1IPUpdateRequest{
+			Ipaddress: &ip,
 			Tags:      []string{},
-		})
+		}), nil)
 		if err != nil {
 			klog.Errorf("error during ip rollback occurred: %v", err2)
 			return err
 		}
 
-		_, err2 = l.client.IPFree(ip)
+		_, err2 = l.client.IP().FreeIP(metalip.NewFreeIPParams().WithID(ip), nil)
 		if err2 != nil {
 			klog.Errorf("error during ip rollback occurred: %v", err2)
 			return err
@@ -219,11 +220,11 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		err := retrygo.Do(
 			func() error {
 				newTags, last := l.removeServiceTag(*ip, serviceTag)
-				iu := &metalgo.IPUpdateRequest{
-					IPAddress: *ip.Ipaddress,
+				iu := &models.V1IPUpdateRequest{
+					Ipaddress: ip.Ipaddress,
 					Tags:      newTags,
 				}
-				newIP, err := l.client.IPUpdate(iu)
+				newIP, err := l.client.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(iu), nil)
 				if err != nil {
 					return fmt.Errorf("could not update ip with new tags: %w", err)
 				}
@@ -284,7 +285,7 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(nodes []v1.Node) error {
 	return nil
 }
 
-func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterID string, s v1.Service) (*metalgo.IPDetailResponse, error) {
+func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterID string, s v1.Service) (*models.V1IPResponse, error) {
 	for _, t := range ip.Tags {
 		if tags.IsMachine(t) {
 			return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, ip tags: %v", ip.Tags)
@@ -298,11 +299,12 @@ func (l *LoadBalancerController) useIPInCluster(ip models.V1IPResponse, clusterI
 	newTags := ip.Tags
 	newTags = append(newTags, serviceTag)
 	klog.Infof("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", *ip.Ipaddress, ip.Tags, newTags)
-	iu := &metalgo.IPUpdateRequest{
-		IPAddress: *ip.Ipaddress,
+	iu := &models.V1IPUpdateRequest{
+		Ipaddress: ip.Ipaddress,
 		Tags:      newTags,
 	}
-	return l.client.IPUpdate(iu)
+	resp, err := l.client.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(iu), nil)
+	return resp.Payload, err
 }
 
 func (l *LoadBalancerController) acquireIP(service *v1.Service) (string, error) {

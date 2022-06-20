@@ -16,7 +16,7 @@ import (
 
 // Housekeeper periodically updates nodes, loadbalancers and metallb
 type Housekeeper struct {
-	client                *metalgo.Driver
+	client                metalgo.Client
 	stop                  <-chan struct{}
 	k8sClient             clientset.Interface
 	ticker                *tickerSyncer
@@ -27,7 +27,7 @@ type Housekeeper struct {
 }
 
 // New returns a new house keeper
-func New(metalClient *metalgo.Driver, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface) *Housekeeper {
+func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface) *Housekeeper {
 	return &Housekeeper{
 		client:       metalClient,
 		stop:         stop,

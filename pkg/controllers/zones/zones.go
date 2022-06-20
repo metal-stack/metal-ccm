@@ -14,7 +14,7 @@ import (
 )
 
 type ZonesController struct {
-	client    *metalgo.Driver
+	client    metalgo.Client
 	K8sClient clientset.Interface
 }
 
@@ -23,7 +23,7 @@ var (
 )
 
 // New returns a new zones controller that satisfies the kubernetes cloud provider zones interface
-func New(client *metalgo.Driver) *ZonesController {
+func New(client metalgo.Client) *ZonesController {
 	return &ZonesController{
 		client: client,
 	}
