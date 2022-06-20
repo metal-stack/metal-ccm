@@ -94,14 +94,3 @@ func GetMachine(client metalgo.Client, id string) (*models.V1MachineResponse, er
 
 	return machine.Payload, nil
 }
-
-// func getTestMachine(client *metalgo.Driver) (*metalgo.MachineGetResponse, error) {
-// 	m, err := client.MachineGet("4fde6800-710d-11e9-8000-efbeaddeefbe")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	m.Machine.Tags = []string{
-// 		fmt.Sprintf("%s=test", projectIDTag),
-// 	}
-// 	return m, nil
-// }
