@@ -6,25 +6,28 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 
 	metalgo "github.com/metal-stack/metal-go"
+	metalip "github.com/metal-stack/metal-go/api/client/ip"
+
 	"github.com/metal-stack/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/google/uuid"
 )
 
 // FindClusterIPs returns the allowed IPs of the given cluster.
-func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*models.V1IPResponse, error) {
-	req := &metalgo.IPFindRequest{
-		ProjectID: &projectID,
+func FindClusterIPs(client metalgo.Client, projectID, clusterID string) ([]*models.V1IPResponse, error) {
+	req := &models.V1IPFindRequest{
+		Projectid: projectID,
 	}
 
-	resp, err := client.IPFind(req)
+	resp, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*models.V1IPResponse{}
-	for _, i := range resp.IPs {
+	for _, i := range resp.Payload {
 		for _, t := range i.Tags {
 			if tags.IsEgress(t) {
 				continue
@@ -43,37 +46,37 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 }
 
 // FindProjectIP returns the IP
-func FindProjectIP(client *metalgo.Driver, projectID, ip string) (*models.V1IPResponse, error) {
-	req := &metalgo.IPFindRequest{
-		IPAddress: &ip,
-		ProjectID: &projectID,
+func FindProjectIP(client metalgo.Client, projectID, ip string) (*models.V1IPResponse, error) {
+	req := &models.V1IPFindRequest{
+		Ipaddress: ip,
+		Projectid: projectID,
 	}
 
-	resp, err := client.IPFind(req)
+	resp, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(resp.IPs) != 1 {
+	if len(resp.Payload) != 1 {
 		return nil, fmt.Errorf("ip %s is ambiguous for projectID: %s", ip, projectID)
 	}
 
-	return resp.IPs[0], nil
+	return resp.Payload[0], nil
 }
 
 // FindProjectIPsWithTag returns the IPs of the given project that also have the given tag.
-func FindProjectIPsWithTag(client *metalgo.Driver, projectID, tag string) ([]*models.V1IPResponse, error) {
-	req := &metalgo.IPFindRequest{
-		ProjectID: &projectID,
+func FindProjectIPsWithTag(client metalgo.Client, projectID, tag string) ([]*models.V1IPResponse, error) {
+	req := &models.V1IPFindRequest{
+		Projectid: projectID,
 		Tags:      []string{tag},
 	}
 
-	resp, err := client.IPFind(req)
+	resp, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.IPs, nil
+	return resp.Payload, nil
 }
 
 // IPAddressesOfIPs returns the IP address strings of the given ips.
@@ -86,8 +89,8 @@ func IPAddressesOfIPs(ips []*models.V1IPResponse) []string {
 }
 
 // FreeIP frees the given IP address.
-func FreeIP(client *metalgo.Driver, ip string) error {
-	_, err := client.IPFree(ip)
+func FreeIP(client metalgo.Client, ip string) error {
+	_, err := client.IP().FreeIP(metalip.NewFreeIPParams().WithID(ip), nil)
 	if err != nil {
 		return err
 	}
@@ -95,24 +98,24 @@ func FreeIP(client *metalgo.Driver, ip string) error {
 }
 
 // AllocateIP acquires an IP within the given network for a given project.
-func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
+func AllocateIP(client metalgo.Client, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
 	name, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
 	}
 
-	req := &metalgo.IPAllocateRequest{
+	req := &models.V1IPAllocateRequest{
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
-		Projectid: project,
-		Networkid: network,
-		Type:      metalgo.IPTypeEphemeral,
+		Projectid: &project,
+		Networkid: &network,
+		Type:      pointer.StringPtr(metalgo.IPTypeEphemeral),
 		Tags:      []string{tags.BuildClusterServiceFQNTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
-	resp, err := client.IPAllocate(req)
+	resp, err := client.IP().AllocateIP(metalip.NewAllocateIPParams().WithBody(req), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.IP, nil
+	return resp.Payload, nil
 }

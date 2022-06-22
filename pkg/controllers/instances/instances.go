@@ -18,13 +18,13 @@ import (
 )
 
 type InstancesController struct {
-	client                 *metalgo.Driver
+	client                 metalgo.Client
 	K8sClient              clientset.Interface
 	defaultExternalNetwork string
 }
 
 // New returns a new instance controller that satisfies the kubernetes cloud provider instances interface
-func New(client *metalgo.Driver, defaultExternalNetwork string) *InstancesController {
+func New(client metalgo.Client, defaultExternalNetwork string) *InstancesController {
 	return &InstancesController{
 		client:                 client,
 		defaultExternalNetwork: defaultExternalNetwork,

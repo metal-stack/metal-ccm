@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	client *metalgo.Driver
+	client metalgo.Client
 )
 
 type cloud struct {
@@ -75,16 +75,16 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	var err error
-	client, err = metalgo.NewDriver(url, token, hmac)
+	client, _, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
 
-	resp, err := client.HealthGet()
+	resp, err := client.Health().Health(nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
-	if resp.Health != nil && resp.Health.Status != nil && *resp.Health.Status != string(rest.HealthStatusHealthy) {
+	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status != string(rest.HealthStatusHealthy) {
 		return nil, fmt.Errorf("metal-api not healthy, restarting")
 	}
 

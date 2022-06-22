@@ -19,13 +19,13 @@ func (h *Housekeeper) runHealthCheck() {
 
 func (h *Housekeeper) checkMetalAPIHealth() error {
 	klog.Infof("checking metal-api health, total errors:%d", h.metalAPIErrors)
-	resp, err := h.client.HealthGet()
+	resp, err := h.client.Health().Health(nil, nil)
 	if err != nil {
 		h.incrementAPIErrorAndPanic()
 		return err
 	}
 
-	if resp.Health != nil && resp.Health.Status != nil && *resp.Health.Status == string(rest.HealthStatusHealthy) {
+	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status == string(rest.HealthStatusHealthy) {
 		h.resetAPIError()
 		return nil
 	}

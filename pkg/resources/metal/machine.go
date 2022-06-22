@@ -8,6 +8,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 
 	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -16,7 +17,7 @@ import (
 )
 
 // GetMachinesFromNodes gets metal machines from K8s nodes.
-func GetMachinesFromNodes(client *metalgo.Driver, nodes []v1.Node) ([]*models.V1MachineResponse, error) {
+func GetMachinesFromNodes(client metalgo.Client, nodes []v1.Node) ([]*models.V1MachineResponse, error) {
 	var mm []*models.V1MachineResponse
 	for _, n := range nodes {
 		m, err := GetMachineFromNode(client, types.NodeName(n.Name))
@@ -30,31 +31,31 @@ func GetMachinesFromNodes(client *metalgo.Driver, nodes []v1.Node) ([]*models.V1
 }
 
 // GetMachineFromNode returns a machine where hostname matches the kubernetes node.Name.
-func GetMachineFromNode(client *metalgo.Driver, nodeName types.NodeName) (*models.V1MachineResponse, error) {
+func GetMachineFromNode(client metalgo.Client, nodeName types.NodeName) (*models.V1MachineResponse, error) {
 	machineHostname := string(nodeName)
 	// if strings.HasPrefix(machineHostname, "kind-worker") {
 	// 	return getTestMachine(client)
 	// }
 
-	mfr := &metalgo.MachineFindRequest{
-		AllocationHostname: &machineHostname,
+	mfr := &models.V1MachineFindRequest{
+		AllocationHostname: machineHostname,
 	}
-	machines, err := client.MachineFind(mfr)
+	machines, err := client.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(mfr), nil)
 	if err != nil {
 		return nil, err
 	}
-	if len(machines.Machines) == 0 {
+	if len(machines.Payload) == 0 {
 		return nil, fmt.Errorf("no machine with name %q found", nodeName)
 	}
-	if len(machines.Machines) > 1 {
-		return nil, fmt.Errorf("more than one (%d) machine with name %q found", len(machines.Machines), nodeName)
+	if len(machines.Payload) > 1 {
+		return nil, fmt.Errorf("more than one (%d) machine with name %q found", len(machines.Payload), nodeName)
 	}
 
-	return machines.Machines[0], nil
+	return machines.Payload[0], nil
 }
 
 // GetMachineFromProviderID uses providerID to get the machine id and returns the machine.
-func GetMachineFromProviderID(client *metalgo.Driver, providerID string) (*models.V1MachineResponse, error) {
+func GetMachineFromProviderID(client metalgo.Client, providerID string) (*models.V1MachineResponse, error) {
 	id, err := decodeMachineIDFromProviderID(providerID)
 	if err != nil {
 		return nil, err
@@ -81,26 +82,15 @@ func decodeMachineIDFromProviderID(providerID string) (string, error) {
 }
 
 // GetMachine returns a metal machine by its ID.
-func GetMachine(client *metalgo.Driver, id string) (*models.V1MachineResponse, error) {
+func GetMachine(client metalgo.Client, id string) (*models.V1MachineResponse, error) {
 	// if strings.HasPrefix(id, "kind-worker") {
 	// 	return getTestMachine(client)
 	// }
 
-	machine, err := client.MachineGet(id)
+	machine, err := client.Machine().FindMachine(machine.NewFindMachineParams().WithID(id), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return machine.Machine, nil
+	return machine.Payload, nil
 }
-
-// func getTestMachine(client *metalgo.Driver) (*metalgo.MachineGetResponse, error) {
-// 	m, err := client.MachineGet("4fde6800-710d-11e9-8000-efbeaddeefbe")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	m.Machine.Tags = []string{
-// 		fmt.Sprintf("%s=test", projectIDTag),
-// 	}
-// 	return m, nil
-// }
