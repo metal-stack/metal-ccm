@@ -1,6 +1,7 @@
 package housekeeping
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -24,7 +25,7 @@ func (h *Housekeeper) updateMetalLBConfig() error {
 	if err != nil {
 		return fmt.Errorf("error listing nodes: %w", err)
 	}
-	err = h.lbController.UpdateMetalLBConfig(nodes)
+	err = h.lbController.UpdateMetalLBConfig(context.Background(), nodes)
 	if err != nil {
 		return fmt.Errorf("error updating metallb config: %w", err)
 	}

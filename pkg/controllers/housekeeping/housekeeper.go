@@ -1,6 +1,7 @@
 package housekeeping
 
 import (
+	"context"
 	"time"
 
 	metalgo "github.com/metal-stack/metal-go"
@@ -87,7 +88,7 @@ func (h *Housekeeper) watchNodes() {
 					klog.Errorf("error listing nodes: %v", err)
 					return
 				}
-				err = h.lbController.UpdateMetalLBConfig(nodes)
+				err = h.lbController.UpdateMetalLBConfig(context.Background(), nodes)
 				if err != nil {
 					klog.Errorf("error updating metallb config: %v", err)
 				}
