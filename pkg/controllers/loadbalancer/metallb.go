@@ -117,10 +117,10 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 // announceIPs appends the given IPs to the network address pools.
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
-	poolType := metalgo.IPTypeEphemeral
+	poolType := models.V1IPBaseTypeEphemeral
 	autoAssign := network == cfg.defaultNetworkID
-	if t != nil && *t == metalgo.IPTypeStatic {
-		poolType = metalgo.IPTypeStatic
+	if t != nil && *t == models.V1IPBaseTypeStatic {
+		poolType = models.V1IPBaseTypeStatic
 		autoAssign = false
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)

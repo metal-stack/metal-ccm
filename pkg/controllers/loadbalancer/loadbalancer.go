@@ -229,7 +229,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 					return fmt.Errorf("could not update ip with new tags: %w", err)
 				}
 				klog.Infof("updated ip: %v", newIP)
-				if *ip.Type == metalgo.IPTypeEphemeral && last {
+				if *ip.Type == models.V1IPBaseTypeEphemeral && last {
 					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, newTags)
 					err := metal.FreeIP(l.client, *ip.Ipaddress)
 					if err != nil {
@@ -321,8 +321,8 @@ func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(service *v1
 }
 
 func (l *LoadBalancerController) acquireIPFromSpecificNetwork(service *v1.Service, addressPoolName string) (string, error) {
-	nwID := strings.TrimSuffix(addressPoolName, "-"+metalgo.IPTypeEphemeral)
-	nwID = strings.TrimSuffix(nwID, "-"+metalgo.IPTypeEphemeral)
+	nwID := strings.TrimSuffix(addressPoolName, "-"+models.V1IPBaseTypeEphemeral)
+	nwID = strings.TrimSuffix(nwID, "-"+models.V1IPBaseTypeEphemeral)
 	ip, err := metal.AllocateIP(l.client, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %w", l.projectID, nwID, err)

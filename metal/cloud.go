@@ -75,7 +75,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	var err error
-	client, _, err = metalgo.NewDriver(url, token, hmac)
+	client, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
