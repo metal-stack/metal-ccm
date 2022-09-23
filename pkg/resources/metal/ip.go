@@ -108,7 +108,7 @@ func AllocateIP(client metalgo.Client, svc v1.Service, namePrefix, project, netw
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
 		Projectid: &project,
 		Networkid: &network,
-		Type:      pointer.StringPtr(metalgo.IPTypeEphemeral),
+		Type:      pointer.StringPtr(models.V1IPBaseTypeEphemeral),
 		Tags:      []string{tags.BuildClusterServiceFQNTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 

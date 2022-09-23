@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -22,5 +23,9 @@ func echo(w io.Writer, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	server := &http.Server{
+		Addr:              ":8080",
+		ReadHeaderTimeout: 30 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

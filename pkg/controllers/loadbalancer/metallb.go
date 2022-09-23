@@ -1,11 +1,11 @@
 package loadbalancer
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
@@ -87,7 +87,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 }
 
 // Write inserts or updates the Metal-LB config.
-func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
+func (cfg *MetalLBConfig) Write(ctx context.Context, client clientset.Interface) error {
 	yaml, err := cfg.ToYAML()
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 	cm := make(map[string]string, 1)
 	cm[metallbConfigMapKey] = yaml
 
-	return kubernetes.ApplyConfigMap(client, metallbNamespace, metallbConfigMapName, cm)
+	return kubernetes.ApplyConfigMap(ctx, client, metallbNamespace, metallbConfigMapName, cm)
 }
 
 // getOrCreateAddressPool returns the address pool of the given network.
@@ -117,10 +117,10 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 // announceIPs appends the given IPs to the network address pools.
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
-	poolType := metalgo.IPTypeEphemeral
+	poolType := models.V1IPBaseTypeEphemeral
 	autoAssign := network == cfg.defaultNetworkID
-	if t != nil && *t == metalgo.IPTypeStatic {
-		poolType = metalgo.IPTypeStatic
+	if t != nil && *t == models.V1IPBaseTypeStatic {
+		poolType = models.V1IPBaseTypeStatic
 		autoAssign = false
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
