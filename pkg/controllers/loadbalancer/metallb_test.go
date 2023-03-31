@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	testNetworks = sets.NewString(
+	testNetworks = sets.New(
 		"internet",
 		"shared-storage-network",
 		"mpls-network",
@@ -27,7 +27,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 	tests := []struct {
 		name             string
 		defaultNetworkID string
-		nws              sets.String
+		nws              sets.Set[string]
 		ips              []*models.V1IPResponse
 		nodes            []v1.Node
 		wantErr          error

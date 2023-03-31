@@ -38,7 +38,7 @@ func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.String, nodes []v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 	return nil
 }
 
-func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.String) error {
+func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
