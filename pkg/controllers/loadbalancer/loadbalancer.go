@@ -33,7 +33,7 @@ type LoadBalancerController struct {
 	projectID                string
 	clusterID                string
 	defaultExternalNetworkID string
-	additionalNetworks       sets.String
+	additionalNetworks       sets.Set[string]
 	K8sClient                clientset.Interface
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
@@ -48,7 +48,7 @@ func New(client metalgo.Client, partitionID, projectID, clusterID, defaultExtern
 		projectID:                projectID,
 		clusterID:                clusterID,
 		defaultExternalNetworkID: defaultExternalNetworkID,
-		additionalNetworks:       sets.NewString(additionalNetworks...),
+		additionalNetworks:       sets.New(additionalNetworks...),
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
 		ipUpdateMutex:            &sync.Mutex{},

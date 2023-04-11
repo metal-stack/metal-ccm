@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"io"
-	"math/rand"
-	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
@@ -25,8 +23,6 @@ import (
 )
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	opts, err := options.NewCloudControllerManagerOptions()
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
