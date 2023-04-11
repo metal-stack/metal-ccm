@@ -39,11 +39,3 @@ gofmt:
 .PHONY: golint
 golint:
 	golangci-lint run
-
-.PHONY: dockerimage
-dockerimage:
-	docker build --no-cache -t ghcr.io/metal-stack/metal-ccm:${DOCKER_TAG} .
-
-.PHONY: dockerpush
-dockerpush:
-	docker push ghcr.io/metal-stack/metal-ccm:${DOCKER_TAG}
