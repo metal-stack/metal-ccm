@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/metal-stack/metal-ccm/pkg/tags"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
@@ -71,7 +72,7 @@ func (l *LoadBalancerController) GetLoadBalancer(ctx context.Context, clusterNam
 
 // GetLoadBalancerName returns the name of the load balancer.
 func (l *LoadBalancerController) GetLoadBalancerName(ctx context.Context, clusterName string, service *v1.Service) string {
-	klog.Infof("GetLoadBalancerName: clusterName %q, namespace %q, serviceName %q\n", clusterName, service.Namespace, service.Name)
+	klog.Infof("GetLoadBalancerName: clusterName %q, namespace %q, serviceName %q", clusterName, service.Namespace, service.Name)
 
 	return l.lbName(service)
 }
@@ -203,7 +204,7 @@ func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, cluster
 // Parameter 'service' is not modified.
 // Parameter 'clusterName' is the name of the cluster as presented to kube-controller-manager
 func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
-	klog.Infof("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q, serviceStatus: %v\n", clusterName, service.Namespace, service.Name, service.Status)
+	klog.Infof("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q, serviceStatus: %v", clusterName, service.Namespace, service.Name, service.Status)
 
 	s := *service
 	serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, s.GetNamespace(), s.GetName())
@@ -228,7 +229,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 				if err != nil {
 					return fmt.Errorf("could not update ip with new tags: %w", err)
 				}
-				klog.Infof("updated ip: %v", newIP)
+				klog.Infof("updated ip: %q", pointer.SafeDeref(newIP.Payload.Ipaddress))
 				if *ip.Type == models.V1IPBaseTypeEphemeral && last {
 					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, newTags)
 					err := metal.FreeIP(l.client, *ip.Ipaddress)
