@@ -19,14 +19,14 @@ func (s *tickerSyncer) Start(name string, period time.Duration, stopCh <-chan st
 
 	// manually call to avoid initial tick delay
 	if err := fn(); err != nil {
-		klog.Errorf("%s failed: %s", name, err)
+		klog.Errorf("%s failed: %v", name, err)
 	}
 
 	for {
 		select {
 		case <-ticker.C:
 			if err := fn(); err != nil {
-				klog.Errorf("%s failed: %s", name, err)
+				klog.Errorf("%s failed: %v", name, err)
 			}
 		case <-stopCh:
 			return
