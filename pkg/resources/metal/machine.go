@@ -57,8 +57,8 @@ func (ms *MetalService) GetMachinesFromNodes(ctx context.Context, nodes []v1.Nod
 	return mm, nil
 }
 
-// GetMachineFromNode returns a machine where hostname matches the kubernetes node.Name.
-func (ms *MetalService) GetMachineFromNode(ctx context.Context, nodeName types.NodeName) (*models.V1MachineResponse, error) {
+// GetMachineFromNodeName returns a machine where hostname matches the kubernetes node.Name.
+func (ms *MetalService) GetMachineFromNodeName(ctx context.Context, nodeName types.NodeName) (*models.V1MachineResponse, error) {
 	node, err := ms.k8sclient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err

@@ -59,7 +59,7 @@ func (z ZonesController) GetZoneByProviderID(ctx context.Context, providerID str
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z ZonesController) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	machine, err := z.ms.GetMachineFromNode(ctx, nodeName)
+	machine, err := z.ms.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return noZone, err
 	}

@@ -36,7 +36,7 @@ func New(client metalgo.Client, defaultExternalNetwork string) *InstancesControl
 // NodeAddresses returns the addresses of the specified instance.
 func (i *InstancesController) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
 	klog.Infof("NodeAddresses: nodeName %q", name)
-	machine, err := i.ms.GetMachineFromNode(ctx, name)
+	machine, err := i.ms.GetMachineFromNodeName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound).
 func (i *InstancesController) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
 	klog.Infof("InstanceID: nodeName %q", nodeName)
-	machine, err := i.ms.GetMachineFromNode(ctx, nodeName)
+	machine, err := i.ms.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +103,7 @@ func (i *InstancesController) InstanceID(ctx context.Context, nodeName types.Nod
 // InstanceType returns the type of the specified instance.
 func (i *InstancesController) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
 	klog.Infof("InstanceType: nodeName %q", nodeName)
-	machine, err := i.ms.GetMachineFromNode(ctx, nodeName)
+	machine, err := i.ms.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
