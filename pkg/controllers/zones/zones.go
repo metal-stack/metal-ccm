@@ -9,14 +9,12 @@ import (
 	metalgo "github.com/metal-stack/metal-go"
 
 	"k8s.io/apimachinery/pkg/types"
-	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
 type ZonesController struct {
-	client    metalgo.Client
-	K8sClient clientset.Interface
-	ms        *metal.MetalService
+	client       metalgo.Client
+	MetalService *metal.MetalService
 }
 
 var (
@@ -27,7 +25,6 @@ var (
 func New(client metalgo.Client) *ZonesController {
 	return &ZonesController{
 		client: client,
-		ms:     metal.New(client),
 	}
 }
 
@@ -43,7 +40,7 @@ func (z ZonesController) GetZone(_ context.Context) (cloudprovider.Zone, error) 
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z ZonesController) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
-	machine, err := z.ms.GetMachineFromProviderID(ctx, providerID)
+	machine, err := z.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return noZone, err
 	}
@@ -59,7 +56,7 @@ func (z ZonesController) GetZoneByProviderID(ctx context.Context, providerID str
 // This method is particularly used in the context of external cloud providers where node initialization must be done
 // outside the kubelets.
 func (z ZonesController) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
-	machine, err := z.ms.GetMachineFromNodeName(ctx, nodeName)
+	machine, err := z.MetalService.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return noZone, err
 	}

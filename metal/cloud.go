@@ -14,6 +14,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -107,9 +108,11 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient)
 
-	c.instances.K8sClient = k8sClient
+	ms := metal.New(client, k8sClient)
+
+	c.instances.MetalService = ms
 	c.loadBalancer.K8sClient = k8sClient
-	c.zones.K8sClient = k8sClient
+	c.zones.MetalService = ms
 
 	go housekeeper.Run()
 }

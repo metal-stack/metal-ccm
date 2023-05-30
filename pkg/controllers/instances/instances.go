@@ -12,16 +12,14 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 )
 
 type InstancesController struct {
 	client                 metalgo.Client
-	K8sClient              clientset.Interface
 	defaultExternalNetwork string
-	ms                     *metal.MetalService
+	MetalService           *metal.MetalService
 }
 
 // New returns a new instance controller that satisfies the kubernetes cloud provider instances interface
@@ -29,14 +27,13 @@ func New(client metalgo.Client, defaultExternalNetwork string) *InstancesControl
 	return &InstancesController{
 		client:                 client,
 		defaultExternalNetwork: defaultExternalNetwork,
-		ms:                     metal.New(client),
 	}
 }
 
 // NodeAddresses returns the addresses of the specified instance.
 func (i *InstancesController) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
 	klog.Infof("NodeAddresses: nodeName %q", name)
-	machine, err := i.ms.GetMachineFromNodeName(ctx, name)
+	machine, err := i.MetalService.GetMachineFromNodeName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +48,7 @@ func (i *InstancesController) NodeAddresses(ctx context.Context, name types.Node
 // services cannot be used in this method to obtain node addresses.
 func (i *InstancesController) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
 	klog.Infof("NodeAddressesByProviderID: providerID %q", providerID)
-	machine, err := i.ms.GetMachineFromProviderID(ctx, providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +89,7 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound).
 func (i *InstancesController) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
 	klog.Infof("InstanceID: nodeName %q", nodeName)
-	machine, err := i.ms.GetMachineFromNodeName(ctx, nodeName)
+	machine, err := i.MetalService.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +100,7 @@ func (i *InstancesController) InstanceID(ctx context.Context, nodeName types.Nod
 // InstanceType returns the type of the specified instance.
 func (i *InstancesController) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
 	klog.Infof("InstanceType: nodeName %q", nodeName)
-	machine, err := i.ms.GetMachineFromNodeName(ctx, nodeName)
+	machine, err := i.MetalService.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -114,7 +111,7 @@ func (i *InstancesController) InstanceType(ctx context.Context, nodeName types.N
 // InstanceTypeByProviderID returns the type of the specified instance.
 func (i *InstancesController) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
 	klog.Infof("InstanceTypeByProviderID: providerID %q", providerID)
-	machine, err := i.ms.GetMachineFromProviderID(ctx, providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return "", err
 	}
@@ -140,7 +137,7 @@ func (i *InstancesController) CurrentNodeName(_ context.Context, nodeName string
 // This method should still return true for machines that exist but are stopped/sleeping.
 func (i *InstancesController) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
 	klog.Infof("InstanceExistsByProviderID: providerID %q", providerID)
-	machine, err := i.ms.GetMachineFromProviderID(ctx, providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return false, err
 	}
@@ -151,7 +148,7 @@ func (i *InstancesController) InstanceExistsByProviderID(ctx context.Context, pr
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider.
 func (i *InstancesController) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
 	klog.Infof("InstanceShutdownByProviderID: providerID %q", providerID)
-	machine, err := i.ms.GetMachineFromProviderID(ctx, providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil || machine.Allocation == nil {
 		return true, err
 	}
@@ -164,7 +161,7 @@ func (i *InstancesController) InstanceShutdownByProviderID(ctx context.Context, 
 // Use the node.name or node.spec.providerID field to find the node in the cloud provider.
 func (i *InstancesController) InstanceExists(ctx context.Context, node *v1.Node) (bool, error) {
 	klog.Infof("InstanceExists: node %q", node.GetName())
-	machine, err := i.ms.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
 	if err != nil {
 		return false, err
 	}
@@ -175,7 +172,7 @@ func (i *InstancesController) InstanceExists(ctx context.Context, node *v1.Node)
 // Use the node.name or node.spec.providerID field to find the node in the cloud provider.
 func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, error) {
 	klog.Infof("InstanceShutdown: node %q", node.GetName())
-	machine, err := i.ms.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
 	if err != nil || machine.Allocation == nil {
 		return true, err
 	}
@@ -198,7 +195,7 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 // currently being set in node.spec.providerID.
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
 	klog.Infof("InstanceMetadata: node %q", node.GetName())
-	machine, err := i.ms.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
 	if err != nil {
 		return nil, err
 	}

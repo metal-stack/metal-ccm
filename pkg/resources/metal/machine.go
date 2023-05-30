@@ -27,7 +27,7 @@ type MetalService struct {
 	machineByUUIDCache *cache.Cache[string, *models.V1MachineResponse]
 }
 
-func New(client metalgo.Client) *MetalService {
+func New(client metalgo.Client, k8sclient clientset.Interface) *MetalService {
 	machineByUUIDCache := cache.New(time.Minute, func(ctx context.Context, id string) (*models.V1MachineResponse, error) {
 		machine, err := client.Machine().FindMachine(machine.NewFindMachineParams().WithContext(ctx).WithID(id), nil)
 		if err != nil {
@@ -38,6 +38,7 @@ func New(client metalgo.Client) *MetalService {
 	})
 	ms := &MetalService{
 		client:             client,
+		k8sclient:          k8sclient,
 		machineByUUIDCache: machineByUUIDCache,
 	}
 	return ms

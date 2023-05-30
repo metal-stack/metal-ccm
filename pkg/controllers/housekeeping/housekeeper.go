@@ -37,7 +37,7 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 		ticker:       newTickerSyncer(),
 		lbController: lbController,
 		k8sClient:    k8sClient,
-		ms:           metal.New(metalClient),
+		ms:           metal.New(metalClient, k8sClient),
 	}
 }
 
