@@ -64,12 +64,7 @@ func (ms *MetalService) GetMachineFromNodeName(ctx context.Context, nodeName typ
 	if err != nil {
 		return nil, err
 	}
-
-	id, err := decodeMachineIDFromProviderID(node.Spec.ProviderID)
-	if err != nil {
-		return nil, err
-	}
-	return ms.GetMachineFromProviderID(ctx, id)
+	return ms.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
 }
 
 // GetMachineFromProviderID uses providerID to get the machine id and returns the machine.
