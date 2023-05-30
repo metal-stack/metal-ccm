@@ -195,7 +195,12 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 // currently being set in node.spec.providerID.
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
 	klog.Infof("InstanceMetadata: node %q", node.GetName())
-	machine, err := i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
+
+	machineID := node.Spec.ProviderID
+	if machineID == "" {
+		machineID = node.Status.NodeInfo.SystemUUID
+	}
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, machineID)
 	if err != nil {
 		return nil, err
 	}
