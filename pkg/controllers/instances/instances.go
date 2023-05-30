@@ -196,15 +196,22 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
 	klog.Infof("InstanceMetadata: node %q", node.GetName())
 
-	machineID := node.Spec.ProviderID
-	if machineID == "" {
-		machineID = node.Status.NodeInfo.SystemUUID
-	}
-	machine, err := i.MetalService.GetMachineFromProviderID(ctx, machineID)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		machine *models.V1MachineResponse
+		err     error
+	)
 
+	if node.Spec.ProviderID == "" {
+		machine, err = i.MetalService.GetMachineFromUUID(ctx, node.Status.NodeInfo.SystemUUID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		machine, err = i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if machine == nil {
 		return nil, fmt.Errorf("machine is nil for node:%s", node.Name)
 	}

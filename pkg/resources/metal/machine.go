@@ -82,6 +82,16 @@ func (ms *MetalService) GetMachineFromProviderID(ctx context.Context, providerID
 	return machine, nil
 }
 
+// GetMachineFromProviderID uses providerID to get the machine id and returns the machine.
+func (ms *MetalService) GetMachineFromUUID(ctx context.Context, machineID string) (*models.V1MachineResponse, error) {
+	machine, err := ms.machineByUUIDCache.Get(ctx, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	return machine, nil
+}
+
 // machineIDFromProviderID returns a machine's ID from providerID.
 //
 // The providerID spec should be retrievable from the Kubernetes
