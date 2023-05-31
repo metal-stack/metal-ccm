@@ -195,24 +195,9 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 // currently being set in node.spec.providerID.
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
 	klog.Infof("InstanceMetadata: node %q", node.GetName())
-
-	var (
-		machine *models.V1MachineResponse
-		err     error
-	)
-
-	if node.Spec.ProviderID == "" {
-		// node.status.nodeinfo.systemuuid is written by the kubelet
-		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/nodestatus/setters.go#L277
-		machine, err = i.MetalService.GetMachineFromUUID(ctx, node.Status.NodeInfo.SystemUUID)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		machine, err = i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
-		if err != nil {
-			return nil, err
-		}
+	machine, err := i.MetalService.GetMachineFromHostname(ctx, node.Name)
+	if err != nil {
+		return nil, err
 	}
 	if machine == nil {
 		return nil, fmt.Errorf("machine is nil for node:%s", node.Name)

@@ -22,12 +22,13 @@ import (
 )
 
 type MetalService struct {
-	client             metalgo.Client
-	k8sclient          clientset.Interface
-	machineByUUIDCache *cache.Cache[string, *models.V1MachineResponse]
+	client                 metalgo.Client
+	k8sclient              clientset.Interface
+	machineByUUIDCache     *cache.Cache[string, *models.V1MachineResponse]
+	machineByHostnameCache *cache.Cache[string, *models.V1MachineResponse]
 }
 
-func New(client metalgo.Client, k8sclient clientset.Interface) *MetalService {
+func New(client metalgo.Client, k8sclient clientset.Interface, projectID string) *MetalService {
 	machineByUUIDCache := cache.New(time.Minute, func(ctx context.Context, id string) (*models.V1MachineResponse, error) {
 		machine, err := client.Machine().FindMachine(machine.NewFindMachineParams().WithContext(ctx).WithID(id), nil)
 		if err != nil {
@@ -36,10 +37,24 @@ func New(client metalgo.Client, k8sclient clientset.Interface) *MetalService {
 
 		return machine.Payload, nil
 	})
+	machineByHostnameCache := cache.New(time.Minute, func(ctx context.Context, hostname string) (*models.V1MachineResponse, error) {
+		resp, err := client.Machine().FindMachines(machine.NewFindMachinesParams().WithContext(ctx).WithBody(&models.V1MachineFindRequest{
+			AllocationHostname: hostname,
+			AllocationProject:  projectID,
+		}), nil)
+		if err != nil {
+			return nil, err
+		}
+		if len(resp.Payload) != 1 {
+			return nil, fmt.Errorf("not exactly one machine was found for hostname:%q", hostname)
+		}
+		return resp.Payload[0], nil
+	})
 	ms := &MetalService{
-		client:             client,
-		k8sclient:          k8sclient,
-		machineByUUIDCache: machineByUUIDCache,
+		client:                 client,
+		k8sclient:              k8sclient,
+		machineByUUIDCache:     machineByUUIDCache,
+		machineByHostnameCache: machineByHostnameCache,
 	}
 	return ms
 }
@@ -82,9 +97,19 @@ func (ms *MetalService) GetMachineFromProviderID(ctx context.Context, providerID
 	return machine, nil
 }
 
-// GetMachineFromProviderID uses providerID to get the machine id and returns the machine.
+// GetMachineFromUUID uses machineID to get and return the machine.
 func (ms *MetalService) GetMachineFromUUID(ctx context.Context, machineID string) (*models.V1MachineResponse, error) {
 	machine, err := ms.machineByUUIDCache.Get(ctx, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	return machine, nil
+}
+
+// GetMachineFromHostname uses hostname to get and return the machine.
+func (ms *MetalService) GetMachineFromHostname(ctx context.Context, hostname string) (*models.V1MachineResponse, error) {
+	machine, err := ms.machineByHostnameCache.Get(ctx, hostname)
 	if err != nil {
 		return nil, err
 	}
