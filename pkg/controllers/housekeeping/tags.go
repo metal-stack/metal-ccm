@@ -1,6 +1,7 @@
 package housekeeping
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 )
 
 const (
@@ -65,7 +65,8 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 
 // getMachineTags returns all machine tags within the shoot.
 func (h *Housekeeper) getMachineTags(nodes []v1.Node) (map[string][]string, error) {
-	machines, err := metal.GetMachinesFromNodes(h.client, nodes)
+	// FIXME set context
+	machines, err := h.ms.GetMachinesFromNodes(context.Background(), nodes)
 	if err != nil {
 		return nil, err
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
+	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -103,13 +104,16 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
+
 	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager")
 
-	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient)
+	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient, projectID)
+	ms := metal.New(client, k8sClient, projectID)
 
-	c.instances.K8sClient = k8sClient
+	c.instances.MetalService = ms
 	c.loadBalancer.K8sClient = k8sClient
-	c.zones.K8sClient = k8sClient
+	c.zones.MetalService = ms
 
 	go housekeeper.Run()
 }

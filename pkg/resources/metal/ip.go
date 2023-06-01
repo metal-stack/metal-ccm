@@ -79,15 +79,6 @@ func FindProjectIPsWithTag(client metalgo.Client, projectID, tag string) ([]*mod
 	return resp.Payload, nil
 }
 
-// IPAddressesOfIPs returns the IP address strings of the given ips.
-func IPAddressesOfIPs(ips []*models.V1IPResponse) []string {
-	var result []string
-	for _, ip := range ips {
-		result = append(result, *ip.Ipaddress)
-	}
-	return result
-}
-
 // FreeIP frees the given IP address.
 func FreeIP(client metalgo.Client, ip string) error {
 	_, err := client.IP().FreeIP(metalip.NewFreeIPParams().WithID(ip), nil)
