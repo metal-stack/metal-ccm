@@ -97,24 +97,30 @@ func (ms *MetalService) GetMachineFromProviderID(ctx context.Context, providerID
 	return machine, nil
 }
 
-// GetMachineFromUUID uses machineID to get and return the machine.
-func (ms *MetalService) GetMachineFromUUID(ctx context.Context, machineID string) (*models.V1MachineResponse, error) {
-	machine, err := ms.machineByUUIDCache.Get(ctx, machineID)
-	if err != nil {
-		return nil, err
+// GetMachineFromNode try providerID first, otherwise node.Name to fetch the machine.
+func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (*models.V1MachineResponse, error) {
+	var (
+		machine *models.V1MachineResponse
+		err     error
+	)
+	if node == nil {
+		return nil, fmt.Errorf("node is nil")
 	}
-
-	return machine, nil
-}
-
-// GetMachineFromHostname uses hostname to get and return the machine.
-func (ms *MetalService) GetMachineFromHostname(ctx context.Context, hostname string) (*models.V1MachineResponse, error) {
-	machine, err := ms.machineByHostnameCache.Get(ctx, hostname)
-	if err != nil {
-		return nil, err
+	// ProviderID is empty during the machine provisioning period and will be set a bit later
+	// from the InstanceID call against the cloud-controller-manager
+	// so as long as providerID is empty make an expensive machine find request,
+	// but after it is set, we switch to a simple machine get request.
+	if strings.HasPrefix(node.Spec.ProviderID, constants.ProviderName+"://") {
+		var id string
+		id, err = decodeMachineIDFromProviderID(node.Spec.ProviderID)
+		if err != nil {
+			return nil, err
+		}
+		machine, err = ms.machineByUUIDCache.Get(ctx, id)
+	} else {
+		machine, err = ms.machineByHostnameCache.Get(ctx, node.Name)
 	}
-
-	return machine, nil
+	return machine, err
 }
 
 // machineIDFromProviderID returns a machine's ID from providerID.
