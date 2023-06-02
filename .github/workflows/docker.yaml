@@ -39,6 +39,7 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v3
       with:
+        version: v1.52.2
         args: --build-tags integration -p bugs -p unused --timeout=5m
 
     - name: Make tag
