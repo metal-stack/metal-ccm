@@ -54,7 +54,10 @@ func (h *Housekeeper) syncSSHKeys() error {
 			continue
 		}
 
-		_, err = h.client.Machine().MachineSSHPubKeys(machine.NewMachineSSHPubKeysParams().WithID(*m.ID).WithBody(&models.V1SSHPubKeysUpdate{SSHPubKeys: []string{h.sshPublicKey}}), nil)
+		_, err = h.client.Machine().UpdateMachine(machine.NewUpdateMachineParams().WithBody(&models.V1MachineUpdateRequest{
+			ID:         m.ID,
+			SSHPubKeys: []string{h.sshPublicKey},
+		}), nil)
 		if err != nil {
 			klog.Errorf("unable to update ssh public keys for machine %q %v", *m.Allocation.Hostname, err)
 			continue

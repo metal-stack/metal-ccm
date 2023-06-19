@@ -6,11 +6,12 @@ require (
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
-	github.com/metal-stack/metal-go v0.22.6-0.20230619072115-23e89dbae40b
+	github.com/metal-stack/metal-go v0.22.6-0.20230619120521-cf8264dd968e
 	github.com/metal-stack/metal-lib v0.11.10
 	github.com/metal-stack/v v1.0.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
@@ -110,7 +111,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/oauth2 v0.9.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
