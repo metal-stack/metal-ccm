@@ -11,6 +11,9 @@ const (
 	MetalDefaultExternalNetworkEnvVar = "METAL_DEFAULT_EXTERNAL_NETWORK_ID"
 	MetalAdditionalNetworks           = "METAL_ADDITIONAL_NETWORKS"
 
+	// MetalSSHPublicKeys slice of ssh public keys, separated by ,
+	MetalSSHPublicKeys = "METAL_SSH_PUBLICKEYS"
+
 	ProviderName = "metal"
 
 	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
