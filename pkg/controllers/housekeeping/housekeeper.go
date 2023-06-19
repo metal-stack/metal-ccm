@@ -27,19 +27,19 @@ type Housekeeper struct {
 	lastMetalLBConfigSync time.Time
 	metalAPIErrors        int32
 	ms                    *metal.MetalService
-	sshPublicKeys         []string
+	sshPublicKey          string
 }
 
 // New returns a new house keeper
-func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface, projectID string, sshPublicKeys []string) *Housekeeper {
+func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface, projectID string, sshPublicKey string) *Housekeeper {
 	return &Housekeeper{
-		client:        metalClient,
-		stop:          stop,
-		ticker:        newTickerSyncer(),
-		lbController:  lbController,
-		k8sClient:     k8sClient,
-		ms:            metal.New(metalClient, k8sClient, projectID),
-		sshPublicKeys: sshPublicKeys,
+		client:       metalClient,
+		stop:         stop,
+		ticker:       newTickerSyncer(),
+		lbController: lbController,
+		k8sClient:    k8sClient,
+		ms:           metal.New(metalClient, k8sClient, projectID),
+		sshPublicKey: sshPublicKey,
 	}
 }
 

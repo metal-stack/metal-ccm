@@ -18,7 +18,7 @@ const (
 )
 
 func (h *Housekeeper) startSSHKeysSynching() {
-	if len(h.sshPublicKeys) == 0 {
+	if len(h.sshPublicKey) == 0 {
 		klog.Warningf("ssh public keys not set, not synching back to machines")
 		return
 	}
@@ -48,12 +48,12 @@ func (h *Housekeeper) syncSSHKeys() error {
 			continue
 		}
 
-		if slices.Equal(m.Allocation.SSHPubKeys, h.sshPublicKeys) {
+		if slices.Contains(m.Allocation.SSHPubKeys, h.sshPublicKey) {
 			klog.Infof("machine %q has already actual ssh public keys", *m.Allocation.Hostname)
 			continue
 		}
 
-		_, err = h.client.Machine().MachineSSHPubKeys(machine.NewMachineSSHPubKeysParams().WithID(*m.ID).WithBody(&models.V1SSHPubKeysUpdate{SSHPubKeys: h.sshPublicKeys}), nil)
+		_, err = h.client.Machine().MachineSSHPubKeys(machine.NewMachineSSHPubKeysParams().WithID(*m.ID).WithBody(&models.V1SSHPubKeysUpdate{SSHPubKeys: []string{h.sshPublicKey}}), nil)
 		if err != nil {
 			klog.Errorf("unable to update ssh public keys for machine %q %v", *m.Allocation.Hostname, err)
 			continue

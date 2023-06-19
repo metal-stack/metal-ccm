@@ -105,7 +105,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
-	sshPublicKey := strings.Split(os.Getenv(constants.MetalSSHPublicKeys), ",")
+	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 
 	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager")
 
