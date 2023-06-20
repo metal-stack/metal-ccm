@@ -83,16 +83,16 @@ func (h *Housekeeper) buildLabelsFromMachineTags(tags []string) map[string]strin
 	excludedLables := map[string]bool{"networking.gardener.cloud/node-local-dns-enabled": true}
 
 	result := make(map[string]string)
+
 	for _, t := range tags {
-		parts := strings.SplitN(t, "=", 2)
+		label, value, found := strings.Cut(t, "=")
 		// we only add tags to the node labels that have an "="
-		if len(parts) > 1 {
-			// do not sync node labels, that are also managed by gardener
-			if excludedLables[parts[0]] {
-				continue
-			}
-			result[parts[0]] = strings.Join(parts[1:], "=")
+		// and ignore labels, that are also managed by gardener
+		if !found || excludedLables[label] {
+			continue
 		}
+		result[label] = value
 	}
+
 	return result
 }
