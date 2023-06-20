@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
-	github.com/metal-stack/metal-go v0.22.6-0.20230619121107-88274d9d710f
+	github.com/metal-stack/metal-go v0.22.6
 	github.com/metal-stack/metal-lib v0.11.10
 	github.com/metal-stack/v v1.0.3
 	github.com/spf13/pflag v1.0.5
