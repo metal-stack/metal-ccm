@@ -1,6 +1,9 @@
 package housekeeping
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func Test_buildLabelsFromMachineTags(t *testing.T) {
 	tests := []struct {
@@ -29,24 +32,10 @@ func Test_buildLabelsFromMachineTags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &Housekeeper{}
 			got := h.buildLabelsFromMachineTags(tt.tags)
-			if !mapsEqual(got, tt.want) {
+
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("buildLabelsFromMachineTags() = %v, want %v", got, tt.want)
 			}
 		})
 	}
-}
-
-func mapsEqual(map1, map2 map[string]string) bool {
-	if len(map1) != len(map2) {
-		return false
-	}
-
-	for key, value1 := range map1 {
-		value2, ok := map2[key]
-		if !ok || value1 != value2 {
-			return false
-		}
-	}
-
-	return true
 }
