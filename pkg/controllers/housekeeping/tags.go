@@ -73,6 +73,9 @@ func (h *Housekeeper) getMachineTags(nodes []v1.Node) (map[string][]string, erro
 
 	machineTags := make(map[string][]string)
 	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
 		hostname := *m.Allocation.Hostname
 		machineTags[hostname] = m.Tags
 	}
