@@ -30,12 +30,22 @@ type MetalService struct {
 
 func New(client metalgo.Client, k8sclient clientset.Interface, projectID string) *MetalService {
 	machineByUUIDCache := cache.New(time.Minute, func(ctx context.Context, id string) (*models.V1MachineResponse, error) {
-		machine, err := client.Machine().FindMachine(machine.NewFindMachineParams().WithContext(ctx).WithID(id), nil)
+		resp, err := client.Machine().FindMachine(machine.NewFindMachineParams().WithContext(ctx).WithID(id), nil)
 		if err != nil {
 			return nil, err
 		}
 
-		return machine.Payload, nil
+		if resp.Payload.Allocation == nil {
+			return nil, fmt.Errorf("machine %q is not allocated", id)
+		}
+		if resp.Payload.Allocation.Project == nil {
+			return nil, fmt.Errorf("machine %q allocation does not have a project", id)
+		}
+		if *resp.Payload.Allocation.Project != projectID {
+			return nil, fmt.Errorf("machine %q is allocated in the wrong project: %q", id, projectID)
+		}
+
+		return resp.Payload, nil
 	})
 	machineByHostnameCache := cache.New(time.Minute, func(ctx context.Context, hostname string) (*models.V1MachineResponse, error) {
 		resp, err := client.Machine().FindMachines(machine.NewFindMachinesParams().WithContext(ctx).WithBody(&models.V1MachineFindRequest{
