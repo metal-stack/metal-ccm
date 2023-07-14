@@ -47,6 +47,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 	}
 
 	for _, n := range nodes {
+		n := n
 		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
 		if !ok {
