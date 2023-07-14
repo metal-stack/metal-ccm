@@ -2,6 +2,7 @@ package housekeeping
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
+	ccmtags "github.com/metal-stack/metal-ccm/pkg/tags"
+	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
 )
 
 const (
@@ -56,8 +59,28 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 			klog.Warningf("tags syncher failed to update tags on node:%s: %v", nodeName, err)
 			continue
 		}
-	}
 
+		// check if machine has a cluster tag, if not add it
+		if _, found := ccmtags.GetMachineClusterTag(tags); !found {
+			m, err := h.ms.GetMachineFromNode(context.Background(), &n)
+
+			if err != nil {
+				klog.Warningf("unable to get machine for node:%q, not updating machine %v", n.Name, err)
+				continue
+			}
+
+			if m.Allocation == nil {
+				klog.Warningf("machine of node %q is not allocated, ignoring", n.Name)
+				continue
+			}
+
+			err = h.ms.UpdateMachineTags(context.Background(), m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
+			if err != nil {
+				return err
+			}
+			klog.Infof("added cluster tag %q to machine %q", h.clusterID, *m.ID)
+		}
+	}
 	h.lastTagSync = time.Now()
 
 	return nil
