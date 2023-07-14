@@ -75,7 +75,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 				continue
 			}
 
-			err = h.ms.UpdateMachineTags(context.Background(), m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
+			err = h.ms.UpdateMachineTags(m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
 			if err != nil {
 				return err
 			}

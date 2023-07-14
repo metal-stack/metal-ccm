@@ -134,7 +134,7 @@ func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (
 }
 
 // UpdateMachineTags sets the machine tags.
-func (ms *MetalService) UpdateMachineTags(ctx context.Context, m *string, tags []string) error {
+func (ms *MetalService) UpdateMachineTags(m *string, tags []string) error {
 	if m == nil {
 		return fmt.Errorf("machine is nil")
 	}
