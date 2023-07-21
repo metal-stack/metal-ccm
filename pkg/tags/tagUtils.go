@@ -39,6 +39,7 @@ func IsMemberOfCluster(tag, clusterID string) bool {
 	return false
 }
 
+// GetMachineClusterTag returns the clusterID in the given tags.
 func GetMachineClusterTag(tags []string) (string, bool) {
 	found := false
 	value := ""

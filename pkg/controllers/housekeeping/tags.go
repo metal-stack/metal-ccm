@@ -62,7 +62,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		}
 
 		// check if machine has a cluster tag, if not add it
-		if _, found := ccmtags.GetMachineClusterTag(tags); !found {
+		if machineClusterTag, found := ccmtags.GetMachineClusterTag(tags); !found || machineClusterTag != h.clusterID {
 			m, err := h.ms.GetMachineFromNode(context.Background(), &n)
 
 			if err != nil {
