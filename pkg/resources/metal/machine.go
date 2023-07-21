@@ -133,6 +133,22 @@ func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (
 	return machine, err
 }
 
+// UpdateMachineTags sets the machine tags.
+func (ms *MetalService) UpdateMachineTags(m *string, tags []string) error {
+	if m == nil {
+		return fmt.Errorf("machine is nil")
+	}
+
+	_, err := ms.client.Machine().UpdateMachine(machine.NewUpdateMachineParams().WithBody(&models.V1MachineUpdateRequest{
+		ID:   m,
+		Tags: tags,
+	}), nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // machineIDFromProviderID returns a machine's ID from providerID.
 //
 // The providerID spec should be retrievable from the Kubernetes

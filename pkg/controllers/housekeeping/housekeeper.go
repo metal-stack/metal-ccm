@@ -28,10 +28,11 @@ type Housekeeper struct {
 	metalAPIErrors        int32
 	ms                    *metal.MetalService
 	sshPublicKey          string
+	clusterID             string
 }
 
 // New returns a new house keeper
-func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface, projectID string, sshPublicKey string) *Housekeeper {
+func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface, projectID string, sshPublicKey string, clusterID string) *Housekeeper {
 	return &Housekeeper{
 		client:       metalClient,
 		stop:         stop,
@@ -40,6 +41,7 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 		k8sClient:    k8sClient,
 		ms:           metal.New(metalClient, k8sClient, projectID),
 		sshPublicKey: sshPublicKey,
+		clusterID:    clusterID,
 	}
 }
 
