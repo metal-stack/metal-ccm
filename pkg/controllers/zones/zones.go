@@ -6,14 +6,11 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
-	metalgo "github.com/metal-stack/metal-go"
-
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
 type ZonesController struct {
-	client       metalgo.Client
 	MetalService *metal.MetalService
 }
 
@@ -22,10 +19,8 @@ var (
 )
 
 // New returns a new zones controller that satisfies the kubernetes cloud provider zones interface
-func New(client metalgo.Client) *ZonesController {
-	return &ZonesController{
-		client: client,
-	}
+func New() *ZonesController {
+	return &ZonesController{}
 }
 
 // GetZone returns the Zone containing the current failure zone and locality region that the program is running in.

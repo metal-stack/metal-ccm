@@ -6,7 +6,6 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
-	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 
@@ -17,15 +16,13 @@ import (
 )
 
 type InstancesController struct {
-	client                 metalgo.Client
 	defaultExternalNetwork string
 	MetalService           *metal.MetalService
 }
 
 // New returns a new instance controller that satisfies the kubernetes cloud provider instances interface
-func New(client metalgo.Client, defaultExternalNetwork string) *InstancesController {
+func New(defaultExternalNetwork string) *InstancesController {
 	return &InstancesController{
-		client:                 client,
 		defaultExternalNetwork: defaultExternalNetwork,
 	}
 }
