@@ -1,11 +1,11 @@
 package metal
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 
-	metalgo "github.com/metal-stack/metal-go"
 	metalip "github.com/metal-stack/metal-go/api/client/ip"
 
 	"github.com/metal-stack/metal-go/api/models"
@@ -16,12 +16,12 @@ import (
 )
 
 // FindClusterIPs returns the allowed IPs of the given cluster.
-func FindClusterIPs(client metalgo.Client, projectID, clusterID string) ([]*models.V1IPResponse, error) {
+func (ms *MetalService) FindClusterIPs(ctx context.Context, projectID, clusterID string) ([]*models.V1IPResponse, error) {
 	req := &models.V1IPFindRequest{
 		Projectid: projectID,
 	}
 
-	resp, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req), nil)
+	resp, err := ms.client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +46,13 @@ func FindClusterIPs(client metalgo.Client, projectID, clusterID string) ([]*mode
 }
 
 // FindProjectIP returns the IP
-func FindProjectIP(client metalgo.Client, projectID, ip string) (*models.V1IPResponse, error) {
+func (ms *MetalService) FindProjectIP(ctx context.Context, projectID, ip string) (*models.V1IPResponse, error) {
 	req := &models.V1IPFindRequest{
 		Ipaddress: ip,
 		Projectid: projectID,
 	}
 
-	resp, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req), nil)
+	resp, err := ms.client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -65,13 +65,13 @@ func FindProjectIP(client metalgo.Client, projectID, ip string) (*models.V1IPRes
 }
 
 // FindProjectIPsWithTag returns the IPs of the given project that also have the given tag.
-func FindProjectIPsWithTag(client metalgo.Client, projectID, tag string) ([]*models.V1IPResponse, error) {
+func (ms *MetalService) FindProjectIPsWithTag(ctx context.Context, projectID, tag string) ([]*models.V1IPResponse, error) {
 	req := &models.V1IPFindRequest{
 		Projectid: projectID,
 		Tags:      []string{tag},
 	}
 
-	resp, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req), nil)
+	resp, err := ms.client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func FindProjectIPsWithTag(client metalgo.Client, projectID, tag string) ([]*mod
 }
 
 // FreeIP frees the given IP address.
-func FreeIP(client metalgo.Client, ip string) error {
-	_, err := client.IP().FreeIP(metalip.NewFreeIPParams().WithID(ip), nil)
+func (ms *MetalService) FreeIP(ctx context.Context, ip string) error {
+	_, err := ms.client.IP().FreeIP(metalip.NewFreeIPParams().WithID(ip).WithContext(ctx), nil)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func FreeIP(client metalgo.Client, ip string) error {
 }
 
 // AllocateIP acquires an IP within the given network for a given project.
-func AllocateIP(client metalgo.Client, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
+func (ms *MetalService) AllocateIP(ctx context.Context, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
 	name, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
@@ -103,7 +103,17 @@ func AllocateIP(client metalgo.Client, svc v1.Service, namePrefix, project, netw
 		Tags:      []string{tags.BuildClusterServiceFQNTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
-	resp, err := client.IP().AllocateIP(metalip.NewAllocateIPParams().WithBody(req), nil)
+	resp, err := ms.client.IP().AllocateIP(metalip.NewAllocateIPParams().WithBody(req).WithContext(ctx), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
+}
+
+// UpdateIP updates the given IP address.
+func (ms *MetalService) UpdateIP(ctx context.Context, body *models.V1IPUpdateRequest) (*models.V1IPResponse, error) {
+	resp, err := ms.client.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(body).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}

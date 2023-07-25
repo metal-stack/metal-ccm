@@ -89,9 +89,9 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("metal-api not healthy, restarting")
 	}
 
-	instancesController := instances.New(client, defaultExternalNetworkID)
-	zonesController := zones.New(client)
-	loadBalancerController := loadbalancer.New(client, partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
+	instancesController := instances.New(defaultExternalNetworkID)
+	zonesController := zones.New()
+	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
 
 	klog.Info("initialized cloud controller manager")
 	return &cloud{
@@ -115,6 +115,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	c.instances.MetalService = ms
 	c.loadBalancer.K8sClient = k8sClient
+	c.loadBalancer.MetalService = ms
 	c.zones.MetalService = ms
 
 	go housekeeper.Run()
