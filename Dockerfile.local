@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:3.18
 RUN apk --update add ca-certificates
 
 COPY bin/metal-cloud-controller-manager .

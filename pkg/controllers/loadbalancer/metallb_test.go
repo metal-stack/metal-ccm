@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -16,7 +15,7 @@ import (
 )
 
 var (
-	testNetworks = sets.NewString(
+	testNetworks = sets.New(
 		"internet",
 		"shared-storage-network",
 		"mpls-network",
@@ -28,7 +27,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 	tests := []struct {
 		name             string
 		defaultNetworkID string
-		nws              sets.String
+		nws              sets.Set[string]
 		ips              []*models.V1IPResponse
 		nodes            []v1.Node
 		wantErr          error
@@ -40,14 +39,14 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.1"),
+					Ipaddress: pointer.String("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -71,24 +70,24 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.1"),
+					Ipaddress: pointer.String("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.2"),
+					Ipaddress: pointer.String("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -113,34 +112,34 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.1"),
+					Ipaddress: pointer.String("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.2"),
+					Ipaddress: pointer.String("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.3"),
+					Ipaddress: pointer.String("84.1.1.3"),
 					Name:      "static-ip",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("static"),
+					Type: pointer.String("static"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -174,74 +173,74 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:              testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.1"),
+					Ipaddress: pointer.String("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.2"),
+					Ipaddress: pointer.String("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("84.1.1.3"),
+					Ipaddress: pointer.String("84.1.1.3"),
 					Name:      "static-ip",
-					Networkid: pointer.StringPtr("internet"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("internet"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("static"),
+					Type: pointer.String("static"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("10.131.44.2"),
+					Ipaddress: pointer.String("10.131.44.2"),
 					Name:      "static-ip",
-					Networkid: pointer.StringPtr("shared-storage-network"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("shared-storage-network"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("static"),
+					Type: pointer.String("static"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("100.127.130.2"),
+					Ipaddress: pointer.String("100.127.130.2"),
 					Name:      "static-ip",
-					Networkid: pointer.StringPtr("mpls-network"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("mpls-network"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("static"),
+					Type: pointer.String("static"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("100.127.130.3"),
+					Ipaddress: pointer.String("100.127.130.3"),
 					Name:      "ephemeral-mpls-ip",
-					Networkid: pointer.StringPtr("mpls-network"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("mpls-network"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("ephemeral"),
+					Type: pointer.String("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.StringPtr("10.129.172.2"),
+					Ipaddress: pointer.String("10.129.172.2"),
 					Name:      "static-ip",
-					Networkid: pointer.StringPtr("dmz-network"),
-					Projectid: pointer.StringPtr("project-a"),
+					Networkid: pointer.String("dmz-network"),
+					Projectid: pointer.String("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.StringPtr("static"),
+					Type: pointer.String("static"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -305,7 +304,6 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &MetalLBConfig{
-				logger:           log.New(log.Writer(), "testing", log.LstdFlags),
 				defaultNetworkID: tt.defaultNetworkID,
 			}
 

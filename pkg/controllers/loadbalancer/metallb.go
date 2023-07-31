@@ -1,18 +1,17 @@
 package loadbalancer
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-go/api/models"
 
@@ -29,22 +28,17 @@ const (
 type MetalLBConfig struct {
 	Peers            []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools     []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	logger           *log.Logger
 	defaultNetworkID string
 }
 
 func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
-	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm metallbcfg-renderer | ")
-
 	return &MetalLBConfig{
-		logger:           logger,
 		defaultNetworkID: defaultNetworkID,
 	}
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.String, nodes []v1.Node) error {
+func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -56,10 +50,10 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 	return nil
 }
 
-func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.String) error {
+func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
-			cfg.logger.Printf("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
+			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
 		net := *ip.Networkid
@@ -83,7 +77,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 
 		peer, err := newPeer(n, asn)
 		if err != nil {
-			cfg.logger.Printf("skipping peer: %v", err)
+			klog.Warningf("skipping peer: %v", err)
 			continue
 		}
 
@@ -93,7 +87,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 }
 
 // Write inserts or updates the Metal-LB config.
-func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
+func (cfg *MetalLBConfig) Write(ctx context.Context, client clientset.Interface) error {
 	yaml, err := cfg.ToYAML()
 	if err != nil {
 		return err
@@ -102,7 +96,7 @@ func (cfg *MetalLBConfig) Write(client clientset.Interface) error {
 	cm := make(map[string]string, 1)
 	cm[metallbConfigMapKey] = yaml
 
-	return kubernetes.ApplyConfigMap(client, metallbNamespace, metallbConfigMapName, cm)
+	return kubernetes.ApplyConfigMap(ctx, client, metallbNamespace, metallbConfigMapName, cm)
 }
 
 // getOrCreateAddressPool returns the address pool of the given network.
@@ -123,9 +117,9 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *AddressPool {
 // announceIPs appends the given IPs to the network address pools.
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
-	poolType := metalgo.IPTypeEphemeral
-	if t != nil && *t == metalgo.IPTypeStatic {
-		poolType = metalgo.IPTypeStatic
+	poolType := models.V1IPBaseTypeEphemeral
+	if t != nil && *t == models.V1IPBaseTypeStatic {
+		poolType = models.V1IPBaseTypeStatic
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)

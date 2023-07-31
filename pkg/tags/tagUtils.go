@@ -12,19 +12,10 @@ func BuildClusterServiceFQNTag(clusterID string, namespace, serviceName string) 
 	return fmt.Sprintf("%s=%s/%s/%s", t.ClusterServiceFQN, clusterID, namespace, serviceName)
 }
 
-// IsMachine returns true if the given tag is a machine-tag.
-func IsMachine(tag string) bool {
-	return strings.HasPrefix(tag, t.MachineID)
-}
-
-// IsEgress returns true if the given tag is an egress-tag
-func IsEgress(tag string) bool {
-	return strings.HasPrefix(tag, t.ClusterEgress)
-}
-
 // IsMemberOfCluster returns true of the given tag is a cluster-tag and clusterID matches.
 // tag is in the form of:
-//    cluster.metal-stack.io/id/namespace/service=<clusterid>/namespace/servicename
+//
+//	cluster.metal-stack.io/id/namespace/service=<clusterid>/namespace/servicename
 func IsMemberOfCluster(tag, clusterID string) bool {
 	if strings.HasPrefix(tag, t.ClusterID) {
 		parts := strings.Split(tag, "=")

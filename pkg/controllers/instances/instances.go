@@ -3,44 +3,34 @@ package instances
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
-	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 )
 
 type InstancesController struct {
-	client                 *metalgo.Driver
-	logger                 *log.Logger
-	K8sClient              clientset.Interface
 	defaultExternalNetwork string
+	MetalService           *metal.MetalService
 }
 
 // New returns a new instance controller that satisfies the kubernetes cloud provider instances interface
-func New(client *metalgo.Driver, defaultExternalNetwork string) *InstancesController {
-	logs.InitLogs()
-	logger := logs.NewLogger("metal-ccm instances | ")
-
+func New(defaultExternalNetwork string) *InstancesController {
 	return &InstancesController{
-		client:                 client,
-		logger:                 logger,
 		defaultExternalNetwork: defaultExternalNetwork,
 	}
 }
 
 // NodeAddresses returns the addresses of the specified instance.
-func (i *InstancesController) NodeAddresses(_ context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
-	i.logger.Printf("NodeAddresses: nodeName %q", name)
-	machine, err := metal.GetMachineFromNode(i.client, name)
+func (i *InstancesController) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.NodeAddress, error) {
+	klog.Infof("NodeAddresses: nodeName %q", name)
+	machine, err := i.MetalService.GetMachineFromNodeName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +43,9 @@ func (i *InstancesController) NodeAddresses(_ context.Context, name types.NodeNa
 // ProviderID is a unique identifier of the node. This will not be called
 // from the node whose node addresses are being queried. m.e. local metadata
 // services cannot be used in this method to obtain node addresses.
-func (i *InstancesController) NodeAddressesByProviderID(_ context.Context, providerID string) ([]v1.NodeAddress, error) {
-	i.logger.Printf("NodeAddressesByProviderID: providerID %q", providerID)
-	machine, err := metal.GetMachineFromProviderID(i.client, providerID)
+func (i *InstancesController) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
+	klog.Infof("NodeAddressesByProviderID: providerID %q", providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +84,9 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound).
-func (i *InstancesController) InstanceID(_ context.Context, nodeName types.NodeName) (string, error) {
-	i.logger.Printf("InstanceID: nodeName %q", nodeName)
-	machine, err := metal.GetMachineFromNode(i.client, nodeName)
+func (i *InstancesController) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
+	klog.Infof("InstanceID: nodeName %q", nodeName)
+	machine, err := i.MetalService.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -105,9 +95,9 @@ func (i *InstancesController) InstanceID(_ context.Context, nodeName types.NodeN
 }
 
 // InstanceType returns the type of the specified instance.
-func (i *InstancesController) InstanceType(_ context.Context, nodeName types.NodeName) (string, error) {
-	i.logger.Printf("InstanceType: nodeName %q", nodeName)
-	machine, err := metal.GetMachineFromNode(i.client, nodeName)
+func (i *InstancesController) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
+	klog.Infof("InstanceType: nodeName %q", nodeName)
+	machine, err := i.MetalService.GetMachineFromNodeName(ctx, nodeName)
 	if err != nil {
 		return "", err
 	}
@@ -116,9 +106,9 @@ func (i *InstancesController) InstanceType(_ context.Context, nodeName types.Nod
 }
 
 // InstanceTypeByProviderID returns the type of the specified instance.
-func (i *InstancesController) InstanceTypeByProviderID(_ context.Context, providerID string) (string, error) {
-	i.logger.Printf("InstanceTypeByProviderID: providerID %q", providerID)
-	machine, err := metal.GetMachineFromProviderID(i.client, providerID)
+func (i *InstancesController) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
+	klog.Infof("InstanceTypeByProviderID: providerID %q", providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return "", err
 	}
@@ -135,16 +125,16 @@ func (i *InstancesController) AddSSHKeyToAllInstances(_ context.Context, user st
 // CurrentNodeName returns the name of the node we are currently running on.
 // On most clouds (e.g. GCE) this is the hostname, so we provide the hostname.
 func (i *InstancesController) CurrentNodeName(_ context.Context, nodeName string) (types.NodeName, error) {
-	i.logger.Printf("CurrentNodeName: nodeName %q", nodeName)
+	klog.Infof("CurrentNodeName: nodeName %q", nodeName)
 	return types.NodeName(nodeName), nil
 }
 
 // InstanceExistsByProviderID returns true if the instance for the given provider exists.
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 // This method should still return true for machines that exist but are stopped/sleeping.
-func (i *InstancesController) InstanceExistsByProviderID(_ context.Context, providerID string) (bool, error) {
-	i.logger.Printf("InstanceExistsByProviderID: providerID %q", providerID)
-	machine, err := metal.GetMachineFromProviderID(i.client, providerID)
+func (i *InstancesController) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
+	klog.Infof("InstanceExistsByProviderID: providerID %q", providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil {
 		return false, err
 	}
@@ -153,9 +143,9 @@ func (i *InstancesController) InstanceExistsByProviderID(_ context.Context, prov
 }
 
 // InstanceShutdownByProviderID returns true if the instance is shutdown in cloudprovider.
-func (i *InstancesController) InstanceShutdownByProviderID(_ context.Context, providerID string) (bool, error) {
-	i.logger.Printf("InstanceShutdownByProviderID: providerID %q", providerID)
-	machine, err := metal.GetMachineFromProviderID(i.client, providerID)
+func (i *InstancesController) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
+	klog.Infof("InstanceShutdownByProviderID: providerID %q", providerID)
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, providerID)
 	if err != nil || machine.Allocation == nil {
 		return true, err
 	}
@@ -167,8 +157,8 @@ func (i *InstancesController) InstanceShutdownByProviderID(_ context.Context, pr
 // InstanceExists returns true if the instance for the given node exists according to the cloud provider.
 // Use the node.name or node.spec.providerID field to find the node in the cloud provider.
 func (i *InstancesController) InstanceExists(ctx context.Context, node *v1.Node) (bool, error) {
-	i.logger.Printf("InstanceExists: node %q", node.GetName())
-	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
+	klog.Infof("InstanceExists: node %q", node.GetName())
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
 	if err != nil {
 		return false, err
 	}
@@ -178,8 +168,8 @@ func (i *InstancesController) InstanceExists(ctx context.Context, node *v1.Node)
 // InstanceShutdown returns true if the instance is shutdown according to the cloud provider.
 // Use the node.name or node.spec.providerID field to find the node in the cloud provider.
 func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, error) {
-	i.logger.Printf("InstanceShutdown: node %q", node.GetName())
-	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
+	klog.Infof("InstanceShutdown: node %q", node.GetName())
+	machine, err := i.MetalService.GetMachineFromProviderID(ctx, node.Spec.ProviderID)
 	if err != nil || machine.Allocation == nil {
 		return true, err
 	}
@@ -195,16 +185,18 @@ func (i *InstancesController) InstanceShutdown(ctx context.Context, node *v1.Nod
 // ensure the format does not change in any incompatible way.
 //
 // The provider ID format used by existing cloud provider has been:
-//    <provider-name>://<instance-id>
+//
+//	<provider-name>://<instance-id>
+//
 // Existing providers setting this field should preserve the existing format
 // currently being set in node.spec.providerID.
 func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
-	i.logger.Printf("InstanceMetadata: node %q", node.GetName())
-	machine, err := metal.GetMachineFromNode(i.client, types.NodeName(node.Name))
+	klog.Infof("InstanceMetadata: node %q", node.GetName())
+
+	machine, err := i.MetalService.GetMachineFromNode(ctx, node)
 	if err != nil {
 		return nil, err
 	}
-
 	if machine == nil {
 		return nil, fmt.Errorf("machine is nil for node:%s", node.Name)
 	}

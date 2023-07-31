@@ -12,9 +12,8 @@ import (
 )
 
 // ApplyConfigMap creates or updates given config map.
-func ApplyConfigMap(client kubernetes.Interface, namespace, name string, configMap map[string]string) error {
+func ApplyConfigMap(ctx context.Context, client kubernetes.Interface, namespace, name string, configMap map[string]string) error {
 	var (
-		ctx = context.Background()
 		cm  = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,

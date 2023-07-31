@@ -1,4 +1,4 @@
 bin
 .idea
-metal-cloud-config.yaml
 cover.out
+.vscode

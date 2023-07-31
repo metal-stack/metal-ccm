@@ -1,30 +1,43 @@
 package metal
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 
-	metalgo "github.com/metal-stack/metal-go"
+	metalip "github.com/metal-stack/metal-go/api/client/ip"
+	"github.com/metal-stack/metal-lib/pkg/tag"
+
 	"github.com/metal-stack/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/google/uuid"
 )
 
-// FindClusterIPs returns the IPs of the given cluster.
-func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*models.V1IPResponse, error) {
-	req := &metalgo.IPFindRequest{
-		ProjectID: &projectID,
+// FindClusterIPs returns the allowed IPs of the given cluster.
+func (ms *MetalService) FindClusterIPs(ctx context.Context, projectID, clusterID string) ([]*models.V1IPResponse, error) {
+	req := &models.V1IPFindRequest{
+		Projectid: projectID,
 	}
 
-	resp, err := client.IPFind(req)
+	resp, err := ms.client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*models.V1IPResponse{}
-	for _, i := range resp.IPs {
+	for _, i := range resp.Payload {
+		tm := tag.NewTagMap(i.Tags)
+
+		if _, ok := tm.Value(tag.ClusterEgress); ok {
+			continue
+		}
+		if _, ok := tm.Value(tag.MachineID); ok {
+			continue
+		}
+
 		for _, t := range i.Tags {
 			if tags.IsMemberOfCluster(t, clusterID) {
 				result = append(result, i)
@@ -37,51 +50,42 @@ func FindClusterIPs(client *metalgo.Driver, projectID, clusterID string) ([]*mod
 }
 
 // FindProjectIP returns the IP
-func FindProjectIP(client *metalgo.Driver, projectID, ip string) (*models.V1IPResponse, error) {
-	req := &metalgo.IPFindRequest{
-		IPAddress: &ip,
-		ProjectID: &projectID,
+func (ms *MetalService) FindProjectIP(ctx context.Context, projectID, ip string) (*models.V1IPResponse, error) {
+	req := &models.V1IPFindRequest{
+		Ipaddress: ip,
+		Projectid: projectID,
 	}
 
-	resp, err := client.IPFind(req)
+	resp, err := ms.client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(resp.IPs) != 1 {
+	if len(resp.Payload) != 1 {
 		return nil, fmt.Errorf("ip %s is ambiguous for projectID: %s", ip, projectID)
 	}
 
-	return resp.IPs[0], nil
+	return resp.Payload[0], nil
 }
 
 // FindProjectIPsWithTag returns the IPs of the given project that also have the given tag.
-func FindProjectIPsWithTag(client *metalgo.Driver, projectID, tag string) ([]*models.V1IPResponse, error) {
-	req := &metalgo.IPFindRequest{
-		ProjectID: &projectID,
+func (ms *MetalService) FindProjectIPsWithTag(ctx context.Context, projectID, tag string) ([]*models.V1IPResponse, error) {
+	req := &models.V1IPFindRequest{
+		Projectid: projectID,
 		Tags:      []string{tag},
 	}
 
-	resp, err := client.IPFind(req)
+	resp, err := ms.client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.IPs, nil
-}
-
-// IPAddressesOfIPs returns the IP address strings of the given ips.
-func IPAddressesOfIPs(ips []*models.V1IPResponse) []string {
-	var result []string
-	for _, ip := range ips {
-		result = append(result, *ip.Ipaddress)
-	}
-	return result
+	return resp.Payload, nil
 }
 
 // FreeIP frees the given IP address.
-func FreeIP(client *metalgo.Driver, ip string) error {
-	_, err := client.IPFree(ip)
+func (ms *MetalService) FreeIP(ctx context.Context, ip string) error {
+	_, err := ms.client.IP().FreeIP(metalip.NewFreeIPParams().WithID(ip).WithContext(ctx), nil)
 	if err != nil {
 		return err
 	}
@@ -89,24 +93,34 @@ func FreeIP(client *metalgo.Driver, ip string) error {
 }
 
 // AllocateIP acquires an IP within the given network for a given project.
-func AllocateIP(client *metalgo.Driver, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
+func (ms *MetalService) AllocateIP(ctx context.Context, svc v1.Service, namePrefix, project, network, clusterID string) (*models.V1IPResponse, error) {
 	name, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
 	}
 
-	req := &metalgo.IPAllocateRequest{
+	req := &models.V1IPAllocateRequest{
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
-		Projectid: project,
-		Networkid: network,
-		Type:      metalgo.IPTypeEphemeral,
+		Projectid: &project,
+		Networkid: &network,
+		Type:      pointer.String(models.V1IPBaseTypeEphemeral),
 		Tags:      []string{tags.BuildClusterServiceFQNTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
-	resp, err := client.IPAllocate(req)
+	resp, err := ms.client.IP().AllocateIP(metalip.NewAllocateIPParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.IP, nil
+	return resp.Payload, nil
+}
+
+// UpdateIP updates the given IP address.
+func (ms *MetalService) UpdateIP(ctx context.Context, body *models.V1IPUpdateRequest) (*models.V1IPResponse, error) {
+	resp, err := ms.client.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(body).WithContext(ctx), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Payload, nil
 }

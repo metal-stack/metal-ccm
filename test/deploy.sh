@@ -13,7 +13,7 @@ TEST_DIR=$( dirname "$(readlink -f "${BASH_SOURCE[0]}" )")
 
 METAL_API_URL=${METAL_API_URL}
 if [[ -z ${METAL_API_URL} ]]; then
-  METAL_API_URL=${METALCTL_URL-http://metal.test.fi-ts.io}
+  METAL_API_URL=${METALCTL_API_URL-http://metal.test.fi-ts.io}
 fi
 
 METAL_API_HMAC=${METAL_API_HMAC}
