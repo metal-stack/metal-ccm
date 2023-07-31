@@ -11,7 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	ccmtags "github.com/metal-stack/metal-ccm/pkg/tags"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
 )
 
@@ -62,7 +62,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		}
 
 		// check if machine has a cluster tag, if not add it
-		if machineClusterTag, found := ccmtags.GetMachineClusterTag(tags); !found || machineClusterTag != h.clusterID {
+		if machineClusterTag, found := tag.NewTagMap(tags).Value(tag.ClusterID); !found || machineClusterTag != h.clusterID {
 			m, err := h.ms.GetMachineFromNode(context.Background(), &n)
 
 			if err != nil {

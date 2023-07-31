@@ -7,6 +7,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 
 	metalip "github.com/metal-stack/metal-go/api/client/ip"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-go/api/models"
 	v1 "k8s.io/api/core/v1"
@@ -28,13 +29,16 @@ func (ms *MetalService) FindClusterIPs(ctx context.Context, projectID, clusterID
 
 	result := []*models.V1IPResponse{}
 	for _, i := range resp.Payload {
+		tm := tag.NewTagMap(i.Tags)
+
+		if _, ok := tm.Value(tag.ClusterEgress); ok {
+			continue
+		}
+		if _, ok := tm.Value(tag.MachineID); ok {
+			continue
+		}
+
 		for _, t := range i.Tags {
-			if tags.IsEgress(t) {
-				continue
-			}
-			if tags.IsMachine(t) {
-				continue
-			}
 			if tags.IsMemberOfCluster(t, clusterID) {
 				result = append(result, i)
 				break

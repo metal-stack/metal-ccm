@@ -284,13 +284,13 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(ctx context.Context, nodes 
 }
 
 func (l *LoadBalancerController) useIPInCluster(ctx context.Context, ip models.V1IPResponse, clusterID string, s v1.Service) (*models.V1IPResponse, error) {
-	for _, t := range ip.Tags {
-		if tags.IsMachine(t) {
-			return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, ip tags: %v", ip.Tags)
-		}
-		if tags.IsEgress(t) {
-			return nil, fmt.Errorf("ip is used for egress purposes, can not use it for a service, ip tags: %v", ip.Tags)
-		}
+	tm := tag.NewTagMap(ip.Tags)
+
+	if _, ok := tm.Value(tag.MachineID); ok {
+		return nil, fmt.Errorf("ip is used for a machine, can not use it for a service, ip tags: %v", ip.Tags)
+	}
+	if _, ok := tm.Value(tag.ClusterEgress); ok {
+		return nil, fmt.Errorf("ip is used for egress purposes, can not use it for a service, ip tags: %v", ip.Tags)
 	}
 
 	serviceTag := tags.BuildClusterServiceFQNTag(clusterID, s.GetNamespace(), s.GetName())
