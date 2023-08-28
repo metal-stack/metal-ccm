@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/exp/slices"
+	"slices"
+
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
