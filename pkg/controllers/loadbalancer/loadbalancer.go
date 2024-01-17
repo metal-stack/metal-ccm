@@ -309,13 +309,13 @@ func (l *LoadBalancerController) acquireIP(ctx context.Context, service *v1.Serv
 	annotations := service.GetAnnotations()
 	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
 	if !ok {
-		return l.acquireIPFromDefaultExternalNetwork(ctx, service)
+		if l.defaultExternalNetworkID == "" {
+			return "", fmt.Errorf("no default network for ip acquisition specified, use explicit metallb pool to specify from where to acquire an ip")
+		}
+
+		return l.acquireIPFromSpecificNetwork(ctx, service, l.defaultExternalNetworkID)
 	}
 	return l.acquireIPFromSpecificNetwork(ctx, service, addressPool)
-}
-
-func (l *LoadBalancerController) acquireIPFromDefaultExternalNetwork(ctx context.Context, service *v1.Service) (string, error) {
-	return l.acquireIPFromSpecificNetwork(ctx, service, l.defaultExternalNetworkID)
 }
 
 func (l *LoadBalancerController) acquireIPFromSpecificNetwork(ctx context.Context, service *v1.Service, addressPoolName string) (string, error) {

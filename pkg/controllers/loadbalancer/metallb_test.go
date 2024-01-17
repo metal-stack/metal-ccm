@@ -25,18 +25,16 @@ var (
 
 func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 	tests := []struct {
-		name             string
-		defaultNetworkID string
-		nws              sets.Set[string]
-		ips              []*models.V1IPResponse
-		nodes            []v1.Node
-		wantErr          error
-		want             map[string]interface{}
+		name    string
+		nws     sets.Set[string]
+		ips     []*models.V1IPResponse
+		nodes   []v1.Node
+		wantErr error
+		want    map[string]interface{}
 	}{
 		{
-			name:             "one ip acquired, no nodes",
-			defaultNetworkID: "internet",
-			nws:              testNetworks,
+			name: "one ip acquired, no nodes",
+			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
 					Ipaddress: pointer.String("84.1.1.1"),
@@ -65,9 +63,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 		},
 		{
-			name:             "two ips acquired, no nodes",
-			defaultNetworkID: "internet",
-			nws:              testNetworks,
+			name: "two ips acquired, no nodes",
+			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
 					Ipaddress: pointer.String("84.1.1.1"),
@@ -107,9 +104,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 		},
 		{
-			name:             "two ips acquired, one static ip, no nodes",
-			defaultNetworkID: "internet",
-			nws:              testNetworks,
+			name: "two ips acquired, one static ip, no nodes",
+			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
 					Ipaddress: pointer.String("84.1.1.1"),
@@ -168,9 +164,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 		},
 
 		{
-			name:             "connected to internet,storage,dmz and mpls, two ips acquired, one static ip, no nodes",
-			defaultNetworkID: "internet",
-			nws:              testNetworks,
+			name: "connected to internet,storage,dmz and mpls, two ips acquired, one static ip, no nodes",
+			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
 					Ipaddress: pointer.String("84.1.1.1"),
@@ -303,9 +298,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MetalLBConfig{
-				defaultNetworkID: tt.defaultNetworkID,
-			}
+			cfg := &MetalLBConfig{}
 
 			err := cfg.CalculateConfig(tt.ips, tt.nws, tt.nodes)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {

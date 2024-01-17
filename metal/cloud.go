@@ -63,10 +63,6 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q is required", constants.MetalClusterIDEnvVar)
 	}
 
-	if defaultExternalNetworkID == "" {
-		return nil, fmt.Errorf("environment variable %q is required", constants.MetalDefaultExternalNetworkEnvVar)
-	}
-
 	if url == "" {
 		return nil, fmt.Errorf("environment variable %q is required", constants.MetalAPIUrlEnvVar)
 	}

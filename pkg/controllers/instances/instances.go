@@ -73,6 +73,11 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 			continue
 		}
 
+		if defaultExternalNetwork == "" {
+			// empty default external network assumes isolated-cluster with forbidden access, so these nodes don't have an external IP
+			continue
+		}
+
 		if *nw.Networkid == defaultExternalNetwork {
 			for _, ip := range nw.Ips {
 				addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: ip})

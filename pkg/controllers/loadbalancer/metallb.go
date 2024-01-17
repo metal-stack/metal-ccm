@@ -26,15 +26,12 @@ const (
 
 // MetalLBConfig is a struct containing a config for metallb
 type MetalLBConfig struct {
-	Peers            []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools     []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	defaultNetworkID string
+	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
+	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
 func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
-	return &MetalLBConfig{
-		defaultNetworkID: defaultNetworkID,
-	}
+	return &MetalLBConfig{}
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
