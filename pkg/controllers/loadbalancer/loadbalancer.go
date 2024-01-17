@@ -310,7 +310,7 @@ func (l *LoadBalancerController) acquireIP(ctx context.Context, service *v1.Serv
 	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
 	if !ok {
 		if l.defaultExternalNetworkID == "" {
-			return "", fmt.Errorf("no default network for ip acquisition specified, use explicit metallb pool to specify from where to acquire an ip")
+			return "", fmt.Errorf(`no default network for ip acquisition specified, acquire an ip for your cluster's project and specify it directly in "spec.loadBalancerIP"`)
 		}
 
 		return l.acquireIPFromSpecificNetwork(ctx, service, l.defaultExternalNetworkID)
