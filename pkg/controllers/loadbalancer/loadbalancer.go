@@ -337,7 +337,7 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	config := newMetalLBConfig(l.defaultExternalNetworkID)
+	config := newMetalLBConfig()
 	err = config.CalculateConfig(ips, l.additionalNetworks, nodes)
 	if err != nil {
 		return err
