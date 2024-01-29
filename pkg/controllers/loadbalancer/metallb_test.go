@@ -6,11 +6,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 )
 
@@ -37,14 +37,14 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.String("84.1.1.1"),
+					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -67,24 +67,24 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.String("84.1.1.1"),
+					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.String("84.1.1.2"),
+					Ipaddress: pointer.Pointer("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -108,34 +108,34 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.String("84.1.1.1"),
+					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.String("84.1.1.2"),
+					Ipaddress: pointer.Pointer("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.String("84.1.1.3"),
+					Ipaddress: pointer.Pointer("84.1.1.3"),
 					Name:      "static-ip",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("static"),
+					Type: pointer.Pointer("static"),
 				},
 			},
 			nodes:   []v1.Node{},
@@ -168,74 +168,74 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nws:  testNetworks,
 			ips: []*models.V1IPResponse{
 				{
-					Ipaddress: pointer.String("84.1.1.1"),
+					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.String("84.1.1.2"),
+					Ipaddress: pointer.Pointer("84.1.1.2"),
 					Name:      "acquired-before-2",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.String("84.1.1.3"),
+					Ipaddress: pointer.Pointer("84.1.1.3"),
 					Name:      "static-ip",
-					Networkid: pointer.String("internet"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("internet"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("static"),
+					Type: pointer.Pointer("static"),
 				},
 				{
-					Ipaddress: pointer.String("10.131.44.2"),
+					Ipaddress: pointer.Pointer("10.131.44.2"),
 					Name:      "static-ip",
-					Networkid: pointer.String("shared-storage-network"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("shared-storage-network"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("static"),
+					Type: pointer.Pointer("static"),
 				},
 				{
-					Ipaddress: pointer.String("100.127.130.2"),
+					Ipaddress: pointer.Pointer("100.127.130.2"),
 					Name:      "static-ip",
-					Networkid: pointer.String("mpls-network"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("mpls-network"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("static"),
+					Type: pointer.Pointer("static"),
 				},
 				{
-					Ipaddress: pointer.String("100.127.130.3"),
+					Ipaddress: pointer.Pointer("100.127.130.3"),
 					Name:      "ephemeral-mpls-ip",
-					Networkid: pointer.String("mpls-network"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("mpls-network"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("ephemeral"),
+					Type: pointer.Pointer("ephemeral"),
 				},
 				{
-					Ipaddress: pointer.String("10.129.172.2"),
+					Ipaddress: pointer.Pointer("10.129.172.2"),
 					Name:      "static-ip",
-					Networkid: pointer.String("dmz-network"),
-					Projectid: pointer.String("project-a"),
+					Networkid: pointer.Pointer("dmz-network"),
+					Projectid: pointer.Pointer("project-a"),
 					Tags: []string{
 						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
 					},
-					Type: pointer.String("static"),
+					Type: pointer.Pointer("static"),
 				},
 			},
 			nodes:   []v1.Node{},
