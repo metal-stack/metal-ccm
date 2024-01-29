@@ -1,6 +1,10 @@
 package loadbalancer
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/metal-stack/metal-lib/pkg/pointer"
+)
 
 const (
 	bgpProtocol = "bgp"
@@ -13,11 +17,11 @@ type AddressPool struct {
 	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only /32 addresses are used.
 }
 
-func NewBGPAddressPool(name string, autoAssign bool) *AddressPool {
+func NewBGPAddressPool(name string) *AddressPool {
 	return &AddressPool{
 		Name:       name,
 		Protocol:   bgpProtocol,
-		AutoAssign: &autoAssign,
+		AutoAssign: pointer.Pointer(false),
 	}
 }
 

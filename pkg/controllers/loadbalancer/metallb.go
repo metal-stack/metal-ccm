@@ -26,15 +26,12 @@ const (
 
 // MetalLBConfig is a struct containing a config for metallb
 type MetalLBConfig struct {
-	Peers            []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools     []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	defaultNetworkID string
+	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
+	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
-func newMetalLBConfig(defaultNetworkID string) *MetalLBConfig {
-	return &MetalLBConfig{
-		defaultNetworkID: defaultNetworkID,
-	}
+func newMetalLBConfig() *MetalLBConfig {
+	return &MetalLBConfig{}
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
@@ -101,14 +98,14 @@ func (cfg *MetalLBConfig) Write(ctx context.Context, client clientset.Interface)
 
 // getOrCreateAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign bool) *AddressPool {
+func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.Name == poolName {
 			return pool
 		}
 	}
 
-	pool := NewBGPAddressPool(poolName, autoAssign)
+	pool := NewBGPAddressPool(poolName)
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
@@ -118,13 +115,11 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string, autoAssign boo
 func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
-	autoAssign := network == cfg.defaultNetworkID
 	if t != nil && *t == models.V1IPBaseTypeStatic {
 		poolType = models.V1IPBaseTypeStatic
-		autoAssign = false
 	}
 	poolName := fmt.Sprintf("%s-%s", network, poolType)
-	pool := cfg.getOrCreateAddressPool(poolName, autoAssign)
+	pool := cfg.getOrCreateAddressPool(poolName)
 	pool.appendIP(*ip.Ipaddress)
 }
 
