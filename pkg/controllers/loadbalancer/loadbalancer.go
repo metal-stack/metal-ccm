@@ -144,7 +144,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 			Ipaddress: &ip,
 			Tags:      []string{},
 		})
-		if err != nil {
+		if err2 != nil {
 			klog.Errorf("error during ip rollback occurred: %v", err2)
 			return err
 		}
