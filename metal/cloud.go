@@ -18,10 +18,15 @@ import (
 
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
+	metallbv1beta2 "go.universe.tf/metallb/api/v1beta2"
 )
 
 var (
-	client metalgo.Client
+	metalclient metalgo.Client
 )
 
 type cloud struct {
@@ -72,12 +77,12 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	var err error
-	client, err = metalgo.NewDriver(url, token, hmac)
+	metalclient, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
 
-	resp, err := client.Health().Health(nil, nil)
+	resp, err := metalclient.Health().Health(nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
@@ -104,12 +109,30 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 
-	k8sClient := clientBuilder.ClientOrDie("cloud-controller-manager")
+	k8sClientSet := clientBuilder.ClientOrDie("cloud-controller-manager")
+	k8sRestConfig, err := clientBuilder.Config("cloud-controller-manager")
+	if err != nil {
+		klog.Error(err)
+	}
+	k8sRestConfig.ContentType = "application/json"
+	err = metallbv1beta1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		klog.Error(err)
+	}
+	err = metallbv1beta2.AddToScheme(scheme.Scheme)
+	if err != nil {
+		klog.Error(err)
+	}
+	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme.Scheme})
+	if err != nil {
+		klog.Error(err)
+	}
 
-	housekeeper := housekeeping.New(client, stop, c.loadBalancer, k8sClient, projectID, sshPublicKey, clusterID)
-	ms := metal.New(client, k8sClient, projectID)
+	housekeeper := housekeeping.New(metalclient, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
+	ms := metal.New(metalclient, k8sClientSet, projectID)
 
 	c.instances.MetalService = ms
+	c.loadBalancer.K8sClientSet = k8sClientSet
 	c.loadBalancer.K8sClient = k8sClient
 	c.loadBalancer.MetalService = ms
 	c.zones.MetalService = ms
