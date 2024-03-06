@@ -112,20 +112,20 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	k8sClientSet := clientBuilder.ClientOrDie("cloud-controller-manager")
 	k8sRestConfig, err := clientBuilder.Config("cloud-controller-manager")
 	if err != nil {
-		klog.Error(err)
+		klog.Fatalf("unable to get k8s rest config: %v", err)
 	}
 	k8sRestConfig.ContentType = "application/json"
 	err = metallbv1beta1.AddToScheme(scheme.Scheme)
 	if err != nil {
-		klog.Error(err)
+		klog.Fatalf("unable to add metallb v1beta1 to scheme: %v", err)
 	}
 	err = metallbv1beta2.AddToScheme(scheme.Scheme)
 	if err != nil {
-		klog.Error(err)
+		klog.Fatalf("unable to add metallb v1beta2 to scheme: %v", err)
 	}
 	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		klog.Error(err)
+		klog.Fatalf("unable to create k8s client: %v", err)
 	}
 
 	housekeeper := housekeeping.New(metalclient, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
