@@ -166,7 +166,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	}
 
 	for _, peer := range cfg.Peers {
-		bgpPeer := &metallbv1beta2.BGPPeer{ // Add '&' to pass a pointer to BGPPeer
+		bgpPeer := &metallbv1beta2.BGPPeer{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta2",
 				Kind:       "BGPPeer",
@@ -175,7 +175,9 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Name:      fmt.Sprintf("peer-%d", peer.ASN),
 				Namespace: metallbNamespace,
 			},
-			Spec: metallbv1beta2.BGPPeerSpec{
+		}
+		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
+			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
 				MyASN:         uint32(peer.MyASN),
 				ASN:           uint32(peer.ASN),
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
@@ -188,9 +190,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 						Values:   peer.NodeSelectors[0].MatchExpressions[0].Values,
 					}},
 				}},
-			},
-		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
+			}
 			return nil
 		})
 		if err != nil {
@@ -225,7 +225,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	}
 
 	for _, pool := range cfg.AddressPools {
-		pool := &metallbv1beta1.IPAddressPool{
+		ipAddressPool := &metallbv1beta1.IPAddressPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta1",
 				Kind:       "IPAddressPool",
@@ -234,12 +234,12 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Name:      pool.Name,
 				Namespace: metallbNamespace,
 			},
-			Spec: metallbv1beta1.IPAddressPoolSpec{
+		}
+		res, err := controllerutil.CreateOrUpdate(ctx, c, ipAddressPool, func() error {
+			ipAddressPool.Spec = metallbv1beta1.IPAddressPoolSpec{
 				Addresses:  pool.CIDRs,
 				AutoAssign: pool.AutoAssign,
-			},
-		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, pool, func() error {
+			}
 			return nil
 		})
 		if err != nil {
@@ -283,11 +283,11 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Name:      pool.Name,
 				Namespace: metallbNamespace,
 			},
-			Spec: metallbv1beta1.BGPAdvertisementSpec{
-				IPAddressPools: []string{pool.Name},
-			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpAdvertisement, func() error {
+			bgpAdvertisement.Spec = metallbv1beta1.BGPAdvertisementSpec{
+				IPAddressPools: []string{pool.Name},
+			}
 			return nil
 		})
 		if err != nil {
