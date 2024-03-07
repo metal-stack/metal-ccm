@@ -22,6 +22,8 @@ import (
 
 	retrygo "github.com/avast/retry-go/v4"
 	clientset "k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"k8s.io/client-go/util/retry"
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -33,7 +35,8 @@ type LoadBalancerController struct {
 	clusterID                string
 	defaultExternalNetworkID string
 	additionalNetworks       sets.Set[string]
-	K8sClient                clientset.Interface
+	K8sClientSet             clientset.Interface
+	K8sClient                client.Client
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
 	ipUpdateMutex            *sync.Mutex
@@ -141,7 +144,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 			Ipaddress: &ip,
 			Tags:      []string{},
 		})
-		if err != nil {
+		if err2 != nil {
 			klog.Errorf("error during ip rollback occurred: %v", err2)
 			return err
 		}
@@ -156,13 +159,13 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 	}
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		s, err := l.K8sClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
+		s, err := l.K8sClientSet.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
 		s.Spec.LoadBalancerIP = ip
-		_, err = l.K8sClient.CoreV1().Services(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
+		_, err = l.K8sClientSet.CoreV1().Services(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
 		return err
 	})
 	if err != nil {
@@ -342,7 +345,12 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 	if err != nil {
 		return err
 	}
-	err = config.Write(ctx, l.K8sClient)
+	err = config.Write(ctx, l.K8sClientSet)
+	if err != nil {
+		return err
+	}
+
+	err = config.WriteCRs(ctx, l.K8sClient)
 	if err != nil {
 		return err
 	}
