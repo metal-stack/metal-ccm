@@ -168,13 +168,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
 				Address:       peer.Address,
-				NodeSelectors: []metav1.LabelSelector{{
-					MatchExpressions: []metav1.LabelSelectorRequirement{{
-						Key:      peer.NodeSelectors[0].MatchExpressions[0].Key,
-						Operator: metav1.LabelSelectorOpIn,
-						Values:   peer.NodeSelectors[0].MatchExpressions[0].Values,
-					}},
-				}},
+				NodeSelectors: peer.NodeSelectors,
 			}
 			return nil
 		})
