@@ -345,10 +345,6 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 	if err != nil {
 		return err
 	}
-	err = config.Write(ctx, l.K8sClientSet)
-	if err != nil {
-		return err
-	}
 
 	err = config.WriteCRs(ctx, l.K8sClient)
 	if err != nil {

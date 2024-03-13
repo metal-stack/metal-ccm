@@ -6,13 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-go/api/models"
@@ -88,19 +86,6 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 		cfg.Peers = append(cfg.Peers, peer)
 	}
 	return nil
-}
-
-// Write inserts or updates the Metal-LB config.
-func (cfg *MetalLBConfig) Write(ctx context.Context, client clientset.Interface) error {
-	yaml, err := cfg.ToYAML()
-	if err != nil {
-		return err
-	}
-
-	cm := make(map[string]string, 1)
-	cm[metallbConfigMapKey] = yaml
-
-	return kubernetes.ApplyConfigMap(ctx, client, metallbNamespace, metallbConfigMapName, cm)
 }
 
 // getOrCreateAddressPool returns the address pool of the given network.
