@@ -24,9 +24,7 @@ import (
 )
 
 const (
-	metallbNamespace     = "metallb-system"
-	metallbConfigMapName = "config"
-	metallbConfigMapKey  = "config"
+	metallbNamespace = "metallb-system"
 )
 
 // MetalLBConfig is a struct containing a config for metallb
