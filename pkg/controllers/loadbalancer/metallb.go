@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
@@ -231,7 +232,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Kind:       "IPAddressPool",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pool.Name,
+				Name:      strings.ToLower(pool.Name),
 				Namespace: metallbNamespace,
 			},
 		}
@@ -280,7 +281,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Kind:       "BGPAdvertisement",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pool.Name,
+				Name:      strings.ToLower(pool.Name),
 				Namespace: metallbNamespace,
 			},
 		}
