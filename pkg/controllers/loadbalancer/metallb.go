@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -108,7 +109,7 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	if t != nil && *t == models.V1IPBaseTypeStatic {
 		poolType = models.V1IPBaseTypeStatic
 	}
-	poolName := fmt.Sprintf("%s-%s", network, poolType)
+	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)
 	pool.appendIP(*ip.Ipaddress)
 }
