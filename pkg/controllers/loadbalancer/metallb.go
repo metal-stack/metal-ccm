@@ -7,13 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-go/api/models"
@@ -27,9 +25,7 @@ import (
 )
 
 const (
-	metallbNamespace     = "metallb-system"
-	metallbConfigMapName = "config"
-	metallbConfigMapKey  = "config"
+	metallbNamespace = "metallb-system"
 )
 
 // MetalLBConfig is a struct containing a config for metallb
@@ -89,19 +85,6 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 		cfg.Peers = append(cfg.Peers, peer)
 	}
 	return nil
-}
-
-// Write inserts or updates the Metal-LB config.
-func (cfg *MetalLBConfig) Write(ctx context.Context, client clientset.Interface) error {
-	yaml, err := cfg.ToYAML()
-	if err != nil {
-		return err
-	}
-
-	cm := make(map[string]string, 1)
-	cm[metallbConfigMapKey] = yaml
-
-	return kubernetes.ApplyConfigMap(ctx, client, metallbNamespace, metallbConfigMapName, cm)
 }
 
 // getOrCreateAddressPool returns the address pool of the given network.
@@ -184,13 +167,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
 				Address:       peer.Address,
-				NodeSelectors: []metav1.LabelSelector{{
-					MatchExpressions: []metav1.LabelSelectorRequirement{{
-						Key:      peer.NodeSelectors[0].MatchExpressions[0].Key,
-						Operator: metav1.LabelSelectorOpIn,
-						Values:   peer.NodeSelectors[0].MatchExpressions[0].Values,
-					}},
-				}},
+				NodeSelectors: peer.NodeSelectors,
 			}
 			return nil
 		})

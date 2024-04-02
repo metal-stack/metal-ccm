@@ -345,9 +345,14 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 	if err != nil {
 		return err
 	}
-	err = config.Write(ctx, l.K8sClientSet)
-	if err != nil {
-		return err
+
+	// TODO: in a future release this can be removed
+	err = l.K8sClient.Delete(ctx, &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name:      "config",
+		Namespace: metallbNamespace,
+	}})
+	if client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("unable to cleanup deprecated metallb configmap: %w", err)
 	}
 
 	err = config.WriteCRs(ctx, l.K8sClient)
