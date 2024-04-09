@@ -107,7 +107,7 @@ func (h *Housekeeper) getMachineTags(nodes []v1.Node) (map[string][]string, erro
 }
 
 func (h *Housekeeper) buildLabelsFromMachineTags(tags []string) map[string]string {
-	excludedLables := map[string]bool{"networking.gardener.cloud/node-local-dns-enabled": true}
+	excludedLabels := map[string]bool{"networking.gardener.cloud/node-local-dns-enabled": true}
 
 	result := make(map[string]string)
 
@@ -115,7 +115,7 @@ func (h *Housekeeper) buildLabelsFromMachineTags(tags []string) map[string]strin
 		label, value, found := strings.Cut(t, "=")
 		// we only add tags to the node labels that have an "="
 		// and ignore labels, that are also managed by gardener
-		if !found || excludedLables[label] {
+		if !found || excludedLabels[label] {
 			continue
 		}
 		result[label] = value
