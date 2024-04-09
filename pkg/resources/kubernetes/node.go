@@ -41,7 +41,7 @@ func UpdateNodeLabelsWithBackoff(client clientset.Interface, nodeName string, la
 	})
 }
 
-// NodeNamesOfNodes returns the node names of the nodess
+// NodeNamesOfNodes returns the node names of the nodes
 func NodeNamesOfNodes(nodes []v1.Node) string {
 	var nn []string
 	for _, n := range nodes {
