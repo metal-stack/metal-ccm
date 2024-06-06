@@ -12,6 +12,8 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/cilium"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/metallb"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -44,6 +46,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
+	loadbalancerType := os.Getenv(constants.Loadbalancer)
 
 	var (
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
@@ -92,7 +95,18 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(defaultExternalNetworkID)
 	zonesController := zones.New()
-	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
+
+	var config loadbalancer.Config
+	switch loadbalancerType {
+	case "metallb":
+		config = metallb.NewMetalLBConfig()
+	case "cilium":
+		config = cilium.NewCiliumConfig()
+	default:
+		return nil, fmt.Errorf("loadbalancer type must be on of 'metallb' or 'cilium'")
+	}
+
+	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks, config)
 
 	klog.Info("initialized cloud controller manager")
 	return &cloud{

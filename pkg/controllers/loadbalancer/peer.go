@@ -4,27 +4,15 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Peer struct {
-	MyASN         int64                   `json:"my-asn" yaml:"my-asn"`
-	ASN           int64                   `json:"peer-asn" yaml:"peer-asn"`
-	Address       string                  `json:"peer-address" yaml:"peer-address"`
-	NodeSelectors []metav1.LabelSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
+	MyASN   int64  `json:"my-asn" yaml:"my-asn"`
+	ASN     int64  `json:"peer-asn" yaml:"peer-asn"`
+	Address string `json:"peer-address" yaml:"peer-address"`
 }
 
-func newPeer(node v1.Node, asn int64) (*Peer, error) {
-	hostname := node.GetName()
-
-	matchExpression := metav1.LabelSelectorRequirement{
-		Key:      "kubernetes.io/hostname",
-		Operator: "In",
-		Values: []string{
-			hostname,
-		},
-	}
-
+func NewPeer(node v1.Node, asn int64) (*Peer, error) {
 	address, err := NodeAddress(node)
 	if err != nil {
 		return nil, err
@@ -33,13 +21,6 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 		MyASN:   asn,
 		ASN:     asn,
 		Address: address,
-		NodeSelectors: []metav1.LabelSelector{
-			{
-				MatchExpressions: []metav1.LabelSelectorRequirement{
-					matchExpression,
-				},
-			},
-		},
 	}, nil
 }
 

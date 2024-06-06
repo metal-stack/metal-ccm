@@ -1,4 +1,4 @@
-package loadbalancer
+package metallb
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
@@ -30,12 +31,17 @@ const (
 
 // MetalLBConfig is a struct containing a config for metallb
 type MetalLBConfig struct {
-	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	Peers        []*Peer                     `json:"peers,omitempty" yaml:"peers,omitempty"`
+	AddressPools []*loadbalancer.AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	namespace    string
 }
 
-func newMetalLBConfig() *MetalLBConfig {
-	return &MetalLBConfig{}
+func NewMetalLBConfig() *MetalLBConfig {
+	return &MetalLBConfig{namespace: metallbNamespace}
+}
+
+func (cfg *MetalLBConfig) Namespace() string {
+	return cfg.namespace
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
@@ -89,14 +95,14 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 
 // getOrCreateAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *AddressPool {
+func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.Name == poolName {
 			return pool
 		}
 	}
 
-	pool := NewBGPAddressPool(poolName)
+	pool := loadbalancer.NewBGPAddressPool(poolName)
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
@@ -111,7 +117,7 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	}
 	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)
-	pool.appendIP(*ip.Ipaddress)
+	pool.AppendIP(*ip.Ipaddress)
 }
 
 // ToYAML returns this config in YAML format.
@@ -128,7 +134,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 
 	// BGPPeers
 	bgpPeerList := metallbv1beta2.BGPPeerList{}
-	err := c.List(ctx, &bgpPeerList, client.InNamespace(metallbNamespace))
+	err := c.List(ctx, &bgpPeerList, client.InNamespace(cfg.namespace))
 	if err != nil {
 		return err
 	}
@@ -136,7 +142,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		existingPeer := existingPeer
 		found := false
 		for _, peer := range cfg.Peers {
-			if fmt.Sprintf("peer-%d", peer.ASN) == existingPeer.Name {
+			if fmt.Sprintf("peer-%d", peer.Peer.ASN) == existingPeer.Name {
 				found = true
 				break
 			}
@@ -156,17 +162,17 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Kind:       "BGPPeer",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("peer-%d", peer.ASN),
-				Namespace: metallbNamespace,
+				Name:      fmt.Sprintf("peer-%d", peer.Peer.ASN),
+				Namespace: cfg.namespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
-				MyASN:         uint32(peer.MyASN),
-				ASN:           uint32(peer.ASN),
+				MyASN:         uint32(peer.Peer.MyASN),
+				ASN:           uint32(peer.Peer.ASN),
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
-				Address:       peer.Address,
+				Address:       peer.Peer.Address,
 				NodeSelectors: peer.NodeSelectors,
 			}
 			return nil
@@ -181,7 +187,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 
 	// IPAddressPools
 	addressPoolList := metallbv1beta1.IPAddressPoolList{}
-	err = c.List(ctx, &addressPoolList, client.InNamespace(metallbNamespace))
+	err = c.List(ctx, &addressPoolList, client.InNamespace(cfg.namespace))
 	if err != nil {
 		return err
 	}
@@ -210,7 +216,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pool.Name,
-				Namespace: metallbNamespace,
+				Namespace: cfg.namespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, ipAddressPool, func() error {
@@ -231,7 +237,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	// BGPAdvertisements
 	for _, pool := range cfg.AddressPools {
 		bgpAdvertisementList := metallbv1beta1.BGPAdvertisementList{}
-		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(metallbNamespace))
+		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(cfg.namespace))
 		if err != nil {
 			return err
 		}
@@ -259,7 +265,7 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pool.Name,
-				Namespace: metallbNamespace,
+				Namespace: cfg.namespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpAdvertisement, func() error {
