@@ -103,7 +103,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	case "cilium":
 		config = cilium.NewCiliumConfig()
 	default:
-		return nil, fmt.Errorf("loadbalancer type must be on of 'metallb' or 'cilium'")
+		config = metallb.NewMetalLBConfig()
 	}
 
 	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks, config)
