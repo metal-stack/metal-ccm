@@ -29,7 +29,7 @@ import (
 )
 
 type LoadBalancerController struct {
-	Config
+	LoadBalancer
 	MetalService             *metal.MetalService
 	partitionID              string
 	projectID                string
@@ -44,9 +44,9 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, config Config) *LoadBalancerController {
+func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, config LoadBalancer) *LoadBalancerController {
 	return &LoadBalancerController{
-		Config:                   config,
+		LoadBalancer:             config,
 		partitionID:              partitionID,
 		projectID:                projectID,
 		clusterID:                clusterID,
@@ -342,7 +342,7 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	err = l.Config.CalculateConfig(ips, l.additionalNetworks, nodes)
+	err = l.LoadBalancer.CalculateConfig(ips, l.additionalNetworks, nodes)
 	if err != nil {
 		return err
 	}
@@ -350,13 +350,13 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 	// TODO: in a future release this can be removed
 	err = l.K8sClient.Delete(ctx, &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
 		Name:      "config",
-		Namespace: l.Config.Namespace(),
+		Namespace: l.LoadBalancer.Namespace(),
 	}})
 	if client.IgnoreNotFound(err) != nil {
 		return fmt.Errorf("unable to cleanup deprecated metallb configmap: %w", err)
 	}
 
-	err = l.Config.WriteCRs(ctx, l.K8sClient)
+	err = l.LoadBalancer.WriteCRs(ctx, l.K8sClient)
 	if err != nil {
 		return err
 	}

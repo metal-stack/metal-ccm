@@ -96,7 +96,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	instancesController := instances.New(defaultExternalNetworkID)
 	zonesController := zones.New()
 
-	var config loadbalancer.Config
+	var config loadbalancer.LoadBalancer
 	switch loadbalancerType {
 	case "metallb":
 		config = metallb.NewMetalLBConfig()

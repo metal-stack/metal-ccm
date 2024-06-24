@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type Config interface {
+type LoadBalancer interface {
 	Namespace() string
 	CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error
 	WriteCRs(ctx context.Context, c client.Client) error

@@ -298,7 +298,7 @@ func TestCiliumConfig_CalculateConfig(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &CiliumConfig{}
+			cfg := &Cilium{}
 
 			err := cfg.CalculateConfig(tt.ips, tt.nws, tt.nodes)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {

@@ -23,25 +23,20 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	ciliumNamespace = "kube-system"
-)
-
-type CiliumConfig struct {
+type Cilium struct {
 	Peers        []*Peer                     `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*loadbalancer.AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	namespace    string
 }
 
-func NewCiliumConfig() *CiliumConfig {
-	return &CiliumConfig{namespace: ciliumNamespace}
+func NewCiliumConfig() *Cilium {
+	return &Cilium{}
 }
 
-func (cfg *CiliumConfig) Namespace() string {
-	return cfg.namespace
+func (cfg *Cilium) Namespace() string {
+	return ""
 }
 
-func (cfg *CiliumConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
+func (cfg *Cilium) CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -53,7 +48,7 @@ func (cfg *CiliumConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Se
 	return nil
 }
 
-func (cfg *CiliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+func (cfg *Cilium) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
@@ -65,7 +60,7 @@ func (cfg *CiliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws set
 	return nil
 }
 
-func (cfg *CiliumConfig) computePeers(nodes []v1.Node) error {
+func (cfg *Cilium) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
 		labels := n.GetLabels()
@@ -89,7 +84,7 @@ func (cfg *CiliumConfig) computePeers(nodes []v1.Node) error {
 	return nil
 }
 
-func (cfg *CiliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
+func (cfg *Cilium) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.Name == poolName {
 			return pool
@@ -102,7 +97,7 @@ func (cfg *CiliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.A
 	return pool
 }
 
-func (cfg *CiliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
+func (cfg *Cilium) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
 	if t != nil && *t == models.V1IPBaseTypeStatic {
@@ -113,7 +108,7 @@ func (cfg *CiliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	pool.AppendIP(*ip.Ipaddress)
 }
 
-func (cfg *CiliumConfig) ToYAML() (string, error) {
+func (cfg *Cilium) ToYAML() (string, error) {
 	bb, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", err
@@ -121,7 +116,7 @@ func (cfg *CiliumConfig) ToYAML() (string, error) {
 	return string(bb), nil
 }
 
-func (cfg *CiliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
+func (cfg *Cilium) WriteCRs(ctx context.Context, c client.Client) error {
 	err := cfg.writeCiliumBGPPeeringPolicies(ctx, c)
 	if err != nil {
 		return fmt.Errorf("failed to write ciliumbgppeeringpolicy resources %w", err)
@@ -135,9 +130,9 @@ func (cfg *CiliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	return nil
 }
 
-func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {
+func (cfg *Cilium) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {
 	existingPolicies := ciliumv2alpha1.CiliumBGPPeeringPolicyList{}
-	err := c.List(ctx, &existingPolicies, client.InNamespace(cfg.namespace))
+	err := c.List(ctx, &existingPolicies)
 	if err != nil {
 		return err
 	}
@@ -165,8 +160,7 @@ func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 				Kind:       "CiliumBGPPeeringPolicy",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%d", peer.Peer.ASN),
-				Namespace: cfg.namespace,
+				Name: fmt.Sprintf("%d", peer.Peer.ASN),
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeeringPolicy, func() error {
@@ -199,9 +193,9 @@ func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 	return nil
 }
 
-func (cfg *CiliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c client.Client) error {
+func (cfg *Cilium) writeCiliumLoadBalancerIPPools(ctx context.Context, c client.Client) error {
 	existingPools := ciliumv2alpha1.CiliumLoadBalancerIPPoolList{}
-	err := c.List(ctx, &existingPools, client.InNamespace(cfg.namespace))
+	err := c.List(ctx, &existingPools)
 	if err != nil {
 		return err
 	}
@@ -229,8 +223,7 @@ func (cfg *CiliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 				Kind:       "CiliumLoadBalancerIpPool",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pool.Name,
-				Namespace: cfg.namespace,
+				Name: pool.Name,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, ipPool, func() error {
