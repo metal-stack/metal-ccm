@@ -176,7 +176,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 
-	err = l.UpdateMetalLBConfig(ctx, ns)
+	err = l.UpdateLoadBalancerConfig(ctx, ns)
 	if err != nil {
 		return nil, rollback(err)
 	}
@@ -194,7 +194,7 @@ func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, cluster
 	for i := range nodes {
 		ns = append(ns, *nodes[i])
 	}
-	return l.UpdateMetalLBConfig(ctx, ns)
+	return l.UpdateLoadBalancerConfig(ctx, ns)
 }
 
 // EnsureLoadBalancerDeleted deletes the cluster load balancer if it
@@ -273,8 +273,8 @@ func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, servic
 	return newTags, last
 }
 
-// UpdateMetalLBConfig the metallb config for given nodes
-func (l *LoadBalancerController) UpdateMetalLBConfig(ctx context.Context, nodes []v1.Node) error {
+// UpdateLoadBalancerConfig updates the load balancer config for the given nodes
+func (l *LoadBalancerController) UpdateLoadBalancerConfig(ctx context.Context, nodes []v1.Node) error {
 	l.configWriteMutex.Lock()
 	defer l.configWriteMutex.Unlock()
 
@@ -283,7 +283,7 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(ctx context.Context, nodes 
 		return err
 	}
 
-	klog.Info("metallb config updated successfully")
+	klog.Info("load balancer config updated successfully")
 
 	return nil
 }
