@@ -1,4 +1,4 @@
-package loadbalancer
+package cilium
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ var (
 	)
 )
 
-func TestMetalLBConfig_CalculateConfig(t *testing.T) {
+func TestCiliumConfig_CalculateConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		nws     sets.Set[string]
@@ -298,11 +298,11 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MetalLBConfig{}
+			cfg := &CiliumConfig{}
 
 			err := cfg.CalculateConfig(tt.ips, tt.nws, tt.nodes)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
-				t.Errorf("MetalLBConfig.CalculateConfig() error = %v", diff)
+				t.Errorf("CiliumConfig.CalculateConfig() error = %v", diff)
 				return
 			}
 
@@ -310,7 +310,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			require.NoError(t, err)
 
 			if diff := cmp.Diff(yaml, mustYAML(tt.want)); diff != "" {
-				t.Errorf("MetalLBConfig.CalculateConfig() = %v", diff)
+				t.Errorf("CiliumConfig.CalculateConfig() = %v", diff)
 			}
 		})
 	}

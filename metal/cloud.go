@@ -12,6 +12,8 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/cilium"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/metallb"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	ciliumv2alpha1 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	metallbv1beta2 "go.universe.tf/metallb/api/v1beta2"
 )
@@ -44,6 +47,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
+	loadbalancerType := os.Getenv(constants.Loadbalancer)
 
 	var (
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
@@ -92,7 +96,18 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(defaultExternalNetworkID)
 	zonesController := zones.New()
-	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
+
+	var config loadbalancer.LoadBalancerConfig
+	switch loadbalancerType {
+	case "metallb":
+		config = metallb.NewMetalLBConfig()
+	case "cilium":
+		config = cilium.NewCiliumConfig()
+	default:
+		config = metallb.NewMetalLBConfig()
+	}
+
+	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks, config)
 
 	klog.Info("initialized cloud controller manager")
 	return &cloud{
@@ -122,6 +137,10 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	err = metallbv1beta2.AddToScheme(scheme.Scheme)
 	if err != nil {
 		klog.Fatalf("unable to add metallb v1beta2 to scheme: %v", err)
+	}
+	err = ciliumv2alpha1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		klog.Fatalf("unable to add cilium v2alpha1 to scheme: %v", err)
 	}
 	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme.Scheme})
 	if err != nil {

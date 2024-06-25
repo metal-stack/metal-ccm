@@ -29,6 +29,7 @@ import (
 )
 
 type LoadBalancerController struct {
+	LoadBalancerConfig
 	MetalService             *metal.MetalService
 	partitionID              string
 	projectID                string
@@ -43,8 +44,9 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string) *LoadBalancerController {
+func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, config LoadBalancerConfig) *LoadBalancerController {
 	return &LoadBalancerController{
+		LoadBalancerConfig:       config,
 		partitionID:              partitionID,
 		projectID:                projectID,
 		clusterID:                clusterID,
@@ -174,7 +176,7 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: ip})
 
-	err = l.UpdateMetalLBConfig(ctx, ns)
+	err = l.UpdateLoadBalancerConfig(ctx, ns)
 	if err != nil {
 		return nil, rollback(err)
 	}
@@ -192,7 +194,7 @@ func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, cluster
 	for i := range nodes {
 		ns = append(ns, *nodes[i])
 	}
-	return l.UpdateMetalLBConfig(ctx, ns)
+	return l.UpdateLoadBalancerConfig(ctx, ns)
 }
 
 // EnsureLoadBalancerDeleted deletes the cluster load balancer if it
@@ -271,8 +273,8 @@ func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, servic
 	return newTags, last
 }
 
-// UpdateMetalLBConfig the metallb config for given nodes
-func (l *LoadBalancerController) UpdateMetalLBConfig(ctx context.Context, nodes []v1.Node) error {
+// UpdateLoadBalancerConfig updates the load balancer config for the given nodes
+func (l *LoadBalancerController) UpdateLoadBalancerConfig(ctx context.Context, nodes []v1.Node) error {
 	l.configWriteMutex.Lock()
 	defer l.configWriteMutex.Unlock()
 
@@ -281,7 +283,7 @@ func (l *LoadBalancerController) UpdateMetalLBConfig(ctx context.Context, nodes 
 		return err
 	}
 
-	klog.Info("metallb config updated successfully")
+	klog.Info("load balancer config updated successfully")
 
 	return nil
 }
@@ -340,22 +342,23 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	config := newMetalLBConfig()
-	err = config.CalculateConfig(ips, l.additionalNetworks, nodes)
+	err = l.LoadBalancerConfig.CalculateConfig(ips, l.additionalNetworks, nodes)
 	if err != nil {
 		return err
 	}
 
 	// TODO: in a future release this can be removed
-	err = l.K8sClient.Delete(ctx, &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name:      "config",
-		Namespace: metallbNamespace,
-	}})
-	if client.IgnoreNotFound(err) != nil {
-		return fmt.Errorf("unable to cleanup deprecated metallb configmap: %w", err)
+	if l.LoadBalancerConfig.Namespace() != "" {
+		err = l.K8sClient.Delete(ctx, &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+			Name:      "config",
+			Namespace: l.LoadBalancerConfig.Namespace(),
+		}})
+		if client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("unable to cleanup deprecated metallb configmap: %w", err)
+		}
 	}
 
-	err = config.WriteCRs(ctx, l.K8sClient)
+	err = l.LoadBalancerConfig.WriteCRs(ctx, l.K8sClient)
 	if err != nil {
 		return err
 	}
