@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -235,7 +236,7 @@ func (cfg *CiliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 				cidrs = append(cidrs, ipPoolBlock)
 			}
 			ipPool.Spec = ciliumv2alpha1.CiliumLoadBalancerIPPoolSpec{
-				Cidrs: cidrs,
+				Blocks: cidrs,
 			}
 			return nil
 		})
