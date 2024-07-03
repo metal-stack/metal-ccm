@@ -6,10 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -173,8 +172,9 @@ func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 						ExportPodCIDR: pointer.Pointer(true),
 						Neighbors: []ciliumv2alpha1.CiliumBGPNeighbor{
 							{
-								PeerAddress: "127.0.0.1/32",
-								PeerASN:     peer.Peer.ASN,
+								PeerAddress:     "127.0.0.1/32",
+								PeerASN:         peer.Peer.ASN,
+								GracefulRestart: &ciliumv2alpha1.CiliumBGPNeighborGracefulRestart{Enabled: true},
 							},
 						},
 					},
