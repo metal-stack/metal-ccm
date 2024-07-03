@@ -19,6 +19,7 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 
 	ciliumv2alpha1 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -178,6 +179,16 @@ func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 								GracefulRestart: &ciliumv2alpha1.CiliumBGPNeighborGracefulRestart{Enabled: true},
 							},
 						},
+						// A NotIn match expression with a dummy key and value have to be used to announce ALL services.
+						ServiceSelector: pointer.Pointer(slimv1.LabelSelector{
+							MatchExpressions: []slimv1.LabelSelectorRequirement{
+								{
+									Key:      "io.cilium/bgp-control-plane",
+									Operator: slimv1.LabelSelectorOpNotIn,
+									Values:   []string{"ignore"},
+								},
+							},
+						}),
 					},
 				},
 			}
