@@ -21,7 +21,7 @@ func (h *Housekeeper) updateMetalLBConfig() error {
 	if time.Since(h.lastMetalLBConfigSync) < syncMetalLBMinimalInternval {
 		return nil
 	}
-	nodes, err := kubernetes.GetNodes(h.k8sClient)
+	nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)
 	if err != nil {
 		return fmt.Errorf("error listing nodes: %w", err)
 	}

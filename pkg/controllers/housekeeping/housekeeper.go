@@ -91,7 +91,7 @@ func (h *Housekeeper) watchNodes() {
 
 				klog.Info("node was modified and ip address has changed, updating metallb config")
 
-				nodes, err := kubernetes.GetNodes(h.k8sClient)
+				nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)
 				if err != nil {
 					klog.Errorf("error listing nodes: %v", err)
 					return
