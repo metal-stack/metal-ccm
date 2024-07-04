@@ -15,8 +15,8 @@ import (
 )
 
 // GetNodes returns all nodes of this cluster.
-func GetNodes(client clientset.Interface) ([]v1.Node, error) {
-	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+func GetNodes(ctx context.Context, client clientset.Interface) ([]v1.Node, error) {
+	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list nodes: %w", err)
 	}
@@ -24,10 +24,10 @@ func GetNodes(client clientset.Interface) ([]v1.Node, error) {
 }
 
 // UpdateNodeLabelsWithBackoff updates labels on a given node with a given backoff retry.
-func UpdateNodeLabelsWithBackoff(client clientset.Interface, nodeName string, labels map[string]string, backoff wait.Backoff) error {
+func UpdateNodeLabelsWithBackoff(ctx context.Context, client clientset.Interface, nodeName string, labels map[string]string, backoff wait.Backoff) error {
 	return retry.RetryOnConflict(backoff, func() error {
 
-		node, err := client.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+		node, err := client.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -36,7 +36,7 @@ func UpdateNodeLabelsWithBackoff(client clientset.Interface, nodeName string, la
 			node.Labels[key] = value
 		}
 
-		_, err = client.CoreV1().Nodes().Update(context.Background(), node, metav1.UpdateOptions{})
+		_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		return err
 	})
 }
