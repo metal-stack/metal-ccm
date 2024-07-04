@@ -129,7 +129,7 @@ func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		return fmt.Errorf("failed to write ciliumloadbalancerippool resources %w", err)
 	}
 
-	err = cfg.writeNodeAnnotations()
+	err = cfg.writeNodeAnnotations(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to write node annotations %w", err)
 	}
@@ -267,8 +267,8 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 	return nil
 }
 
-func (cfg *ciliumConfig) writeNodeAnnotations() error {
-	nodes, err := kubernetes.GetNodes(cfg.k8sClient)
+func (cfg *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
+	nodes, err := kubernetes.GetNodes(ctx, cfg.k8sClient)
 	if err != nil {
 		return fmt.Errorf("failed to write node annotations: %w", err)
 	}
@@ -285,7 +285,7 @@ func (cfg *ciliumConfig) writeNodeAnnotations() error {
 		annotations := map[string]string{
 			fmt.Sprintf("cilium.io/bgp-virtual-router.%d", asn): "router-id=127.0.0.1",
 		}
-		err = kubernetes.UpdateNodeAnnotationsWithBackoff(cfg.k8sClient, n.Name, annotations, backoff)
+		err = kubernetes.UpdateNodeAnnotationsWithBackoff(ctx, cfg.k8sClient, n.Name, annotations, backoff)
 		if err != nil {
 			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
 		}

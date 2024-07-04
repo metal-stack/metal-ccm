@@ -21,7 +21,7 @@ func (h *Housekeeper) updateLoadBalancerConfig() error {
 	if time.Since(h.lastLoadBalancerConfigSync) < syncLoadBalancerMinimalInternval {
 		return nil
 	}
-	nodes, err := kubernetes.GetNodes(h.k8sClient)
+	nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)
 	if err != nil {
 		return fmt.Errorf("error listing nodes: %w", err)
 	}
