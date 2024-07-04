@@ -129,6 +129,11 @@ func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		return fmt.Errorf("failed to write ciliumloadbalancerippool resources %w", err)
 	}
 
+	err = cfg.writeNodeAnnotations()
+	if err != nil {
+		return fmt.Errorf("failed to write node annotations %w", err)
+	}
+
 	return nil
 }
 
