@@ -31,7 +31,7 @@ func (h *Housekeeper) startSSHKeysSynching() {
 func (h *Housekeeper) syncSSHKeys() error {
 	klog.Info("start syncing ssh public keys to machine")
 
-	nodes, err := kubernetes.GetNodes(h.k8sClient)
+	nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)
 	if err != nil {
 		return err
 	}
