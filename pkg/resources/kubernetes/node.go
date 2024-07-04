@@ -36,7 +36,7 @@ func UpdateNodeLabelsWithBackoff(ctx context.Context, client clientset.Interface
 			node.Labels[key] = value
 		}
 
-		_, err = client.CoreV1().Nodes().Update(context.Background(), node, metav1.UpdateOptions{})
+		_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		return err
 	})
 }
