@@ -11,6 +11,6 @@ import (
 
 type LoadBalancerConfig interface {
 	Namespace() string
-	CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error
+	PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error
 	WriteCRs(ctx context.Context, c client.Client) error
 }

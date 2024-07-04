@@ -44,9 +44,8 @@ type LoadBalancerController struct {
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, config LoadBalancerConfig) *LoadBalancerController {
+func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string) *LoadBalancerController {
 	return &LoadBalancerController{
-		LoadBalancerConfig:       config,
 		partitionID:              partitionID,
 		projectID:                projectID,
 		clusterID:                clusterID,
@@ -342,7 +341,7 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	err = l.LoadBalancerConfig.CalculateConfig(ips, l.additionalNetworks, nodes)
+	err = l.LoadBalancerConfig.PrepareConfig(ips, l.additionalNetworks, nodes)
 	if err != nil {
 		return err
 	}

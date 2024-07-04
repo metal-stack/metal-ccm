@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-go/api/models"
@@ -25,20 +29,21 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type CiliumConfig struct {
+type ciliumConfig struct {
 	Peers        []*Peer                     `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*loadbalancer.AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	k8sClient    clientset.Interface
 }
 
-func NewCiliumConfig() *CiliumConfig {
-	return &CiliumConfig{}
+func NewCiliumConfig(k8sClient clientset.Interface) *ciliumConfig {
+	return &ciliumConfig{k8sClient: k8sClient}
 }
 
-func (cfg *CiliumConfig) Namespace() string {
+func (cfg *ciliumConfig) Namespace() string {
 	return ""
 }
 
-func (cfg *CiliumConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
+func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -50,7 +55,7 @@ func (cfg *CiliumConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Se
 	return nil
 }
 
-func (cfg *CiliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+func (cfg *ciliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
@@ -62,17 +67,12 @@ func (cfg *CiliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws set
 	return nil
 }
 
-func (cfg *CiliumConfig) computePeers(nodes []v1.Node) error {
+func (cfg *ciliumConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
-		labels := n.GetLabels()
-		asnString, ok := labels[tag.MachineNetworkPrimaryASN]
-		if !ok {
-			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.MachineNetworkPrimaryASN)
-		}
-		asn, err := strconv.ParseInt(asnString, 10, 64)
+		asn, err := getASNFromNodeLabels(n)
 		if err != nil {
-			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
+			return err
 		}
 
 		peer, err := newPeer(n, asn)
@@ -86,7 +86,7 @@ func (cfg *CiliumConfig) computePeers(nodes []v1.Node) error {
 	return nil
 }
 
-func (cfg *CiliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
+func (cfg *ciliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.Name == poolName {
 			return pool
@@ -99,7 +99,7 @@ func (cfg *CiliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.A
 	return pool
 }
 
-func (cfg *CiliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
+func (cfg *ciliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
 	if t != nil && *t == models.V1IPBaseTypeStatic {
@@ -110,7 +110,7 @@ func (cfg *CiliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	pool.AppendIP(*ip.Ipaddress)
 }
 
-func (cfg *CiliumConfig) ToYAML() (string, error) {
+func (cfg *ciliumConfig) ToYAML() (string, error) {
 	bb, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", err
@@ -118,7 +118,7 @@ func (cfg *CiliumConfig) ToYAML() (string, error) {
 	return string(bb), nil
 }
 
-func (cfg *CiliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
+func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	err := cfg.writeCiliumBGPPeeringPolicies(ctx, c)
 	if err != nil {
 		return fmt.Errorf("failed to write ciliumbgppeeringpolicy resources %w", err)
@@ -132,7 +132,7 @@ func (cfg *CiliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	return nil
 }
 
-func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {
+func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {
 	existingPolicies := ciliumv2alpha1.CiliumBGPPeeringPolicyList{}
 	err := c.List(ctx, &existingPolicies)
 	if err != nil {
@@ -205,7 +205,7 @@ func (cfg *CiliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 	return nil
 }
 
-func (cfg *CiliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c client.Client) error {
+func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c client.Client) error {
 	existingPools := ciliumv2alpha1.CiliumLoadBalancerIPPoolList{}
 	err := c.List(ctx, &existingPools)
 	if err != nil {
@@ -260,4 +260,44 @@ func (cfg *CiliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 	}
 
 	return nil
+}
+
+func (cfg *ciliumConfig) writeNodeAnnotations() error {
+	nodes, err := kubernetes.GetNodes(cfg.k8sClient)
+	if err != nil {
+		return fmt.Errorf("failed to write node annotations: %w", err)
+	}
+	backoff := wait.Backoff{
+		Steps:    20,
+		Duration: 50 * time.Millisecond,
+		Jitter:   1.0,
+	}
+	for _, n := range nodes {
+		asn, err := getASNFromNodeLabels(n)
+		if err != nil {
+			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
+		}
+		annotations := map[string]string{
+			fmt.Sprintf("cilium.io/bgp-virtual-router.%d", asn): "router-id=127.0.0.1",
+		}
+		err = kubernetes.UpdateNodeAnnotationsWithBackoff(cfg.k8sClient, n.Name, annotations, backoff)
+		if err != nil {
+			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
+		}
+	}
+
+	return nil
+}
+
+func getASNFromNodeLabels(node v1.Node) (int64, error) {
+	labels := node.GetLabels()
+	asnString, ok := labels[tag.MachineNetworkPrimaryASN]
+	if !ok {
+		return 0, fmt.Errorf("node %q misses label: %s", node.GetName(), tag.MachineNetworkPrimaryASN)
+	}
+	asn, err := strconv.ParseInt(asnString, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
+	}
+	return asn, nil
 }

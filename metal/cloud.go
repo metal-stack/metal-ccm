@@ -47,7 +47,6 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
-	loadbalancerType := os.Getenv(constants.Loadbalancer)
 
 	var (
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
@@ -96,18 +95,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(defaultExternalNetworkID)
 	zonesController := zones.New()
-
-	var config loadbalancer.LoadBalancerConfig
-	switch loadbalancerType {
-	case "metallb":
-		config = metallb.NewMetalLBConfig()
-	case "cilium":
-		config = cilium.NewCiliumConfig()
-	default:
-		config = metallb.NewMetalLBConfig()
-	}
-
-	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks, config)
+	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
 
 	klog.Info("initialized cloud controller manager")
 	return &cloud{
@@ -123,6 +111,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
+	loadbalancerType := os.Getenv(constants.Loadbalancer)
 
 	k8sClientSet := clientBuilder.ClientOrDie("cloud-controller-manager")
 	k8sRestConfig, err := clientBuilder.Config("cloud-controller-manager")
@@ -147,6 +136,16 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 		klog.Fatalf("unable to create k8s client: %v", err)
 	}
 
+	var config loadbalancer.LoadBalancerConfig
+	switch loadbalancerType {
+	case "metallb":
+		config = metallb.NewMetalLBConfig()
+	case "cilium":
+		config = cilium.NewCiliumConfig(k8sClientSet)
+	default:
+		config = metallb.NewMetalLBConfig()
+	}
+
 	housekeeper := housekeeping.New(metalclient, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
 	ms := metal.New(metalclient, k8sClientSet, projectID)
 
@@ -154,6 +153,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.loadBalancer.K8sClientSet = k8sClientSet
 	c.loadBalancer.K8sClient = k8sClient
 	c.loadBalancer.MetalService = ms
+	c.loadBalancer.LoadBalancerConfig = config
 	c.zones.MetalService = ms
 
 	go housekeeper.Run()

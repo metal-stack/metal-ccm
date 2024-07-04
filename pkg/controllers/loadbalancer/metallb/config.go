@@ -29,23 +29,23 @@ const (
 	metallbNamespace = "metallb-system"
 )
 
-// MetalLBConfig is a struct containing a config for metallb
-type MetalLBConfig struct {
+// metalLBConfig is a struct containing a config for metallb
+type metalLBConfig struct {
 	Peers        []*Peer                     `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*loadbalancer.AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 	namespace    string
 }
 
-func NewMetalLBConfig() *MetalLBConfig {
-	return &MetalLBConfig{namespace: metallbNamespace}
+func NewMetalLBConfig() *metalLBConfig {
+	return &metalLBConfig{namespace: metallbNamespace}
 }
 
-func (cfg *MetalLBConfig) Namespace() string {
+func (cfg *metalLBConfig) Namespace() string {
 	return cfg.namespace
 }
 
 // CalculateConfig computes the metallb config from given parameter input.
-func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
+func (cfg *metalLBConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
 	err := cfg.computeAddressPools(ips, nws)
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 	return nil
 }
 
-func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+func (cfg *metalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
@@ -69,7 +69,7 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws se
 	return nil
 }
 
-func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
+func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
 		labels := n.GetLabels()
@@ -95,7 +95,7 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 
 // getOrCreateAddressPool returns the address pool of the given network.
 // It will be created if it does not exist yet.
-func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
+func (cfg *metalLBConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
 	for _, pool := range cfg.AddressPools {
 		if pool.Name == poolName {
 			return pool
@@ -109,7 +109,7 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *loadbalancer.
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
+func (cfg *metalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
 	if t != nil && *t == models.V1IPBaseTypeStatic {
@@ -121,7 +121,7 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 }
 
 // ToYAML returns this config in YAML format.
-func (cfg *MetalLBConfig) ToYAML() (string, error) {
+func (cfg *metalLBConfig) ToYAML() (string, error) {
 	bb, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", err
@@ -129,8 +129,8 @@ func (cfg *MetalLBConfig) ToYAML() (string, error) {
 	return string(bb), nil
 }
 
-// Write inserts or updates the Metal-LB custom resources.
-func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
+// WriteCRs inserts or updates the Metal-LB custom resources.
+func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 
 	// BGPPeers
 	bgpPeerList := metallbv1beta2.BGPPeerList{}
