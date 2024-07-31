@@ -220,25 +220,27 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		ip := ip
 		err := retrygo.Do(
 			func() error {
-				newTags, last := l.removeServiceTag(*ip, serviceTag)
+				newTags, delete := l.removeServiceTag(*ip, serviceTag)
 
-				newIP, err := l.MetalService.UpdateIP(ctx, &models.V1IPUpdateRequest{
-					Ipaddress: ip.Ipaddress,
-					Tags:      newTags,
-				})
-				if err != nil {
-					return fmt.Errorf("could not update ip with new tags: %w", err)
-				}
-
-				klog.Infof("updated ip: %q", pointer.SafeDeref(newIP.Ipaddress))
-
-				if *ip.Type == models.V1IPBaseTypeEphemeral && last {
-					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, newTags)
+				if *ip.Type == models.V1IPBaseTypeEphemeral && delete {
+					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, ip.Tags)
 
 					err := l.MetalService.FreeIP(ctx, *ip.Ipaddress)
 					if err != nil {
 						return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
 					}
+
+					return nil
+				}
+
+				klog.Infof("removing service reference tag %s from ip: %q, old tags: %s, new tags: %s", serviceTag, pointer.SafeDeref(ip.Ipaddress), ip.Tags, newTags)
+
+				_, err := l.MetalService.UpdateIP(ctx, &models.V1IPUpdateRequest{
+					Ipaddress: ip.Ipaddress,
+					Tags:      newTags,
+				})
+				if err != nil {
+					return fmt.Errorf("could not update ip with new tags: %w", err)
 				}
 
 				return nil
