@@ -57,29 +57,27 @@ func TestLoadBalancerController_removeServiceTag(t *testing.T) {
 				Tags: nil,
 			},
 			serviceTag: testTag1,
+			want:       nil,
+			wantLast:   true,
+		},
+		{
+			name: "two times own service tag",
+			ip: models.V1IPResponse{
+				Tags: []string{testTag1, testTag1},
+			},
+			serviceTag: testTag1,
 			want:       []string{},
 			wantLast:   true,
 		},
-		// TODO: this case is not covered:
-		// {
-		// 	name: "two times own service tag",
-		// 	ip: models.V1IPResponse{
-		// 		Tags: []string{testTag1, testTag1},
-		// 	},
-		// 	serviceTag: testTag1,
-		// 	want:       []string{},
-		// 	wantLast:   true,
-		// },
-		// TODO: this case is not covered
-		// {
-		// 	name: "only other service tag",
-		// 	ip: models.V1IPResponse{
-		// 		Tags: []string{testTag2},
-		// 	},
-		// 	serviceTag: testTag1,
-		// 	want:       []string{testTag2},
-		// 	wantLast:   false,
-		// },
+		{
+			name: "only other service tag",
+			ip: models.V1IPResponse{
+				Tags: []string{testTag2},
+			},
+			serviceTag: testTag1,
+			want:       []string{testTag2},
+			wantLast:   false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
