@@ -206,37 +206,43 @@ func (l *LoadBalancerController) UpdateLoadBalancer(ctx context.Context, cluster
 func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
 	klog.Infof("EnsureLoadBalancerDeleted: clusterName %q, namespace %q, serviceName %q, serviceStatus: %v", clusterName, service.Namespace, service.Name, service.Status)
 
-	s := *service
-	serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, s.GetNamespace(), s.GetName())
+	serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, service.GetNamespace(), service.GetName())
+
+	l.ipUpdateMutex.Lock()
+	defer l.ipUpdateMutex.Unlock()
+
 	ips, err := l.MetalService.FindProjectIPsWithTag(ctx, l.projectID, serviceTag)
 	if err != nil {
 		return err
 	}
 
-	l.ipUpdateMutex.Lock()
-	defer l.ipUpdateMutex.Unlock()
-
 	for _, ip := range ips {
 		ip := ip
 		err := retrygo.Do(
 			func() error {
-				newTags, last := l.removeServiceTag(*ip, serviceTag)
-				iu := &models.V1IPUpdateRequest{
-					Ipaddress: ip.Ipaddress,
-					Tags:      newTags,
-				}
-				newIP, err := l.MetalService.UpdateIP(ctx, iu)
-				if err != nil {
-					return fmt.Errorf("could not update ip with new tags: %w", err)
-				}
-				klog.Infof("updated ip: %q", pointer.SafeDeref(newIP.Ipaddress))
-				if *ip.Type == models.V1IPBaseTypeEphemeral && last {
-					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, newTags)
+				newTags, delete := l.removeServiceTag(*ip, serviceTag)
+
+				if *ip.Type == models.V1IPBaseTypeEphemeral && delete {
+					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, ip.Tags)
+
 					err := l.MetalService.FreeIP(ctx, *ip.Ipaddress)
 					if err != nil {
 						return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
 					}
+
+					return nil
 				}
+
+				klog.Infof("removing service reference tag %s from ip: %q, old tags: %s, new tags: %s", serviceTag, pointer.SafeDeref(ip.Ipaddress), ip.Tags, newTags)
+
+				_, err := l.MetalService.UpdateIP(ctx, &models.V1IPUpdateRequest{
+					Ipaddress: ip.Ipaddress,
+					Tags:      newTags,
+				})
+				if err != nil {
+					return fmt.Errorf("could not update ip with new tags: %w", err)
+				}
+
 				return nil
 			},
 		)
