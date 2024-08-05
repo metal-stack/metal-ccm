@@ -3,6 +3,7 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -261,20 +262,11 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 
 // removes the service tag and checks whether it is the last service tag.
 func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, serviceTag string) ([]string, bool) {
-	count := 0
-	newTags := []string{}
-	for _, t := range ip.Tags {
-		if strings.HasPrefix(t, tag.ClusterServiceFQN) {
-			count++
-		}
-		if t == serviceTag {
-			continue
-		}
-		newTags = append(newTags, t)
-	}
-	last := (count <= 1)
-	klog.Infof("removing service tag '%s', last: %t, oldTags: %v, newTags: %v", serviceTag, last, ip.Tags, newTags)
-	return newTags, last
+	newTags := slices.DeleteFunc(ip.Tags, func(tag string) bool {
+		return tag == serviceTag
+	})
+
+	return newTags, len(newTags) == 0
 }
 
 // UpdateMetalLBConfig the metallb config for given nodes
