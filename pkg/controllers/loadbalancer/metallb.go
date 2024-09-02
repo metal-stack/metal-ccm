@@ -71,11 +71,13 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 		if !ok {
 			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.MachineNetworkPrimaryASN)
 		}
-		asn, err := strconv.ParseInt(asnString, 10, 32)
+		asn, err := strconv.ParseInt(asnString, 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 		}
 
+		// we can safely cast the asn to a uint32 because its max value is defined as such
+		// see: https://en.wikipedia.org/wiki/Autonomous_system_(Internet)
 		peer, err := newPeer(n, uint32(asn)) // nolint:gosec
 		if err != nil {
 			klog.Warningf("skipping peer: %v", err)
