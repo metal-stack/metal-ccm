@@ -8,13 +8,13 @@ import (
 )
 
 type Peer struct {
-	MyASN         int64                   `json:"my-asn" yaml:"my-asn"`
-	ASN           int64                   `json:"peer-asn" yaml:"peer-asn"`
-	Address       string                  `json:"peer-address" yaml:"peer-address"`
+	MyASN         uint32                 `json:"my-asn" yaml:"my-asn"`
+	ASN           uint32                 `json:"peer-asn" yaml:"peer-asn"`
+	Address       string                 `json:"peer-address" yaml:"peer-address"`
 	NodeSelectors []metav1.LabelSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-func newPeer(node v1.Node, asn int64) (*Peer, error) {
+func newPeer(node v1.Node, asn uint32) (*Peer, error) {
 	hostname := node.GetName()
 
 	matchExpression := metav1.LabelSelectorRequirement{

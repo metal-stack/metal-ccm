@@ -71,12 +71,12 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 		if !ok {
 			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.MachineNetworkPrimaryASN)
 		}
-		asn, err := strconv.ParseInt(asnString, 10, 64)
+		asn, err := strconv.ParseInt(asnString, 10, 32)
 		if err != nil {
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 		}
 
-		peer, err := newPeer(n, asn)
+		peer, err := newPeer(n, uint32(asn)) // nolint:gosec
 		if err != nil {
 			klog.Warningf("skipping peer: %v", err)
 			continue
@@ -162,8 +162,8 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
-				MyASN:         uint32(peer.MyASN),
-				ASN:           uint32(peer.ASN),
+				MyASN:         peer.MyASN,
+				ASN:           peer.ASN,
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
 				Address:       peer.Address,

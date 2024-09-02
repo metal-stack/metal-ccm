@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/metal-lib/pkg/healthstatus"
 	"k8s.io/klog/v2"
 )
 
@@ -25,7 +25,7 @@ func (h *Housekeeper) checkMetalAPIHealth() error {
 		return err
 	}
 
-	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status == string(rest.HealthStatusHealthy) {
+	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status == string(healthstatus.HealthStatusHealthy) {
 		h.resetAPIError()
 		return nil
 	}
