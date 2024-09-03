@@ -76,7 +76,9 @@ func (cfg *MetalLBConfig) computePeers(nodes []v1.Node) error {
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 		}
 
-		peer, err := newPeer(n, asn)
+		// we can safely cast the asn to a uint32 because its max value is defined as such
+		// see: https://en.wikipedia.org/wiki/Autonomous_system_(Internet)
+		peer, err := newPeer(n, uint32(asn)) // nolint:gosec
 		if err != nil {
 			klog.Warningf("skipping peer: %v", err)
 			continue
@@ -162,8 +164,8 @@ func (cfg *MetalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
-				MyASN:         uint32(peer.MyASN),
-				ASN:           uint32(peer.ASN),
+				MyASN:         peer.MyASN,
+				ASN:           peer.ASN,
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
 				Address:       peer.Address,
