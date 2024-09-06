@@ -168,8 +168,8 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
-				MyASN:         uint32(peer.Peer.MyASN),
-				ASN:           uint32(peer.Peer.ASN),
+				MyASN:         peer.Peer.MyASN,
+				ASN:           peer.Peer.ASN,
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
 				Address:       peer.Peer.Address,

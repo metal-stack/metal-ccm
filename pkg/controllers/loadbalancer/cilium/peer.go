@@ -2,8 +2,9 @@ package cilium
 
 import (
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 )
 
 type Peer struct {
@@ -22,7 +23,9 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 		},
 	}
 
-	peer, err := loadbalancer.NewPeer(node, asn)
+	// we can safely cast the asn to an uint32 because its max value is defined as such
+	// see: https://en.wikipedia.org/wiki/Autonomous_system_(Internet)
+	peer, err := loadbalancer.NewPeer(node, uint32(asn)) // nolint:gosec
 	if err != nil {
 		return nil, err
 	}

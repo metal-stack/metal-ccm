@@ -7,12 +7,12 @@ import (
 )
 
 type Peer struct {
-	MyASN   int64  `json:"my-asn" yaml:"my-asn"`
-	ASN     int64  `json:"peer-asn" yaml:"peer-asn"`
+	MyASN   uint32 `json:"my-asn" yaml:"my-asn"`
+	ASN     uint32 `json:"peer-asn" yaml:"peer-asn"`
 	Address string `json:"peer-address" yaml:"peer-address"`
 }
 
-func NewPeer(node v1.Node, asn int64) (*Peer, error) {
+func NewPeer(node v1.Node, asn uint32) (*Peer, error) {
 	address, err := NodeAddress(node)
 	if err != nil {
 		return nil, err

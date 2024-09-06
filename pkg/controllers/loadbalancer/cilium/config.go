@@ -175,12 +175,12 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 				NodeSelector: &peer.NodeSelector,
 				VirtualRouters: []ciliumv2alpha1.CiliumBGPVirtualRouter{
 					{
-						LocalASN:      peer.Peer.MyASN,
+						LocalASN:      int64(peer.Peer.MyASN),
 						ExportPodCIDR: pointer.Pointer(true),
 						Neighbors: []ciliumv2alpha1.CiliumBGPNeighbor{
 							{
 								PeerAddress:     "127.0.0.1/32",
-								PeerASN:         peer.Peer.ASN,
+								PeerASN:         int64(peer.Peer.ASN),
 								GracefulRestart: &ciliumv2alpha1.CiliumBGPNeighborGracefulRestart{Enabled: true},
 							},
 						},
