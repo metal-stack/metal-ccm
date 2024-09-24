@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/metal-lib/pkg/healthstatus"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
@@ -89,7 +89,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
-	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status != string(rest.HealthStatusHealthy) {
+	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status != string(healthstatus.HealthStatusHealthy) {
 		return nil, fmt.Errorf("metal-api not healthy, restarting")
 	}
 

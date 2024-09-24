@@ -61,11 +61,14 @@ func (ms *MetalService) FindProjectIP(ctx context.Context, projectID, ip string)
 		return nil, err
 	}
 
-	if len(resp.Payload) != 1 {
+	switch len(resp.Payload) {
+	case 0:
+		return nil, fmt.Errorf("ip %s for projectID: %s not allocated", ip, projectID)
+	case 1:
+		return resp.Payload[0], nil
+	default:
 		return nil, fmt.Errorf("ip %s is ambiguous for projectID: %s", ip, projectID)
 	}
-
-	return resp.Payload[0], nil
 }
 
 // FindProjectIPsWithTag returns the IPs of the given project that also have the given tag.

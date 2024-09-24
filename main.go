@@ -40,7 +40,7 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
-	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, fss, wait.NeverStop)
+	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, nil, fss, wait.NeverStop)
 
 	klog.Infof("starting version %s", v.V.String())
 	if err := command.Execute(); err != nil {
