@@ -19,4 +19,6 @@ const (
 	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
 
 	IPPrefix = "metallb-"
+
+	Loadbalancer = "LOADBALANCER"
 )
