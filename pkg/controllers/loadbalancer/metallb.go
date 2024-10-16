@@ -58,7 +58,10 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws se
 			continue
 		}
 		net := *ip.Networkid
-		cfg.addIPToPool(net, *ip)
+		err := cfg.addIPToPool(net, *ip)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -105,7 +108,7 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *AddressPool {
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
+func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) error {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
 	if t != nil && *t == models.V1IPBaseTypeStatic {
@@ -113,7 +116,11 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	}
 	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)
-	pool.appendIP(*ip.Ipaddress)
+	err := pool.appendIP(*ip.Ipaddress)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // ToYAML returns this config in YAML format.
