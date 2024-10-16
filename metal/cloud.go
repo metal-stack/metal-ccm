@@ -18,12 +18,13 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ciliumv2alpha1 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	metallbv1beta2 "go.universe.tf/metallb/api/v1beta2"
 )
@@ -39,7 +40,6 @@ type cloud struct {
 }
 
 func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
-
 	url := os.Getenv(constants.MetalAPIUrlEnvVar)
 	token := os.Getenv(constants.MetalAuthTokenEnvVar)
 	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
@@ -108,6 +108,9 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
 // to perform housekeeping activities within the cloud provider.
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
@@ -119,19 +122,15 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 		klog.Fatalf("unable to get k8s rest config: %v", err)
 	}
 	k8sRestConfig.ContentType = "application/json"
-	err = metallbv1beta1.AddToScheme(scheme.Scheme)
+	err = metallbv1beta1.AddToScheme(scheme)
 	if err != nil {
 		klog.Fatalf("unable to add metallb v1beta1 to scheme: %v", err)
 	}
-	err = metallbv1beta2.AddToScheme(scheme.Scheme)
+	err = metallbv1beta2.AddToScheme(scheme)
 	if err != nil {
 		klog.Fatalf("unable to add metallb v1beta2 to scheme: %v", err)
 	}
-	err = ciliumv2alpha1.AddToScheme(scheme.Scheme)
-	if err != nil {
-		klog.Fatalf("unable to add cilium v2alpha1 to scheme: %v", err)
-	}
-	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme.Scheme})
+	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme})
 	if err != nil {
 		klog.Fatalf("unable to create k8s client: %v", err)
 	}
