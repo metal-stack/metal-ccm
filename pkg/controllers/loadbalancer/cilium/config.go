@@ -2,6 +2,7 @@ package cilium
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -56,13 +57,20 @@ func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[
 }
 
 func (cfg *ciliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+	var errs []error
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
 		net := *ip.Networkid
-		cfg.addIPToPool(net, *ip)
+		err := cfg.addIPToPool(net, *ip)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 	return nil
 }
@@ -99,7 +107,7 @@ func (cfg *ciliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.A
 	return pool
 }
 
-func (cfg *ciliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
+func (cfg *ciliumConfig) addIPToPool(network string, ip models.V1IPResponse) error {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
 	if t != nil && *t == models.V1IPBaseTypeStatic {
@@ -107,7 +115,11 @@ func (cfg *ciliumConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	}
 	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)
-	pool.AppendIP(*ip.Ipaddress)
+	err := pool.AppendIP(*ip.Ipaddress)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (cfg *ciliumConfig) ToYAML() (string, error) {
