@@ -12,6 +12,8 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/cilium"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/metallb"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -112,6 +114,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
+	loadbalancerType := os.Getenv(constants.Loadbalancer)
 
 	k8sClientSet := clientBuilder.ClientOrDie("cloud-controller-manager")
 	k8sRestConfig, err := clientBuilder.Config("cloud-controller-manager")
@@ -132,6 +135,16 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 		klog.Fatalf("unable to create k8s client: %v", err)
 	}
 
+	var config loadbalancer.LoadBalancerConfig
+	switch loadbalancerType {
+	case "metallb":
+		config = metallb.NewMetalLBConfig()
+	case "cilium":
+		config = cilium.NewCiliumConfig(k8sClientSet)
+	default:
+		config = metallb.NewMetalLBConfig()
+	}
+
 	housekeeper := housekeeping.New(metalclient, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
 	ms := metal.New(metalclient, k8sClientSet, projectID)
 
@@ -139,6 +152,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.loadBalancer.K8sClientSet = k8sClientSet
 	c.loadBalancer.K8sClient = k8sClient
 	c.loadBalancer.MetalService = ms
+	c.loadBalancer.LoadBalancerConfig = config
 	c.zones.MetalService = ms
 
 	go housekeeper.Run()
