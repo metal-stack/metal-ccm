@@ -2,6 +2,7 @@ package loadbalancer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -52,6 +53,7 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 }
 
 func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+	var errs []error
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
@@ -60,8 +62,11 @@ func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws se
 		net := *ip.Networkid
 		err := cfg.addIPToPool(net, *ip)
 		if err != nil {
-			return err
+			errs = append(errs, err)
 		}
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 	return nil
 }

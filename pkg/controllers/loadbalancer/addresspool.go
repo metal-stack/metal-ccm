@@ -15,7 +15,7 @@ type AddressPool struct {
 	Name       string   `json:"name" yaml:"name"`
 	Protocol   string   `json:"protocol" yaml:"protocol"`
 	AutoAssign *bool    `json:"auto-assign" yaml:"auto-assign,omitempty"`
-	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only Host addresses (/32 for ipv4 or /128 for ipv6) are used.
+	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only host addresses (/32 for ipv4 or /128 for ipv6) are used.
 }
 
 func NewBGPAddressPool(name string) *AddressPool {
