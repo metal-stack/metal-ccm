@@ -18,7 +18,6 @@ require (
 	k8s.io/cloud-provider v0.29.3
 	k8s.io/component-base v0.29.3
 	k8s.io/klog/v2 v2.110.1
-	k8s.io/kubectl v0.29.2
 	sigs.k8s.io/controller-runtime v0.17.2
 	sigs.k8s.io/yaml v1.4.0
 )
