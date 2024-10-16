@@ -2,6 +2,7 @@ package loadbalancer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -52,13 +53,20 @@ func (cfg *MetalLBConfig) CalculateConfig(ips []*models.V1IPResponse, nws sets.S
 }
 
 func (cfg *MetalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+	var errs []error
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
 		net := *ip.Networkid
-		cfg.addIPToPool(net, *ip)
+		err := cfg.addIPToPool(net, *ip)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 	return nil
 }
@@ -105,7 +113,7 @@ func (cfg *MetalLBConfig) getOrCreateAddressPool(poolName string) *AddressPool {
 }
 
 // announceIPs appends the given IPs to the network address pools.
-func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
+func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) error {
 	t := ip.Type
 	poolType := models.V1IPBaseTypeEphemeral
 	if t != nil && *t == models.V1IPBaseTypeStatic {
@@ -113,7 +121,11 @@ func (cfg *MetalLBConfig) addIPToPool(network string, ip models.V1IPResponse) {
 	}
 	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)
-	pool.appendIP(*ip.Ipaddress)
+	err := pool.appendIP(*ip.Ipaddress)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // ToYAML returns this config in YAML format.
