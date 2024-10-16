@@ -1,10 +1,9 @@
-FROM golang:1.23-bookworm as builder
+FROM golang:1.23-bookworm AS builder
 WORKDIR /work
 COPY . .
 RUN make
 
-FROM alpine:3.20
-RUN apk --update add ca-certificates
+FROM gcr.io/distroless/static-debian12
 
 COPY --from=builder /work/bin/metal-cloud-controller-manager .
 
