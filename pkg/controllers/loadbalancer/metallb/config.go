@@ -132,8 +132,8 @@ func (cfg *metalLBConfig) addIPToPool(network string, ip models.V1IPResponse) er
 	return nil
 }
 
-// ToYAML returns this config in YAML format.
-func (cfg *metalLBConfig) ToYAML() (string, error) {
+// toYAML returns this config in YAML format.
+func (cfg *metalLBConfig) toYAML() (string, error) {
 	bb, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", err

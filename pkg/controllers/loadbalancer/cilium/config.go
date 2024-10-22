@@ -122,7 +122,7 @@ func (cfg *ciliumConfig) addIPToPool(network string, ip models.V1IPResponse) err
 	return nil
 }
 
-func (cfg *ciliumConfig) ToYAML() (string, error) {
+func (cfg *ciliumConfig) toYAML() (string, error) {
 	bb, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", err
