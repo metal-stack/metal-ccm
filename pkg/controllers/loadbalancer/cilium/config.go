@@ -176,7 +176,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 		bgpPeeringPolicy := &ciliumv2alpha1.CiliumBGPPeeringPolicy{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "cilium.io/v2alpha1",
-				Kind:       "CiliumBGPPeeringPolicy",
+				Kind:       ciliumv2alpha1.BGPPKindDefinition,
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%d", peer.Peer.ASN),
@@ -249,7 +249,7 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 		ipPool := &ciliumv2alpha1.CiliumLoadBalancerIPPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "cilium.io/v2alpha1",
-				Kind:       "CiliumLoadBalancerIpPool",
+				Kind:       ciliumv2alpha1.PoolKindDefinition,
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pool.Name,
