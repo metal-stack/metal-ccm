@@ -2,10 +2,8 @@ package cilium
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -27,13 +25,12 @@ import (
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
 )
 
 type ciliumConfig struct {
-	Peers        []*Peer                     `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools []*loadbalancer.AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	k8sClient    clientset.Interface
+	loadbalancer.Config
+	Peers     []*Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
+	k8sClient clientset.Interface
 }
 
 func NewCiliumConfig(k8sClient clientset.Interface) *ciliumConfig {
@@ -45,32 +42,13 @@ func (cfg *ciliumConfig) Namespace() string {
 }
 
 func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
-	err := cfg.computeAddressPools(ips, nws)
+	err := cfg.ComputeAddressPools(ips, nws)
 	if err != nil {
 		return err
 	}
 	err = cfg.computePeers(nodes)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func (cfg *ciliumConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
-	var errs []error
-	for _, ip := range ips {
-		if !nws.Has(*ip.Networkid) {
-			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
-			continue
-		}
-		net := *ip.Networkid
-		err := cfg.addIPToPool(net, *ip)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) > 0 {
-		return errors.Join(errs...)
 	}
 	return nil
 }
@@ -94,40 +72,17 @@ func (cfg *ciliumConfig) computePeers(nodes []v1.Node) error {
 	return nil
 }
 
-func (cfg *ciliumConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
-	for _, pool := range cfg.AddressPools {
-		if pool.Name == poolName {
-			return pool
-		}
+func getASNFromNodeLabels(node v1.Node) (int64, error) {
+	labels := node.GetLabels()
+	asnString, ok := labels[tag.MachineNetworkPrimaryASN]
+	if !ok {
+		return 0, fmt.Errorf("node %q misses label: %s", node.GetName(), tag.MachineNetworkPrimaryASN)
 	}
-
-	pool := loadbalancer.NewBGPAddressPool(poolName)
-	cfg.AddressPools = append(cfg.AddressPools, pool)
-
-	return pool
-}
-
-func (cfg *ciliumConfig) addIPToPool(network string, ip models.V1IPResponse) error {
-	t := ip.Type
-	poolType := models.V1IPBaseTypeEphemeral
-	if t != nil && *t == models.V1IPBaseTypeStatic {
-		poolType = models.V1IPBaseTypeStatic
-	}
-	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
-	pool := cfg.getOrCreateAddressPool(poolName)
-	err := pool.AppendIP(*ip.Ipaddress)
+	asn, err := strconv.ParseInt(asnString, 10, 64)
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 	}
-	return nil
-}
-
-func (cfg *ciliumConfig) toYAML() (string, error) {
-	bb, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-	return string(bb), nil
+	return asn, nil
 }
 
 func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
@@ -304,17 +259,4 @@ func (cfg *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func getASNFromNodeLabels(node v1.Node) (int64, error) {
-	labels := node.GetLabels()
-	asnString, ok := labels[tag.MachineNetworkPrimaryASN]
-	if !ok {
-		return 0, fmt.Errorf("node %q misses label: %s", node.GetName(), tag.MachineNetworkPrimaryASN)
-	}
-	asn, err := strconv.ParseInt(asnString, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
-	}
-	return asn, nil
 }

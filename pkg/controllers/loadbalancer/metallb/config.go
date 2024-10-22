@@ -2,10 +2,8 @@ package metallb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
@@ -20,7 +18,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
 
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	metallbv1beta2 "go.universe.tf/metallb/api/v1beta2"
@@ -30,11 +27,10 @@ const (
 	metallbNamespace = "metallb-system"
 )
 
-// metalLBConfig is a struct containing a config for metallb
 type metalLBConfig struct {
-	Peers        []*Peer                     `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools []*loadbalancer.AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
-	namespace    string
+	loadbalancer.Config
+	Peers     []*Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
+	namespace string
 }
 
 func NewMetalLBConfig() *metalLBConfig {
@@ -45,34 +41,14 @@ func (cfg *metalLBConfig) Namespace() string {
 	return cfg.namespace
 }
 
-// CalculateConfig computes the metallb config from given parameter input.
 func (cfg *metalLBConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
-	err := cfg.computeAddressPools(ips, nws)
+	err := cfg.ComputeAddressPools(ips, nws)
 	if err != nil {
 		return err
 	}
 	err = cfg.computePeers(nodes)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func (cfg *metalLBConfig) computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
-	var errs []error
-	for _, ip := range ips {
-		if !nws.Has(*ip.Networkid) {
-			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
-			continue
-		}
-		net := *ip.Networkid
-		err := cfg.addIPToPool(net, *ip)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) > 0 {
-		return errors.Join(errs...)
 	}
 	return nil
 }
@@ -101,50 +77,7 @@ func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
 	return nil
 }
 
-// getOrCreateAddressPool returns the address pool of the given network.
-// It will be created if it does not exist yet.
-func (cfg *metalLBConfig) getOrCreateAddressPool(poolName string) *loadbalancer.AddressPool {
-	for _, pool := range cfg.AddressPools {
-		if pool.Name == poolName {
-			return pool
-		}
-	}
-
-	pool := loadbalancer.NewBGPAddressPool(poolName)
-	cfg.AddressPools = append(cfg.AddressPools, pool)
-
-	return pool
-}
-
-// announceIPs appends the given IPs to the network address pools.
-func (cfg *metalLBConfig) addIPToPool(network string, ip models.V1IPResponse) error {
-	t := ip.Type
-	poolType := models.V1IPBaseTypeEphemeral
-	if t != nil && *t == models.V1IPBaseTypeStatic {
-		poolType = models.V1IPBaseTypeStatic
-	}
-	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
-	pool := cfg.getOrCreateAddressPool(poolName)
-	err := pool.AppendIP(*ip.Ipaddress)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// toYAML returns this config in YAML format.
-func (cfg *metalLBConfig) toYAML() (string, error) {
-	bb, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-	return string(bb), nil
-}
-
-// WriteCRs inserts or updates the Metal-LB custom resources.
 func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
-
-	// BGPPeers
 	bgpPeerList := metallbv1beta2.BGPPeerList{}
 	err := c.List(ctx, &bgpPeerList, client.InNamespace(cfg.namespace))
 	if err != nil {
@@ -197,7 +130,6 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 	}
 
-	// IPAddressPools
 	addressPoolList := metallbv1beta1.IPAddressPoolList{}
 	err = c.List(ctx, &addressPoolList, client.InNamespace(cfg.namespace))
 	if err != nil {
@@ -246,7 +178,6 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 	}
 
-	// BGPAdvertisements
 	for _, pool := range cfg.AddressPools {
 		bgpAdvertisementList := metallbv1beta1.BGPAdvertisementList{}
 		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(cfg.namespace))

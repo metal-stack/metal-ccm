@@ -306,7 +306,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 				return
 			}
 
-			yaml, err := cfg.toYAML()
+			yaml, err := cfg.ToYAML()
 			require.NoError(t, err)
 
 			if diff := cmp.Diff(yaml, mustYAML(tt.want)); diff != "" {
