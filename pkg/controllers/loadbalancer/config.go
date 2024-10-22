@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/metal-stack/metal-go/api/models"
-	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
@@ -69,12 +68,4 @@ func (cfg *Config) getOrCreateAddressPool(poolName string) *AddressPool {
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
-}
-
-func (cfg *Config) ToYAML() (string, error) {
-	bb, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-	return string(bb), nil
 }

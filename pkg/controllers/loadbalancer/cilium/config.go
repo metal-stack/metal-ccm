@@ -8,6 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"gopkg.in/yaml.v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
@@ -102,6 +103,14 @@ func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	}
 
 	return nil
+}
+
+func (cfg *ciliumConfig) toYAML() (string, error) {
+	bb, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(bb), nil
 }
 
 func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {

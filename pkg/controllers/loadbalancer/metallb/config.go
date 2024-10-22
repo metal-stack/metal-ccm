@@ -8,6 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"gopkg.in/yaml.v2"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,6 +76,14 @@ func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
 		cfg.Peers = append(cfg.Peers, peer)
 	}
 	return nil
+}
+
+func (cfg *metalLBConfig) toYAML() (string, error) {
+	bb, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(bb), nil
 }
 
 func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {

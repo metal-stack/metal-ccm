@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -30,7 +30,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 		ips     []*models.V1IPResponse
 		nodes   []v1.Node
 		wantErr error
-		want    map[string]interface{}
+		want    metalLBConfig
 	}{
 		{
 			name: "one ip acquired, no nodes",
@@ -49,17 +49,19 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: map[string]interface{}{
-				"address-pools": []map[string]interface{}{
-					{
-						"addresses": []string{
-							"84.1.1.1/32",
+			want: metalLBConfig{
+				Config: loadbalancer.Config{
+					AddressPools: []*loadbalancer.AddressPool{
+						{
+							Name:       "internet-ephemeral",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs:      []string{"84.1.1.1/32"},
 						},
-						"auto-assign": false,
-						"name":        "internet-ephemeral",
-						"protocol":    "bgp",
 					},
 				},
+				Peers:     []*Peer{},
+				namespace: metallbNamespace,
 			},
 		},
 		{
@@ -89,18 +91,22 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: map[string]interface{}{
-				"address-pools": []map[string]interface{}{
-					{
-						"addresses": []string{
-							"84.1.1.1/32",
-							"84.1.1.2/32",
+			want: metalLBConfig{
+				Config: loadbalancer.Config{
+					AddressPools: []*loadbalancer.AddressPool{
+						{
+							Name:       "internet-ephemeral",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"84.1.1.1/32",
+								"84.1.1.2/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "internet-ephemeral",
-						"protocol":    "bgp",
 					},
 				},
+				Peers:     []*Peer{},
+				namespace: metallbNamespace,
 			},
 		},
 		{
@@ -140,29 +146,32 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: map[string]interface{}{
-				"address-pools": []map[string]interface{}{
-					{
-						"addresses": []string{
-							"84.1.1.1/32",
-							"84.1.1.2/32",
+			want: metalLBConfig{
+				Config: loadbalancer.Config{
+					AddressPools: []*loadbalancer.AddressPool{
+						{
+							Name:       "internet-ephemeral",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"84.1.1.1/32",
+								"84.1.1.2/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "internet-ephemeral",
-						"protocol":    "bgp",
-					},
-					{
-						"addresses": []string{
-							"84.1.1.3/32",
+						{
+							Name:       "internet-static",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"84.1.1.3/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "internet-static",
-						"protocol":    "bgp",
 					},
 				},
+				Peers:     []*Peer{},
+				namespace: metallbNamespace,
 			},
 		},
-
 		{
 			name: "connected to internet,storage,dmz and mpls, two ips acquired, one static ip, no nodes",
 			nws:  testNetworks,
@@ -240,58 +249,62 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: map[string]interface{}{
-				"address-pools": []map[string]interface{}{
-					{
-						"addresses": []string{
-							"84.1.1.1/32",
-							"84.1.1.2/32",
+			want: metalLBConfig{
+				Config: loadbalancer.Config{
+					AddressPools: []*loadbalancer.AddressPool{
+						{
+							Name:       "internet-ephemeral",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"84.1.1.1/32",
+								"84.1.1.2/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "internet-ephemeral",
-						"protocol":    "bgp",
-					},
-					{
-						"addresses": []string{
-							"84.1.1.3/32",
+						{
+							Name:       "internet-static",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"84.1.1.3/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "internet-static",
-						"protocol":    "bgp",
-					},
-					{
-						"addresses": []string{
-							"10.131.44.2/32",
+						{
+							Name:       "shared-storage-network-static",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"10.131.44.2/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "shared-storage-network-static",
-						"protocol":    "bgp",
-					},
-					{
-						"addresses": []string{
-							"100.127.130.2/32",
+						{
+							Name:       "mpls-network-static",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"100.127.130.2/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "mpls-network-static",
-						"protocol":    "bgp",
-					},
-					{
-						"addresses": []string{
-							"100.127.130.3/32",
+						{
+							Name:       "mpls-network-ephemeral",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"100.127.130.3/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "mpls-network-ephemeral",
-						"protocol":    "bgp",
-					},
-					{
-						"addresses": []string{
-							"10.129.172.2/32",
+						{
+							Name:       "dmz-network-static",
+							Protocol:   "bgp",
+							AutoAssign: pointer.Pointer(false),
+							CIDRs: []string{
+								"10.129.172.2/32",
+							},
 						},
-						"auto-assign": false,
-						"name":        "dmz-network-static",
-						"protocol":    "bgp",
 					},
 				},
+				Peers:     []*Peer{},
+				namespace: metallbNamespace,
 			},
 		},
 	}
@@ -302,21 +315,18 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 
 			err := cfg.PrepareConfig(tt.ips, tt.nws, tt.nodes)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
-				t.Errorf("MetalLBConfig.CalculateConfig() error = %v", diff)
+				t.Errorf("metalLBConfig.PrepareConfig() error = %v", diff)
 				return
 			}
 
-			yaml, err := cfg.ToYAML()
+			gotYaml, err := cfg.toYAML()
 			require.NoError(t, err)
 
-			if diff := cmp.Diff(yaml, mustYAML(tt.want)); diff != "" {
-				t.Errorf("MetalLBConfig.CalculateConfig() = %v", diff)
+			wantYaml, _ := tt.want.toYAML()
+
+			if diff := cmp.Diff(gotYaml, wantYaml); diff != "" {
+				t.Errorf("metalLBConfig.PrepareConfig() = %v", diff)
 			}
 		})
 	}
-}
-
-func mustYAML(data interface{}) string {
-	res, _ := yaml.Marshal(data)
-	return string(res)
 }
