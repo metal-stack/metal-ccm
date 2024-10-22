@@ -175,7 +175,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 	for _, peer := range cfg.Peers {
 		bgpPeeringPolicy := &ciliumv2alpha1.CiliumBGPPeeringPolicy{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "cilium.io/v2alpha1",
+				APIVersion: ciliumv2alpha1.CustomResourceDefinitionGroup + "/" + ciliumv2alpha1.CustomResourceDefinitionVersion,
 				Kind:       ciliumv2alpha1.BGPPKindDefinition,
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -200,7 +200,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 						ServiceSelector: pointer.Pointer(slimv1.LabelSelector{
 							MatchExpressions: []slimv1.LabelSelectorRequirement{
 								{
-									Key:      "io.cilium/bgp-control-plane",
+									Key:      ciliumv2alpha1.BGPLoadBalancerClass,
 									Operator: slimv1.LabelSelectorOpNotIn,
 									Values:   []string{"ignore"},
 								},
@@ -248,7 +248,7 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 	for _, pool := range cfg.AddressPools {
 		ipPool := &ciliumv2alpha1.CiliumLoadBalancerIPPool{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "cilium.io/v2alpha1",
+				APIVersion: ciliumv2alpha1.CustomResourceDefinitionGroup + "/" + ciliumv2alpha1.CustomResourceDefinitionVersion,
 				Kind:       ciliumv2alpha1.PoolKindDefinition,
 			},
 			ObjectMeta: metav1.ObjectMeta{
