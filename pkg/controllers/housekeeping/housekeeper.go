@@ -16,7 +16,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 )
 
-// Housekeeper periodically updates nodes and loadbalancers
+// Housekeeper periodically updates nodes and load balancers
 type Housekeeper struct {
 	client                     metalgo.Client
 	stop                       <-chan struct{}
