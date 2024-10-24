@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/yaml"
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
-	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
@@ -36,10 +36,6 @@ type ciliumConfig struct {
 
 func NewCiliumConfig(k8sClient clientset.Interface) *ciliumConfig {
 	return &ciliumConfig{k8sClient: k8sClient}
-}
-
-func (cfg *ciliumConfig) Namespace() string {
-	return ""
 }
 
 func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
