@@ -32,15 +32,6 @@ func newBGPAddressPool(name string) addressPool {
 	}
 }
 
-func (pool *addressPool) containsCIDR(cidr string) bool {
-	for _, CIDR := range pool.CIDRs {
-		if cidr == CIDR {
-			return true
-		}
-	}
-	return false
-}
-
 func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
 	if ip.Ipaddress == nil {
 		return errors.New("ip address is not set on ip")
@@ -67,6 +58,12 @@ func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
 	pool.CIDRs = append(pool.CIDRs, cidr)
 
 	return nil
+}
+
+func (pool *addressPool) containsCIDR(cidr string) bool {
+	return slices.ContainsFunc(pool.CIDRs, func(elem string) bool {
+		return cidr == elem
+	})
 }
 
 func (as addressPools) addPoolIP(poolName string, ip *models.V1IPResponse) (addressPools, error) {
