@@ -41,6 +41,24 @@ func UpdateNodeLabelsWithBackoff(ctx context.Context, client clientset.Interface
 	})
 }
 
+// UpdateNodeAnnotationsWithBackoff updates labels on a given node with a given backoff retry.
+func UpdateNodeAnnotationsWithBackoff(ctx context.Context, client clientset.Interface, nodeName string, annotations map[string]string, backoff wait.Backoff) error {
+	return retry.RetryOnConflict(backoff, func() error {
+
+		node, err := client.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		for key, value := range annotations {
+			node.Annotations[key] = value
+		}
+
+		_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+		return err
+	})
+}
+
 // NodeNamesOfNodes returns the node names of the nodes
 func NodeNamesOfNodes(nodes []v1.Node) string {
 	var nn []string

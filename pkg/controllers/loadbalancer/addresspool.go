@@ -18,7 +18,7 @@ type AddressPool struct {
 	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only host addresses (/32 for ipv4 or /128 for ipv6) are used.
 }
 
-func NewBGPAddressPool(name string) *AddressPool {
+func newBGPAddressPool(name string) *AddressPool {
 	return &AddressPool{
 		Name:       name,
 		Protocol:   bgpProtocol,
@@ -55,8 +55,4 @@ func (pool *AddressPool) appendIP(ip string) error {
 
 	pool.CIDRs = append(pool.CIDRs, cidr)
 	return nil
-}
-
-func (pool *AddressPool) String() string {
-	return fmt.Sprintf("%s (%s): %v", pool.Name, pool.Protocol, pool.CIDRs)
 }

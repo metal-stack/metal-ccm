@@ -16,19 +16,19 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
 )
 
-// Housekeeper periodically updates nodes, loadbalancers and metallb
+// Housekeeper periodically updates nodes and load balancers
 type Housekeeper struct {
-	client                metalgo.Client
-	stop                  <-chan struct{}
-	k8sClient             clientset.Interface
-	ticker                *tickerSyncer
-	lbController          *loadbalancer.LoadBalancerController
-	lastTagSync           time.Time
-	lastMetalLBConfigSync time.Time
-	metalAPIErrors        int32
-	ms                    *metal.MetalService
-	sshPublicKey          string
-	clusterID             string
+	client                     metalgo.Client
+	stop                       <-chan struct{}
+	k8sClient                  clientset.Interface
+	ticker                     *tickerSyncer
+	lbController               *loadbalancer.LoadBalancerController
+	lastTagSync                time.Time
+	lastLoadBalancerConfigSync time.Time
+	metalAPIErrors             int32
+	ms                         *metal.MetalService
+	sshPublicKey               string
+	clusterID                  string
 }
 
 // New returns a new house keeper
@@ -48,7 +48,7 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 // Run runs the housekeeper...
 func (h *Housekeeper) Run() {
 	h.startTagSynching()
-	h.startMetalLBConfigSynching()
+	h.startLoadBalancerConfigSynching()
 	h.startSSHKeysSynching()
 	h.watchNodes()
 	h.runHealthCheck()
@@ -85,20 +85,20 @@ func (h *Housekeeper) watchNodes() {
 					return
 				}
 				if oldTunnelAddress == newTunnelAddress {
-					// node was not modified and ip address has not changed, not updating metallb config
+					// node was not modified and ip address has not changed, not updating load balancer config
 					return
 				}
 
-				klog.Info("node was modified and ip address has changed, updating metallb config")
+				klog.Info("node was modified and ip address has changed, updating load balancer config")
 
 				nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)
 				if err != nil {
 					klog.Errorf("error listing nodes: %v", err)
 					return
 				}
-				err = h.lbController.UpdateMetalLBConfig(context.Background(), nodes)
+				err = h.lbController.UpdateLoadBalancerConfig(context.Background(), nodes)
 				if err != nil {
-					klog.Errorf("error updating metallb config: %v", err)
+					klog.Errorf("error updating load balancer config: %v", err)
 				}
 			},
 		},
