@@ -1,4 +1,4 @@
-package cilium
+package config
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -14,16 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-var (
-	testNetworks = sets.New(
-		"internet",
-		"shared-storage-network",
-		"mpls-network",
-		"dmz-network",
-	)
-)
-
-func TestCiliumConfig_PrepareConfig(t *testing.T) {
+func TestCiliumConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		nws     sets.Set[string]
@@ -50,8 +40,8 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &ciliumConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -61,7 +51,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*peer{},
 				},
 			},
 		},
@@ -93,8 +83,8 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &ciliumConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -105,7 +95,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*peer{},
 				},
 			},
 		},
@@ -147,8 +137,8 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &ciliumConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -167,7 +157,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*peer{},
 				},
 			},
 		},
@@ -249,8 +239,8 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &ciliumConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -301,23 +291,21 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*peer{},
 				},
 			}},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &ciliumConfig{}
-
-			err := cfg.PrepareConfig(tt.ips, tt.nws, tt.nodes)
+			cfg, err := New("cilium", tt.ips, tt.nws, tt.nodes, nil)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
-				t.Errorf("CiliumConfig.CalculateConfig() error = %v", diff)
+				t.Errorf("error = %v", diff)
 				return
 			}
 
 			if diff := cmp.Diff(cfg, tt.want, cmpopts.IgnoreUnexported(ciliumConfig{})); diff != "" {
-				t.Errorf("CiliumConfig.CalculateConfig() = %v", diff)
+				t.Errorf("diff = %v", diff)
 			}
 		})
 	}

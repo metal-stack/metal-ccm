@@ -78,8 +78,8 @@ func (h *Housekeeper) watchNodes() {
 				oldNode := oldObj.(*v1.Node)
 				newNode := newObj.(*v1.Node)
 
-				oldTunnelAddress, _ := loadbalancer.NodeAddress(*oldNode)
-				newTunnelAddress, err := loadbalancer.NodeAddress(*newNode)
+				oldTunnelAddress, _ := kubernetes.NodeAddress(*oldNode)
+				newTunnelAddress, err := kubernetes.NodeAddress(*newNode)
 				if err != nil {
 					klog.Error("newNode does not have a tunnelAddress, ignoring")
 					return

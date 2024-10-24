@@ -13,8 +13,6 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/cilium"
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/metallb"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -49,6 +47,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
+	loadbalancerType := os.Getenv(constants.Loadbalancer)
 
 	var (
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
@@ -81,6 +80,10 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
 	}
 
+	if !slices.Contains([]string{"cilium", "metallb", ""}, loadbalancerType) {
+		klog.Fatalf("only cilium or metallb load balancer types are supported")
+	}
+
 	var err error
 	metalclient, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
@@ -97,7 +100,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	instancesController := instances.New(defaultExternalNetworkID)
 	zonesController := zones.New()
-	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks)
+	loadBalancerController := loadbalancer.New(partitionID, projectID, clusterID, defaultExternalNetworkID, additionalNetworks, loadbalancerType)
 
 	klog.Info("initialized cloud controller manager")
 	return &cloud{
@@ -116,11 +119,6 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
-	loadbalancerType := os.Getenv(constants.Loadbalancer)
-
-	if !slices.Contains([]string{"cilium", "metallb", ""}, loadbalancerType) {
-		klog.Fatalf("only cilium or metallb load balancer types are supported")
-	}
 
 	k8sClientSet := clientBuilder.ClientOrDie("cloud-controller-manager")
 	k8sRestConfig, err := clientBuilder.Config("cloud-controller-manager")
@@ -145,16 +143,6 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 		klog.Fatalf("unable to create k8s client: %v", err)
 	}
 
-	var config loadbalancer.LoadBalancerConfig
-	switch loadbalancerType {
-	case "metallb":
-		config = metallb.NewMetalLBConfig()
-	case "cilium":
-		config = cilium.NewCiliumConfig(k8sClientSet)
-	default:
-		config = metallb.NewMetalLBConfig()
-	}
-
 	housekeeper := housekeeping.New(metalclient, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
 	ms := metal.New(metalclient, k8sClientSet, projectID)
 
@@ -162,7 +150,6 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.loadBalancer.K8sClientSet = k8sClientSet
 	c.loadBalancer.K8sClient = k8sClient
 	c.loadBalancer.MetalService = ms
-	c.loadBalancer.Config = config
 	c.zones.MetalService = ms
 
 	go housekeeper.Run()

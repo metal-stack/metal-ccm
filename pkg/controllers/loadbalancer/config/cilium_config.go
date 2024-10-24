@@ -1,11 +1,10 @@
-package cilium
+package config
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
@@ -22,12 +21,12 @@ import (
 )
 
 type ciliumConfig struct {
-	loadbalancer.Config
+	cfg       *baseConfig
 	k8sClient clientset.Interface
 }
 
-func NewCiliumConfig(k8sClient clientset.Interface) *ciliumConfig {
-	return &ciliumConfig{k8sClient: k8sClient}
+func newCiliumConfig(cfg *baseConfig, k8sClient clientset.Interface) *ciliumConfig {
+	return &ciliumConfig{cfg: cfg, k8sClient: k8sClient}
 }
 
 func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
@@ -58,7 +57,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 	for _, existingPolicy := range existingPolicies.Items {
 		existingPolicy := existingPolicy
 		found := false
-		for _, peer := range cfg.Peers {
+		for _, peer := range cfg.cfg.Peers {
 			if fmt.Sprintf("%d", peer.ASN) == existingPolicy.Name {
 				found = true
 				break
@@ -72,7 +71,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 		}
 	}
 
-	for _, peer := range cfg.Peers {
+	for _, peer := range cfg.cfg.Peers {
 		bgpPeeringPolicy := &ciliumv2alpha1.CiliumBGPPeeringPolicy{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: ciliumv2alpha1.CustomResourceDefinitionGroup + "/" + ciliumv2alpha1.CustomResourceDefinitionVersion,
@@ -131,7 +130,7 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 	for _, existingPool := range existingPools.Items {
 		existingPool := existingPool
 		found := false
-		for _, pool := range cfg.AddressPools {
+		for _, pool := range cfg.cfg.AddressPools {
 			if pool.Name == existingPool.Name {
 				found = true
 				break
@@ -145,7 +144,7 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 		}
 	}
 
-	for _, pool := range cfg.AddressPools {
+	for _, pool := range cfg.cfg.AddressPools {
 		ipPool := &ciliumv2alpha1.CiliumLoadBalancerIPPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: ciliumv2alpha1.CustomResourceDefinitionGroup + "/" + ciliumv2alpha1.CustomResourceDefinitionVersion,
@@ -190,7 +189,7 @@ func (cfg *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
 		Jitter:   1.0,
 	}
 	for _, n := range nodes {
-		asn, err := cfg.GetASNFromNodeLabels(n)
+		asn, err := getASNFromNodeLabels(n)
 		if err != nil {
 			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
 		}
