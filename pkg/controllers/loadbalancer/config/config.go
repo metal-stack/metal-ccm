@@ -20,7 +20,7 @@ type LoadBalancerConfig interface {
 }
 
 type baseConfig struct {
-	Peers        []*Peer      `json:"peers,omitempty" yaml:"peers,omitempty"`
+	Peers        []*peer      `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools addressPools `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
@@ -88,8 +88,8 @@ func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) (addr
 	return pools, nil
 }
 
-func computePeers(nodes []v1.Node) ([]*Peer, error) {
-	var peers []*Peer
+func computePeers(nodes []v1.Node) ([]*peer, error) {
+	var peers []*peer
 
 	for _, n := range nodes {
 		asn, err := getASNFromNodeLabels(n)
