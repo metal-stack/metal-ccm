@@ -32,6 +32,9 @@ func (cfg *Config) ComputeAddressPools(ips []*models.V1IPResponse, nws sets.Set[
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
+
+		klog.Infof("adding ip to pool %s", *ip.Ipaddress)
+
 		net := *ip.Networkid
 		err := cfg.addIPToPool(net, *ip)
 		if err != nil {
@@ -83,10 +86,12 @@ func (cfg *Config) addIPToPool(network string, ip models.V1IPResponse) error {
 	}
 	poolName := fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
 	pool := cfg.getOrCreateAddressPool(poolName)
-	err := pool.AppendIP(*ip.Ipaddress)
+
+	err := pool.appendIP(*ip.Ipaddress)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

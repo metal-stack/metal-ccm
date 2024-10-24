@@ -35,7 +35,7 @@ func (pool *AddressPool) containsCIDR(cidr string) bool {
 	return false
 }
 
-func (pool *AddressPool) AppendIP(ip string) error {
+func (pool *AddressPool) appendIP(ip string) error {
 	parsed, err := netip.ParseAddr(ip)
 	if err != nil {
 		return err
