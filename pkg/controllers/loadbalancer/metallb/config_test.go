@@ -10,6 +10,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -60,7 +61,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers:     []*Peer{},
+				Peers:     []*loadbalancer.Peer{},
 				namespace: metallbNamespace,
 			},
 		},
@@ -105,7 +106,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers:     []*Peer{},
+				Peers:     []*loadbalancer.Peer{},
 				namespace: metallbNamespace,
 			},
 		},
@@ -168,7 +169,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers:     []*Peer{},
+				Peers:     []*loadbalancer.Peer{},
 				namespace: metallbNamespace,
 			},
 		},
@@ -303,7 +304,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers:     []*Peer{},
+				Peers:     []*loadbalancer.Peer{},
 				namespace: metallbNamespace,
 			},
 		},
@@ -329,4 +330,12 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (cfg *metalLBConfig) toYAML() (string, error) {
+	bb, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(bb), nil
 }

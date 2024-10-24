@@ -13,8 +13,10 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -23,14 +25,13 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 
 	ciliumv2alpha1 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
-	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type ciliumConfig struct {
 	loadbalancer.Config
-	Peers     []*Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
+	Peers     []*loadbalancer.Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
 	k8sClient clientset.Interface
 }
 
@@ -55,14 +56,14 @@ func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[
 }
 
 func (cfg *ciliumConfig) computePeers(nodes []v1.Node) error {
-	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
+	cfg.Peers = []*loadbalancer.Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
 		asn, err := getASNFromNodeLabels(n)
 		if err != nil {
 			return err
 		}
 
-		peer, err := newPeer(n, asn)
+		peer, err := loadbalancer.NewPeer(n, asn)
 		if err != nil {
 			klog.Warningf("skipping peer: %v", err)
 			continue
@@ -123,7 +124,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 		existingPolicy := existingPolicy
 		found := false
 		for _, peer := range cfg.Peers {
-			if fmt.Sprintf("%d", peer.Peer.ASN) == existingPolicy.Name {
+			if fmt.Sprintf("%d", peer.ASN) == existingPolicy.Name {
 				found = true
 				break
 			}
@@ -143,20 +144,20 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 				Kind:       ciliumv2alpha1.BGPPKindDefinition,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("%d", peer.Peer.ASN),
+				Name: fmt.Sprintf("%d", peer.ASN),
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeeringPolicy, func() error {
 			bgpPeeringPolicy.Spec = ciliumv2alpha1.CiliumBGPPeeringPolicySpec{
-				NodeSelector: &peer.NodeSelector,
+				NodeSelector: convertNodeSelector(&peer.NodeSelector),
 				VirtualRouters: []ciliumv2alpha1.CiliumBGPVirtualRouter{
 					{
-						LocalASN:      int64(peer.Peer.MyASN),
+						LocalASN:      int64(peer.MyASN),
 						ExportPodCIDR: pointer.Pointer(true),
 						Neighbors: []ciliumv2alpha1.CiliumBGPNeighbor{
 							{
 								PeerAddress:     "127.0.0.1/32",
-								PeerASN:         int64(peer.Peer.ASN),
+								PeerASN:         int64(peer.ASN),
 								GracefulRestart: &ciliumv2alpha1.CiliumBGPNeighborGracefulRestart{Enabled: true},
 							},
 						},
@@ -268,4 +269,18 @@ func (cfg *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func convertNodeSelector(s *metav1.LabelSelector) *slimv1.LabelSelector {
+	var machExpressions []slimv1.LabelSelectorRequirement
+	for _, me := range s.MatchExpressions {
+		machExpressions = append(machExpressions, slimv1.LabelSelectorRequirement{
+			Key:      me.Key,
+			Operator: slimv1.LabelSelectorOperator(me.Operator),
+			Values:   me.Values,
+		})
+	}
+	return &slimv1.LabelSelector{
+		MatchExpressions: machExpressions,
+	}
 }

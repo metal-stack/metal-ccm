@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	ciliumv2alpha1 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	metallbv1beta2 "go.universe.tf/metallb/api/v1beta2"
 )
@@ -129,6 +130,10 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	err = metallbv1beta2.AddToScheme(scheme)
 	if err != nil {
 		klog.Fatalf("unable to add metallb v1beta2 to scheme: %v", err)
+	}
+	err = ciliumv2alpha1.AddToScheme(scheme)
+	if err != nil {
+		klog.Fatalf("unable to add cilium v2alpha1 to scheme: %v", err)
 	}
 	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme})
 	if err != nil {

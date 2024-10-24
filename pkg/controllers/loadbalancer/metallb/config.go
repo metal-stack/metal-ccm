@@ -8,7 +8,6 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"gopkg.in/yaml.v2"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,16 +29,12 @@ const (
 
 type metalLBConfig struct {
 	loadbalancer.Config
-	Peers     []*Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
+	Peers     []*loadbalancer.Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
 	namespace string
 }
 
 func NewMetalLBConfig() *metalLBConfig {
 	return &metalLBConfig{namespace: metallbNamespace}
-}
-
-func (cfg *metalLBConfig) Namespace() string {
-	return cfg.namespace
 }
 
 func (cfg *metalLBConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
@@ -55,7 +50,7 @@ func (cfg *metalLBConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set
 }
 
 func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
-	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
+	cfg.Peers = []*loadbalancer.Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
 		labels := n.GetLabels()
 		asnString, ok := labels[tag.MachineNetworkPrimaryASN]
@@ -67,7 +62,7 @@ func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
 			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 		}
 
-		peer, err := newPeer(n, asn)
+		peer, err := loadbalancer.NewPeer(n, asn)
 		if err != nil {
 			klog.Warningf("skipping peer: %v", err)
 			continue
@@ -76,14 +71,6 @@ func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
 		cfg.Peers = append(cfg.Peers, peer)
 	}
 	return nil
-}
-
-func (cfg *metalLBConfig) toYAML() (string, error) {
-	bb, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-	return string(bb), nil
 }
 
 func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
@@ -96,7 +83,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		existingPeer := existingPeer
 		found := false
 		for _, peer := range cfg.Peers {
-			if fmt.Sprintf("peer-%d", peer.Peer.ASN) == existingPeer.Name {
+			if fmt.Sprintf("peer-%d", peer.ASN) == existingPeer.Name {
 				found = true
 				break
 			}
@@ -116,18 +103,18 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Kind:       "BGPPeer",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("peer-%d", peer.Peer.ASN),
+				Name:      fmt.Sprintf("peer-%d", peer.ASN),
 				Namespace: cfg.namespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
-				MyASN:         peer.Peer.MyASN,
-				ASN:           peer.Peer.ASN,
+				MyASN:         peer.MyASN,
+				ASN:           peer.ASN,
 				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
 				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
-				Address:       peer.Peer.Address,
-				NodeSelectors: peer.NodeSelectors,
+				Address:       peer.Address,
+				NodeSelectors: []metav1.LabelSelector{peer.NodeSelector},
 			}
 			return nil
 		})

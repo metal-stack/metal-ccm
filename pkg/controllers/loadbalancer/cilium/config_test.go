@@ -62,7 +62,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers: []*Peer{},
+				Peers: []*loadbalancer.Peer{},
 			},
 		},
 		{
@@ -106,7 +106,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers: []*Peer{},
+				Peers: []*loadbalancer.Peer{},
 			},
 		},
 		{
@@ -168,7 +168,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers: []*Peer{},
+				Peers: []*loadbalancer.Peer{},
 			},
 		},
 		{
@@ -302,7 +302,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 						},
 					},
 				},
-				Peers: []*Peer{},
+				Peers: []*loadbalancer.Peer{},
 			}},
 	}
 	for _, tt := range tests {
