@@ -7,12 +7,8 @@ import (
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-
-	"github.com/metal-stack/metal-go/api/models"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -27,43 +23,11 @@ const (
 
 type metalLBConfig struct {
 	loadbalancer.Config
-	Peers     []*loadbalancer.Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
 	namespace string
 }
 
 func NewMetalLBConfig() *metalLBConfig {
 	return &metalLBConfig{namespace: metallbNamespace}
-}
-
-func (cfg *metalLBConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
-	err := cfg.ComputeAddressPools(ips, nws)
-	if err != nil {
-		return err
-	}
-	err = cfg.computePeers(nodes)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
-	cfg.Peers = []*loadbalancer.Peer{} // we want an empty array of peers and not nil if there are no nodes
-	for _, n := range nodes {
-		asn, err := cfg.GetASNFromNodeLabels(n)
-		if err != nil {
-			return err
-		}
-
-		peer, err := loadbalancer.NewPeer(n, asn)
-		if err != nil {
-			klog.Warningf("skipping peer: %v", err)
-			continue
-		}
-
-		cfg.Peers = append(cfg.Peers, peer)
-	}
-	return nil
 }
 
 func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {

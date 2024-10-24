@@ -21,6 +21,7 @@ type LoadBalancerConfig interface {
 }
 
 type Config struct {
+	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
 	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
@@ -39,6 +40,37 @@ func (cfg *Config) ComputeAddressPools(ips []*models.V1IPResponse, nws sets.Set[
 	}
 	if len(errs) > 0 {
 		return errors.Join(errs...)
+	}
+	return nil
+}
+
+func (cfg *Config) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
+	err := cfg.ComputeAddressPools(ips, nws)
+	if err != nil {
+		return err
+	}
+	err = cfg.computePeers(nodes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cfg *Config) computePeers(nodes []v1.Node) error {
+	cfg.Peers = []*Peer{} // we want an empty array of peers and not nil if there are no nodes
+	for _, n := range nodes {
+		asn, err := cfg.GetASNFromNodeLabels(n)
+		if err != nil {
+			return err
+		}
+
+		peer, err := NewPeer(n, asn)
+		if err != nil {
+			klog.Warningf("skipping peer: %v", err)
+			continue
+		}
+
+		cfg.Peers = append(cfg.Peers, peer)
 	}
 	return nil
 }

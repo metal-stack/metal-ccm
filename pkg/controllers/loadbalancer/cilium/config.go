@@ -10,15 +10,11 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-
-	"github.com/metal-stack/metal-go/api/models"
 
 	ciliumv2alpha1 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,43 +23,11 @@ import (
 
 type ciliumConfig struct {
 	loadbalancer.Config
-	Peers     []*loadbalancer.Peer `json:"peers,omitempty" yaml:"peers,omitempty"`
 	k8sClient clientset.Interface
 }
 
 func NewCiliumConfig(k8sClient clientset.Interface) *ciliumConfig {
 	return &ciliumConfig{k8sClient: k8sClient}
-}
-
-func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) error {
-	err := cfg.ComputeAddressPools(ips, nws)
-	if err != nil {
-		return err
-	}
-	err = cfg.computePeers(nodes)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (cfg *ciliumConfig) computePeers(nodes []v1.Node) error {
-	cfg.Peers = []*loadbalancer.Peer{} // we want an empty array of peers and not nil if there are no nodes
-	for _, n := range nodes {
-		asn, err := cfg.GetASNFromNodeLabels(n)
-		if err != nil {
-			return err
-		}
-
-		peer, err := loadbalancer.NewPeer(n, asn)
-		if err != nil {
-			klog.Warningf("skipping peer: %v", err)
-			continue
-		}
-
-		cfg.Peers = append(cfg.Peers, peer)
-	}
-	return nil
 }
 
 func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
