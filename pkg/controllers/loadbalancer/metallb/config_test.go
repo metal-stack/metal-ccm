@@ -10,9 +10,9 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/yaml"
 )
 
 var (

@@ -8,8 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"gopkg.in/yaml.v2"
-
+	"sigs.k8s.io/yaml"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 
