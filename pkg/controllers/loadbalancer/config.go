@@ -26,14 +26,14 @@ type Config struct {
 }
 
 func (cfg *Config) ComputeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) error {
+	cfg.AddressPools = nil
+
 	var errs []error
 	for _, ip := range ips {
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
 		}
-
-		klog.Infof("adding ip to pool %s", *ip.Ipaddress)
 
 		net := *ip.Networkid
 		err := cfg.addIPToPool(net, *ip)
