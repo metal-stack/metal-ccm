@@ -1,4 +1,4 @@
-package metallb
+package config
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -50,8 +49,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: []*AddressPool{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -59,7 +58,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 							CIDRs:      []string{"84.1.1.1/32"},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*Peer{},
 				},
 				namespace: metallbNamespace,
 			},
@@ -92,8 +91,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: []*AddressPool{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -104,7 +103,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*Peer{},
 				},
 				namespace: metallbNamespace,
 			},
@@ -147,8 +146,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: []*AddressPool{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -167,7 +166,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*Peer{},
 				},
 				namespace: metallbNamespace,
 			},
@@ -250,8 +249,8 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				Config: loadbalancer.Config{
-					AddressPools: []*loadbalancer.AddressPool{
+				cfg: &baseConfig{
+					AddressPools: []*AddressPool{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -302,7 +301,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 							},
 						},
 					},
-					Peers: []*loadbalancer.Peer{},
+					Peers: []*Peer{},
 				},
 				namespace: metallbNamespace,
 			},
@@ -311,9 +310,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &metalLBConfig{}
-
-			err := cfg.PrepareConfig(tt.ips, tt.nws, tt.nodes)
+			cfg, err := New("metallb", tt.ips, tt.nws, tt.nodes, nil)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
 				t.Errorf("metalLBConfig.PrepareConfig() error = %v", diff)
 				return

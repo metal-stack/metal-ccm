@@ -1,6 +1,7 @@
-package loadbalancer
+package config
 
 import (
+	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,7 +24,7 @@ func newPeer(node v1.Node, asn int64) (*Peer, error) {
 		},
 	}
 
-	address, err := NodeAddress(node)
+	address, err := kubernetes.NodeAddress(node)
 	if err != nil {
 		return nil, err
 	}

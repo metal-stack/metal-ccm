@@ -1,11 +1,9 @@
-package metallb
+package config
 
 import (
 	"context"
 	"fmt"
 	"time"
-
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -22,12 +20,12 @@ const (
 )
 
 type metalLBConfig struct {
-	loadbalancer.Config
+	cfg       *baseConfig
 	namespace string
 }
 
-func NewMetalLBConfig() *metalLBConfig {
-	return &metalLBConfig{namespace: metallbNamespace}
+func newMetalLBConfig(cfg *baseConfig) *metalLBConfig {
+	return &metalLBConfig{cfg: cfg, namespace: metallbNamespace}
 }
 
 func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
@@ -39,7 +37,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	for _, existingPeer := range bgpPeerList.Items {
 		existingPeer := existingPeer
 		found := false
-		for _, peer := range cfg.Peers {
+		for _, peer := range cfg.cfg.Peers {
 			if fmt.Sprintf("peer-%d", peer.ASN) == existingPeer.Name {
 				found = true
 				break
@@ -53,7 +51,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 	}
 
-	for _, peer := range cfg.Peers {
+	for _, peer := range cfg.cfg.Peers {
 		bgpPeer := &metallbv1beta2.BGPPeer{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta2",
@@ -90,7 +88,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	}
 	for _, existingPool := range addressPoolList.Items {
 		found := false
-		for _, pool := range cfg.AddressPools {
+		for _, pool := range cfg.cfg.AddressPools {
 			if pool.Name == existingPool.Name {
 				found = true
 				break
@@ -104,7 +102,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 	}
 
-	for _, pool := range cfg.AddressPools {
+	for _, pool := range cfg.cfg.AddressPools {
 		ipAddressPool := &metallbv1beta1.IPAddressPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta1",
@@ -131,7 +129,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		}
 	}
 
-	for _, pool := range cfg.AddressPools {
+	for _, pool := range cfg.cfg.AddressPools {
 		bgpAdvertisementList := metallbv1beta1.BGPAdvertisementList{}
 		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(cfg.namespace))
 		if err != nil {
@@ -140,7 +138,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		for _, existingAdvertisement := range bgpAdvertisementList.Items {
 			existingAdvertisement := existingAdvertisement
 			found := false
-			for _, pool := range cfg.AddressPools {
+			for _, pool := range cfg.cfg.AddressPools {
 				if pool.Name == existingAdvertisement.Name {
 					found = true
 					break
