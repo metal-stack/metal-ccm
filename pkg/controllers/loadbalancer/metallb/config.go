@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,7 +90,6 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		return err
 	}
 	for _, existingPool := range addressPoolList.Items {
-		existingPool := existingPool
 		found := false
 		for _, pool := range cfg.AddressPools {
 			if pool.Name == existingPool.Name {
@@ -121,6 +121,10 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 				Addresses:  pool.CIDRs,
 				AutoAssign: pool.AutoAssign,
 			}
+
+			klog.Info("writing address pool")
+			spew.Dump(ipAddressPool.Spec)
+
 			return nil
 		})
 		if err != nil {
