@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
@@ -67,4 +69,17 @@ func (cfg *Config) getOrCreateAddressPool(poolName string) *AddressPool {
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool
+}
+
+func (cfg *Config) GetASNFromNodeLabels(node v1.Node) (int64, error) {
+	labels := node.GetLabels()
+	asnString, ok := labels[tag.MachineNetworkPrimaryASN]
+	if !ok {
+		return 0, fmt.Errorf("node %q misses label: %s", node.GetName(), tag.MachineNetworkPrimaryASN)
+	}
+	asn, err := strconv.ParseInt(asnString, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
+	}
+	return asn, nil
 }

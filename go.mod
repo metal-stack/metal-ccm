@@ -11,7 +11,6 @@ require (
 	github.com/metal-stack/metal-lib v0.18.4
 	github.com/metal-stack/v v1.0.3
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.9.0
 	go.universe.tf/metallb v0.14.8
 	k8s.io/api v0.30.2
 	k8s.io/apimachinery v0.31.0
@@ -20,7 +19,6 @@ require (
 	k8s.io/component-base v0.30.2
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.18.4
-	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
@@ -172,4 +170,5 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+	sigs.k8s.io/yaml v1.4.0 // indirect
 )

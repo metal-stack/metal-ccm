@@ -3,11 +3,9 @@ package metallb
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,14 +50,9 @@ func (cfg *metalLBConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set
 func (cfg *metalLBConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*loadbalancer.Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
-		labels := n.GetLabels()
-		asnString, ok := labels[tag.MachineNetworkPrimaryASN]
-		if !ok {
-			return fmt.Errorf("node %q misses label: %s", n.GetName(), tag.MachineNetworkPrimaryASN)
-		}
-		asn, err := strconv.ParseInt(asnString, 10, 64)
+		asn, err := cfg.GetASNFromNodeLabels(n)
 		if err != nil {
-			return fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
+			return err
 		}
 
 		peer, err := loadbalancer.NewPeer(n, asn)

@@ -5,14 +5,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -31,7 +30,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 		ips     []*models.V1IPResponse
 		nodes   []v1.Node
 		wantErr error
-		want    metalLBConfig
+		want    *metalLBConfig
 	}{
 		{
 			name: "one ip acquired, no nodes",
@@ -50,7 +49,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: metalLBConfig{
+			want: &metalLBConfig{
 				Config: loadbalancer.Config{
 					AddressPools: []*loadbalancer.AddressPool{
 						{
@@ -92,7 +91,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: metalLBConfig{
+			want: &metalLBConfig{
 				Config: loadbalancer.Config{
 					AddressPools: []*loadbalancer.AddressPool{
 						{
@@ -147,7 +146,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: metalLBConfig{
+			want: &metalLBConfig{
 				Config: loadbalancer.Config{
 					AddressPools: []*loadbalancer.AddressPool{
 						{
@@ -250,7 +249,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			},
 			nodes:   []v1.Node{},
 			wantErr: nil,
-			want: metalLBConfig{
+			want: &metalLBConfig{
 				Config: loadbalancer.Config{
 					AddressPools: []*loadbalancer.AddressPool{
 						{
@@ -320,22 +319,9 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 				return
 			}
 
-			gotYaml, err := cfg.toYAML()
-			require.NoError(t, err)
-
-			wantYaml, _ := tt.want.toYAML()
-
-			if diff := cmp.Diff(gotYaml, wantYaml); diff != "" {
+			if diff := cmp.Diff(cfg, tt.want, cmpopts.IgnoreUnexported(metalLBConfig{})); diff != "" {
 				t.Errorf("metalLBConfig.PrepareConfig() = %v", diff)
 			}
 		})
 	}
-}
-
-func (cfg *metalLBConfig) toYAML() (string, error) {
-	bb, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-	return string(bb), nil
 }

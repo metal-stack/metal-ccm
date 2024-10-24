@@ -3,14 +3,11 @@ package cilium
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"github.com/metal-stack/metal-lib/pkg/tag"
-	"sigs.k8s.io/yaml"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
@@ -53,7 +50,7 @@ func (cfg *ciliumConfig) PrepareConfig(ips []*models.V1IPResponse, nws sets.Set[
 func (cfg *ciliumConfig) computePeers(nodes []v1.Node) error {
 	cfg.Peers = []*loadbalancer.Peer{} // we want an empty array of peers and not nil if there are no nodes
 	for _, n := range nodes {
-		asn, err := getASNFromNodeLabels(n)
+		asn, err := cfg.GetASNFromNodeLabels(n)
 		if err != nil {
 			return err
 		}
@@ -67,19 +64,6 @@ func (cfg *ciliumConfig) computePeers(nodes []v1.Node) error {
 		cfg.Peers = append(cfg.Peers, peer)
 	}
 	return nil
-}
-
-func getASNFromNodeLabels(node v1.Node) (int64, error) {
-	labels := node.GetLabels()
-	asnString, ok := labels[tag.MachineNetworkPrimaryASN]
-	if !ok {
-		return 0, fmt.Errorf("node %q misses label: %s", node.GetName(), tag.MachineNetworkPrimaryASN)
-	}
-	asn, err := strconv.ParseInt(asnString, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
-	}
-	return asn, nil
 }
 
 func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
@@ -99,14 +83,6 @@ func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	}
 
 	return nil
-}
-
-func (cfg *ciliumConfig) toYAML() (string, error) {
-	bb, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", err
-	}
-	return string(bb), nil
 }
 
 func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {
@@ -250,7 +226,7 @@ func (cfg *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
 		Jitter:   1.0,
 	}
 	for _, n := range nodes {
-		asn, err := getASNFromNodeLabels(n)
+		asn, err := cfg.GetASNFromNodeLabels(n)
 		if err != nil {
 			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
 		}
