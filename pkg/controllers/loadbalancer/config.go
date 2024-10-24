@@ -67,7 +67,7 @@ func (cfg *Config) computePeers(nodes []v1.Node) error {
 			return err
 		}
 
-		peer, err := NewPeer(n, asn)
+		peer, err := newPeer(n, asn)
 		if err != nil {
 			klog.Warningf("skipping peer: %v", err)
 			continue
@@ -102,7 +102,7 @@ func (cfg *Config) getOrCreateAddressPool(poolName string) *AddressPool {
 		}
 	}
 
-	pool := NewBGPAddressPool(poolName)
+	pool := newBGPAddressPool(poolName)
 	cfg.AddressPools = append(cfg.AddressPools, pool)
 
 	return pool

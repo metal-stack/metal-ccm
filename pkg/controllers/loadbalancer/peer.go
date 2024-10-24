@@ -1,8 +1,6 @@
 package loadbalancer
 
 import (
-	"fmt"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,7 +12,7 @@ type Peer struct {
 	NodeSelector metav1.LabelSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
 }
 
-func NewPeer(node v1.Node, asn int64) (*Peer, error) {
+func newPeer(node v1.Node, asn int64) (*Peer, error) {
 	hostname := node.GetName()
 
 	matchExpression := metav1.LabelSelectorRequirement{
@@ -42,13 +40,4 @@ func NewPeer(node v1.Node, asn int64) (*Peer, error) {
 			},
 		},
 	}, nil
-}
-
-func NodeAddress(node v1.Node) (string, error) {
-	for _, a := range node.Status.Addresses {
-		if a.Type == v1.NodeInternalIP {
-			return a.Address, nil
-		}
-	}
-	return "", fmt.Errorf("unable to determine node address")
 }

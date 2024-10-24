@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	metalgo "github.com/metal-stack/metal-go"
@@ -116,6 +117,10 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	sshPublicKey := os.Getenv(constants.MetalSSHPublicKey)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	loadbalancerType := os.Getenv(constants.Loadbalancer)
+
+	if !slices.Contains([]string{"cilium", "metallb", ""}, loadbalancerType) {
+		klog.Fatalf("only cilium or metallb load balancer types are supported")
+	}
 
 	k8sClientSet := clientBuilder.ClientOrDie("cloud-controller-manager")
 	k8sRestConfig, err := clientBuilder.Config("cloud-controller-manager")

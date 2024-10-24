@@ -350,3 +350,12 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 	}
 	return nil
 }
+
+func NodeAddress(node v1.Node) (string, error) {
+	for _, a := range node.Status.Addresses {
+		if a.Type == v1.NodeInternalIP {
+			return a.Address, nil
+		}
+	}
+	return "", fmt.Errorf("unable to determine node address")
+}
