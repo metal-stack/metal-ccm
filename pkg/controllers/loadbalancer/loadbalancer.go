@@ -30,7 +30,7 @@ import (
 )
 
 type LoadBalancerController struct {
-	LoadBalancerConfig
+	Config                   LoadBalancerConfig
 	MetalService             *metal.MetalService
 	partitionID              string
 	projectID                string
@@ -339,12 +339,12 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	err = l.LoadBalancerConfig.PrepareConfig(ips, l.additionalNetworks, nodes)
+	err = l.Config.PrepareConfig(ips, l.additionalNetworks, nodes)
 	if err != nil {
 		return err
 	}
 
-	err = l.LoadBalancerConfig.WriteCRs(ctx, l.K8sClient)
+	err = l.Config.WriteCRs(ctx, l.K8sClient)
 	if err != nil {
 		return err
 	}

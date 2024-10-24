@@ -157,7 +157,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.loadBalancer.K8sClientSet = k8sClientSet
 	c.loadBalancer.K8sClient = k8sClient
 	c.loadBalancer.MetalService = ms
-	c.loadBalancer.LoadBalancerConfig = config
+	c.loadBalancer.Config = config
 	c.zones.MetalService = ms
 
 	go housekeeper.Run()
