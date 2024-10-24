@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/metal-stack/metal-go/api/models"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -22,8 +20,8 @@ type LoadBalancerConfig interface {
 }
 
 type baseConfig struct {
-	Peers        []*Peer        `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools []*AddressPool `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	Peers        []*Peer      `json:"peers,omitempty" yaml:"peers,omitempty"`
+	AddressPools addressPools `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
 func New(loadBalancerType string, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
@@ -59,9 +57,9 @@ func newBaseConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.
 	}, nil
 }
 
-func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) ([]*AddressPool, error) {
+func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) (addressPools, error) {
 	var (
-		pools []*AddressPool
+		pools addressPools
 		errs  []error
 	)
 
@@ -71,9 +69,13 @@ func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) ([]*A
 			continue
 		}
 
-		net := *ip.Networkid
+		var (
+			net      = *ip.Networkid
+			poolName = getPoolName(net, ip)
+		)
 
-		err := addIPToPool(pools, net, *ip)
+		var err error
+		pools, err = pools.addPoolIP(poolName, ip)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -107,43 +109,18 @@ func computePeers(nodes []v1.Node) ([]*Peer, error) {
 	return peers, nil
 }
 
-func addIPToPool(pools []*AddressPool, network string, ip models.V1IPResponse) error {
-	poolType := models.V1IPBaseTypeEphemeral
-	if pointer.SafeDeref(ip.Type) == models.V1IPBaseTypeStatic {
-		poolType = models.V1IPBaseTypeStatic
-	}
-
-	var (
-		poolName = fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
-		pool     = getOrCreateAddressPool(pools, poolName)
-	)
-
-	return pool.appendIP(*ip.Ipaddress)
-}
-
-func getOrCreateAddressPool(pools []*AddressPool, poolName string) *AddressPool {
-	for _, pool := range pools {
-		if pool.Name == poolName {
-			return pool
-		}
-	}
-
-	pool := newBGPAddressPool(poolName)
-
-	pools = append(pools, pool)
-
-	return pool
-}
-
 func getASNFromNodeLabels(node v1.Node) (int64, error) {
 	labels := node.GetLabels()
+
 	asnString, ok := labels[tag.MachineNetworkPrimaryASN]
 	if !ok {
 		return 0, fmt.Errorf("node %q misses label: %s", node.GetName(), tag.MachineNetworkPrimaryASN)
 	}
+
 	asn, err := strconv.ParseInt(asnString, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("unable to parse valid integer from asn annotation: %w", err)
 	}
+
 	return asn, nil
 }

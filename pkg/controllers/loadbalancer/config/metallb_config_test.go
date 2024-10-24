@@ -22,7 +22,7 @@ var (
 	)
 )
 
-func TestMetalLBConfig_CalculateConfig(t *testing.T) {
+func TestMetalLBConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		nws     sets.Set[string]
@@ -50,7 +50,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			wantErr: nil,
 			want: &metalLBConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -92,7 +92,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			wantErr: nil,
 			want: &metalLBConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -147,7 +147,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			wantErr: nil,
 			want: &metalLBConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -250,7 +250,7 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 			wantErr: nil,
 			want: &metalLBConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -312,12 +312,12 @@ func TestMetalLBConfig_CalculateConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := New("metallb", tt.ips, tt.nws, tt.nodes, nil)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
-				t.Errorf("metalLBConfig.PrepareConfig() error = %v", diff)
+				t.Errorf("error = %v", diff)
 				return
 			}
 
 			if diff := cmp.Diff(cfg, tt.want, cmpopts.IgnoreUnexported(metalLBConfig{})); diff != "" {
-				t.Errorf("metalLBConfig.PrepareConfig() = %v", diff)
+				t.Errorf("diff = %v", diff)
 			}
 		})
 	}

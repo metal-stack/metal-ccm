@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func TestCiliumConfig_PrepareConfig(t *testing.T) {
+func TestCiliumConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		nws     sets.Set[string]
@@ -41,7 +41,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			wantErr: nil,
 			want: &ciliumConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -84,7 +84,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			wantErr: nil,
 			want: &ciliumConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -138,7 +138,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			wantErr: nil,
 			want: &ciliumConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -240,7 +240,7 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 			wantErr: nil,
 			want: &ciliumConfig{
 				cfg: &baseConfig{
-					AddressPools: []*AddressPool{
+					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
@@ -300,12 +300,12 @@ func TestCiliumConfig_PrepareConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := New("cilium", tt.ips, tt.nws, tt.nodes, nil)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
-				t.Errorf("CiliumConfig.CalculateConfig() error = %v", diff)
+				t.Errorf("error = %v", diff)
 				return
 			}
 
 			if diff := cmp.Diff(cfg, tt.want, cmpopts.IgnoreUnexported(ciliumConfig{})); diff != "" {
-				t.Errorf("CiliumConfig.CalculateConfig() = %v", diff)
+				t.Errorf("diff = %v", diff)
 			}
 		})
 	}
