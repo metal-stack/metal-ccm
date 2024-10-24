@@ -60,7 +60,6 @@ func TestMetalLBConfig(t *testing.T) {
 					},
 					Peers: []*peer{},
 				},
-				namespace: metallbNamespace,
 			},
 		},
 		{
@@ -105,7 +104,6 @@ func TestMetalLBConfig(t *testing.T) {
 					},
 					Peers: []*peer{},
 				},
-				namespace: metallbNamespace,
 			},
 		},
 		{
@@ -168,7 +166,6 @@ func TestMetalLBConfig(t *testing.T) {
 					},
 					Peers: []*peer{},
 				},
-				namespace: metallbNamespace,
 			},
 		},
 		{
@@ -303,7 +300,6 @@ func TestMetalLBConfig(t *testing.T) {
 					},
 					Peers: []*peer{},
 				},
-				namespace: metallbNamespace,
 			},
 		},
 	}

@@ -20,17 +20,16 @@ const (
 )
 
 type metalLBConfig struct {
-	cfg       *baseConfig
-	namespace string
+	cfg *baseConfig
 }
 
 func newMetalLBConfig(cfg *baseConfig) *metalLBConfig {
-	return &metalLBConfig{cfg: cfg, namespace: metallbNamespace}
+	return &metalLBConfig{cfg: cfg}
 }
 
 func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	bgpPeerList := metallbv1beta2.BGPPeerList{}
-	err := c.List(ctx, &bgpPeerList, client.InNamespace(cfg.namespace))
+	err := c.List(ctx, &bgpPeerList, client.InNamespace(metallbNamespace))
 	if err != nil {
 		return err
 	}
@@ -59,7 +58,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("peer-%d", peer.ASN),
-				Namespace: cfg.namespace,
+				Namespace: metallbNamespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
@@ -82,7 +81,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	}
 
 	addressPoolList := metallbv1beta1.IPAddressPoolList{}
-	err = c.List(ctx, &addressPoolList, client.InNamespace(cfg.namespace))
+	err = c.List(ctx, &addressPoolList, client.InNamespace(metallbNamespace))
 	if err != nil {
 		return err
 	}
@@ -110,7 +109,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pool.Name,
-				Namespace: cfg.namespace,
+				Namespace: metallbNamespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, ipAddressPool, func() error {
@@ -131,7 +130,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 
 	for _, pool := range cfg.cfg.AddressPools {
 		bgpAdvertisementList := metallbv1beta1.BGPAdvertisementList{}
-		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(cfg.namespace))
+		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(metallbNamespace))
 		if err != nil {
 			return err
 		}
@@ -159,7 +158,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pool.Name,
-				Namespace: cfg.namespace,
+				Namespace: metallbNamespace,
 			},
 		}
 		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpAdvertisement, func() error {
