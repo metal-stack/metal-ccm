@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"slices"
 	"strings"
 
 	metalgo "github.com/metal-stack/metal-go"
@@ -82,10 +81,6 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	if (token == "") == (hmac == "") {
 		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
-	}
-
-	if !slices.Contains([]config.LoadBalancerType{config.LoadBalancerTypeCilium, config.LoadBalancerTypeMetalLB, ""}, loadbalancerType) {
-		klog.Fatalf("only cilium or metallb load balancer types are supported")
 	}
 
 	metalclient, err = metalgo.NewDriver(url, token, hmac)
