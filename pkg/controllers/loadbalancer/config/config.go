@@ -16,6 +16,18 @@ import (
 )
 
 type LoadBalancerType string
+
+func LoadBalancerTypeFromString(lb string) (LoadBalancerType, error) {
+	switch l := LoadBalancerType(lb); l {
+	case LoadBalancerTypeCilium, LoadBalancerTypeMetalLB:
+		return l, nil
+	case LoadBalancerType(""): // our default if nothing  is specified is metallb
+		return LoadBalancerTypeMetalLB, nil
+	default:
+		return LoadBalancerType(""), fmt.Errorf("unknown load balancer type: %s", lb)
+	}
+}
+
 type LoadBalancerConfig interface {
 	WriteCRs(ctx context.Context) error
 }

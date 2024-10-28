@@ -48,7 +48,10 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
-	loadbalancerType := config.LoadBalancerType(os.Getenv(constants.Loadbalancer))
+	loadbalancerType, err := config.LoadBalancerTypeFromString(os.Getenv(constants.Loadbalancer))
+	if err != nil {
+		return nil, err
+	}
 
 	var (
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
@@ -85,7 +88,6 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		klog.Fatalf("only cilium or metallb load balancer types are supported")
 	}
 
-	var err error
 	metalclient, err = metalgo.NewDriver(url, token, hmac)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
