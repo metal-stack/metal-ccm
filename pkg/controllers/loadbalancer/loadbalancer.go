@@ -42,11 +42,11 @@ type LoadBalancerController struct {
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
 	ipUpdateMutex            *sync.Mutex
-	loadBalancerType         string
+	loadBalancerType         config.LoadBalancerType
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, loadBalancerType string) *LoadBalancerController {
+func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, loadBalancerType config.LoadBalancerType) *LoadBalancerController {
 	return &LoadBalancerController{
 		partitionID:              partitionID,
 		projectID:                projectID,

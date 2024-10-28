@@ -13,6 +13,7 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/config"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/zones"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
@@ -47,7 +48,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
 	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
-	loadbalancerType := os.Getenv(constants.Loadbalancer)
+	loadbalancerType := config.LoadBalancerType(os.Getenv(constants.Loadbalancer))
 
 	var (
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
@@ -80,7 +81,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
 	}
 
-	if !slices.Contains([]string{"cilium", "metallb", ""}, loadbalancerType) {
+	if !slices.Contains([]config.LoadBalancerType{config.LoadBalancerTypeCilium, config.LoadBalancerTypeMetalLB, ""}, loadbalancerType) {
 		klog.Fatalf("only cilium or metallb load balancer types are supported")
 	}
 

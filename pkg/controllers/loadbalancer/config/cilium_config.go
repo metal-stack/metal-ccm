@@ -20,6 +20,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	LoadBalancerTypeCilium LoadBalancerType = "cilium"
+)
+
 type ciliumConfig struct {
 	base      *baseConfig
 	client    client.Client

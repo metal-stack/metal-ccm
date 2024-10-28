@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	LoadBalancerTypeMetalLB LoadBalancerType = "metallb"
+
 	metallbNamespace = "metallb-system"
 )
 

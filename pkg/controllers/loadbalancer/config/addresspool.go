@@ -42,14 +42,7 @@ func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
 		return err
 	}
 
-	var cidr string
-	if parsed.Is4() {
-		cidr = parsed.String() + "/32"
-	} else if parsed.Is6() {
-		cidr = parsed.String() + "/128"
-	} else {
-		return fmt.Errorf("unknown addressfamily of ip: %s", parsed.String())
-	}
+	cidr := fmt.Sprintf("%s/%d", parsed.String(), parsed.BitLen())
 
 	if pool.containsCIDR(cidr) {
 		return nil
