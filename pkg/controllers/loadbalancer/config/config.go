@@ -16,7 +16,7 @@ import (
 )
 
 type LoadBalancerConfig interface {
-	WriteCRs(ctx context.Context, c client.Client) error
+	WriteCRs(ctx context.Context) error
 }
 
 type baseConfig struct {
@@ -24,7 +24,7 @@ type baseConfig struct {
 	AddressPools addressPools `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
 }
 
-func New(loadBalancerType string, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
+func New(loadBalancerType string, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, c client.Client, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
 	bc, err := newBaseConfig(ips, nws, nodes)
 	if err != nil {
 		return nil, err
@@ -32,11 +32,11 @@ func New(loadBalancerType string, ips []*models.V1IPResponse, nws sets.Set[strin
 
 	switch loadBalancerType {
 	case "metallb":
-		return newMetalLBConfig(bc), nil
+		return newMetalLBConfig(bc, c), nil
 	case "cilium":
-		return newCiliumConfig(bc, k8sClientSet), nil
+		return newCiliumConfig(bc, c, k8sClientSet), nil
 	default:
-		return newMetalLBConfig(bc), nil
+		return newMetalLBConfig(bc, c), nil
 	}
 }
 

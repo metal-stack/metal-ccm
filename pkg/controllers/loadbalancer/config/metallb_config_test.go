@@ -49,7 +49,7 @@ func TestMetalLBConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				cfg: &baseConfig{
+				base: &baseConfig{
 					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
@@ -90,7 +90,7 @@ func TestMetalLBConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				cfg: &baseConfig{
+				base: &baseConfig{
 					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
@@ -144,7 +144,7 @@ func TestMetalLBConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				cfg: &baseConfig{
+				base: &baseConfig{
 					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
@@ -246,7 +246,7 @@ func TestMetalLBConfig(t *testing.T) {
 			nodes:   []v1.Node{},
 			wantErr: nil,
 			want: &metalLBConfig{
-				cfg: &baseConfig{
+				base: &baseConfig{
 					AddressPools: addressPools{
 						{
 							Name:       "internet-ephemeral",
@@ -306,7 +306,7 @@ func TestMetalLBConfig(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := New("metallb", tt.ips, tt.nws, tt.nodes, nil)
+			cfg, err := New("metallb", tt.ips, tt.nws, tt.nodes, nil, nil)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
 				t.Errorf("error = %v", diff)
 				return
