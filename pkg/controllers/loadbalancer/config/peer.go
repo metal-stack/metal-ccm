@@ -7,10 +7,10 @@ import (
 )
 
 type peer struct {
-	MyASN        uint32               `json:"my-asn" yaml:"my-asn"`
-	ASN          uint32               `json:"peer-asn" yaml:"peer-asn"`
-	Address      string               `json:"peer-address" yaml:"peer-address"`
-	NodeSelector metav1.LabelSelector `json:"node-selectors,omitempty" yaml:"node-selectors,omitempty"`
+	MyASN        uint32
+	ASN          uint32
+	Address      string
+	NodeSelector metav1.LabelSelector
 }
 
 func newPeer(node v1.Node, asn int64) (*peer, error) {

@@ -16,10 +16,10 @@ const (
 )
 
 type addressPool struct {
-	Name       string   `json:"name" yaml:"name"`
-	Protocol   string   `json:"protocol" yaml:"protocol"`
-	AutoAssign *bool    `json:"auto-assign" yaml:"auto-assign,omitempty"`
-	CIDRs      []string `json:"addresses,omitempty" yaml:"addresses,omitempty"` // It is assumed that only host addresses (/32 for ipv4 or /128 for ipv6) are used.
+	Name       string
+	Protocol   string
+	AutoAssign *bool
+	CIDRs      []string // It is assumed that only host addresses (/32 for ipv4 or /128 for ipv6) are used.
 }
 
 type addressPools []addressPool
@@ -44,19 +44,15 @@ func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
 
 	cidr := fmt.Sprintf("%s/%d", parsed.String(), parsed.BitLen())
 
-	if pool.containsCIDR(cidr) {
+	if slices.ContainsFunc(pool.CIDRs, func(elem string) bool {
+		return cidr == elem
+	}) {
 		return nil
 	}
 
 	pool.CIDRs = append(pool.CIDRs, cidr)
 
 	return nil
-}
-
-func (pool *addressPool) containsCIDR(cidr string) bool {
-	return slices.ContainsFunc(pool.CIDRs, func(elem string) bool {
-		return cidr == elem
-	})
 }
 
 func (as addressPools) addPoolIP(poolName string, ip *models.V1IPResponse) (addressPools, error) {

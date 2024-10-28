@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -33,8 +34,8 @@ type LoadBalancerConfig interface {
 }
 
 type baseConfig struct {
-	Peers        []*peer      `json:"peers,omitempty" yaml:"peers,omitempty"`
-	AddressPools addressPools `json:"address-pools,omitempty" yaml:"address-pools,omitempty"`
+	Peers        []*peer
+	AddressPools addressPools
 }
 
 func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, c client.Client, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
@@ -49,7 +50,7 @@ func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets
 	case LoadBalancerTypeCilium:
 		return newCiliumConfig(bc, c, k8sClientSet), nil
 	default:
-		return newMetalLBConfig(bc, c), nil
+		return nil, fmt.Errorf("unknown load balancer type: %s", loadBalancerType)
 	}
 }
 
@@ -77,6 +78,10 @@ func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) (addr
 	)
 
 	for _, ip := range ips {
+		if ip.Networkid == nil {
+			return nil, fmt.Errorf("ip has no network id set: %s", pointer.SafeDeref(ip.Ipaddress))
+		}
+
 		if !nws.Has(*ip.Networkid) {
 			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
 			continue
