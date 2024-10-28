@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/config"
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -30,7 +31,6 @@ import (
 )
 
 type LoadBalancerController struct {
-	Config                   LoadBalancerConfig
 	MetalService             *metal.MetalService
 	partitionID              string
 	projectID                string
@@ -42,10 +42,11 @@ type LoadBalancerController struct {
 	configWriteMutex         *sync.Mutex
 	ipAllocateMutex          *sync.Mutex
 	ipUpdateMutex            *sync.Mutex
+	loadBalancerType         config.LoadBalancerType
 }
 
 // New returns a new load balancer controller that satisfies the kubernetes cloud provider load balancer interface
-func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string) *LoadBalancerController {
+func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, additionalNetworks []string, loadBalancerType config.LoadBalancerType) *LoadBalancerController {
 	return &LoadBalancerController{
 		partitionID:              partitionID,
 		projectID:                projectID,
@@ -55,6 +56,7 @@ func New(partitionID, projectID, clusterID, defaultExternalNetworkID string, add
 		configWriteMutex:         &sync.Mutex{},
 		ipAllocateMutex:          &sync.Mutex{},
 		ipUpdateMutex:            &sync.Mutex{},
+		loadBalancerType:         loadBalancerType,
 	}
 }
 
@@ -339,23 +341,15 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	err = l.Config.PrepareConfig(ips, l.additionalNetworks, nodes)
+	cfg, err := config.New(l.loadBalancerType, ips, l.additionalNetworks, nodes, l.K8sClient, l.K8sClientSet)
 	if err != nil {
 		return err
 	}
 
-	err = l.Config.WriteCRs(ctx, l.K8sClient)
+	err = cfg.WriteCRs(ctx)
 	if err != nil {
 		return err
 	}
+
 	return nil
-}
-
-func NodeAddress(node v1.Node) (string, error) {
-	for _, a := range node.Status.Addresses {
-		if a.Type == v1.NodeInternalIP {
-			return a.Address, nil
-		}
-	}
-	return "", fmt.Errorf("unable to determine node address")
 }

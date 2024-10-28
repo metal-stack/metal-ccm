@@ -1,11 +1,9 @@
-package metallb
+package config
 
 import (
 	"context"
 	"fmt"
 	"time"
-
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -18,42 +16,46 @@ import (
 )
 
 const (
+	LoadBalancerTypeMetalLB LoadBalancerType = "metallb"
+
 	metallbNamespace = "metallb-system"
 )
 
 type metalLBConfig struct {
-	loadbalancer.Config
-	namespace string
+	base   *baseConfig
+	client client.Client
 }
 
-func NewMetalLBConfig() *metalLBConfig {
-	return &metalLBConfig{namespace: metallbNamespace}
+func newMetalLBConfig(base *baseConfig, c client.Client) *metalLBConfig {
+	return &metalLBConfig{base: base, client: c}
 }
 
-func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
+func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 	bgpPeerList := metallbv1beta2.BGPPeerList{}
-	err := c.List(ctx, &bgpPeerList, client.InNamespace(cfg.namespace))
+	err := m.client.List(ctx, &bgpPeerList, client.InNamespace(metallbNamespace))
 	if err != nil {
 		return err
 	}
 	for _, existingPeer := range bgpPeerList.Items {
 		existingPeer := existingPeer
 		found := false
-		for _, peer := range cfg.Peers {
+
+		for _, peer := range m.base.Peers {
 			if fmt.Sprintf("peer-%d", peer.ASN) == existingPeer.Name {
 				found = true
 				break
 			}
 		}
+
 		if !found {
-			err := c.Delete(ctx, &existingPeer)
+			err := m.client.Delete(ctx, &existingPeer)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	for _, peer := range cfg.Peers {
+	for _, peer := range m.base.Peers {
 		bgpPeer := &metallbv1beta2.BGPPeer{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta2",
@@ -61,10 +63,11 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("peer-%d", peer.ASN),
-				Namespace: cfg.namespace,
+				Namespace: metallbNamespace,
 			},
 		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeer, func() error {
+
+		res, err := controllerutil.CreateOrUpdate(ctx, m.client, bgpPeer, func() error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
 				MyASN:         peer.MyASN,
 				ASN:           peer.ASN,
@@ -78,33 +81,34 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		if err != nil {
 			return err
 		}
+
 		if res != controllerutil.OperationResultNone {
 			klog.Infof("bgppeer: %v", res)
 		}
 	}
 
 	addressPoolList := metallbv1beta1.IPAddressPoolList{}
-	err = c.List(ctx, &addressPoolList, client.InNamespace(cfg.namespace))
+	err = m.client.List(ctx, &addressPoolList, client.InNamespace(metallbNamespace))
 	if err != nil {
 		return err
 	}
 	for _, existingPool := range addressPoolList.Items {
 		found := false
-		for _, pool := range cfg.AddressPools {
+		for _, pool := range m.base.AddressPools {
 			if pool.Name == existingPool.Name {
 				found = true
 				break
 			}
 		}
 		if !found {
-			err := c.Delete(ctx, &existingPool)
+			err := m.client.Delete(ctx, &existingPool)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	for _, pool := range cfg.AddressPools {
+	for _, pool := range m.base.AddressPools {
 		ipAddressPool := &metallbv1beta1.IPAddressPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta1",
@@ -112,10 +116,11 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pool.Name,
-				Namespace: cfg.namespace,
+				Namespace: metallbNamespace,
 			},
 		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, ipAddressPool, func() error {
+
+		res, err := controllerutil.CreateOrUpdate(ctx, m.client, ipAddressPool, func() error {
 			ipAddressPool.Spec = metallbv1beta1.IPAddressPoolSpec{
 				Addresses:  pool.CIDRs,
 				AutoAssign: pool.AutoAssign,
@@ -126,28 +131,30 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		if err != nil {
 			return err
 		}
+
 		if res != controllerutil.OperationResultNone {
 			klog.Infof("ipaddresspool: %v", res)
 		}
 	}
 
-	for _, pool := range cfg.AddressPools {
+	for _, pool := range m.base.AddressPools {
 		bgpAdvertisementList := metallbv1beta1.BGPAdvertisementList{}
-		err = c.List(ctx, &bgpAdvertisementList, client.InNamespace(cfg.namespace))
+		err = m.client.List(ctx, &bgpAdvertisementList, client.InNamespace(metallbNamespace))
 		if err != nil {
 			return err
 		}
+
 		for _, existingAdvertisement := range bgpAdvertisementList.Items {
 			existingAdvertisement := existingAdvertisement
 			found := false
-			for _, pool := range cfg.AddressPools {
+			for _, pool := range m.base.AddressPools {
 				if pool.Name == existingAdvertisement.Name {
 					found = true
 					break
 				}
 			}
 			if !found {
-				err := c.Delete(ctx, &existingAdvertisement)
+				err := m.client.Delete(ctx, &existingAdvertisement)
 				if err != nil {
 					return err
 				}
@@ -161,10 +168,11 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pool.Name,
-				Namespace: cfg.namespace,
+				Namespace: metallbNamespace,
 			},
 		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpAdvertisement, func() error {
+
+		res, err := controllerutil.CreateOrUpdate(ctx, m.client, bgpAdvertisement, func() error {
 			bgpAdvertisement.Spec = metallbv1beta1.BGPAdvertisementSpec{
 				IPAddressPools: []string{pool.Name},
 			}
@@ -173,6 +181,7 @@ func (cfg *metalLBConfig) WriteCRs(ctx context.Context, c client.Client) error {
 		if err != nil {
 			return err
 		}
+
 		if res != controllerutil.OperationResultNone {
 			klog.Infof("bgpadvertisement: %v", res)
 		}

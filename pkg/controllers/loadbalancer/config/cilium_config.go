@@ -1,11 +1,10 @@
-package cilium
+package config
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
@@ -21,27 +20,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	LoadBalancerTypeCilium LoadBalancerType = "cilium"
+)
+
 type ciliumConfig struct {
-	loadbalancer.Config
+	base      *baseConfig
+	client    client.Client
 	k8sClient clientset.Interface
 }
 
-func NewCiliumConfig(k8sClient clientset.Interface) *ciliumConfig {
-	return &ciliumConfig{k8sClient: k8sClient}
+func newCiliumConfig(base *baseConfig, c client.Client, k8sClient clientset.Interface) *ciliumConfig {
+	return &ciliumConfig{base: base, client: c, k8sClient: k8sClient}
 }
 
-func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
-	err := cfg.writeCiliumBGPPeeringPolicies(ctx, c)
+func (c *ciliumConfig) WriteCRs(ctx context.Context) error {
+	err := c.writeCiliumBGPPeeringPolicies(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to write ciliumbgppeeringpolicy resources %w", err)
 	}
 
-	err = cfg.writeCiliumLoadBalancerIPPools(ctx, c)
+	err = c.writeCiliumLoadBalancerIPPools(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to write ciliumloadbalancerippool resources %w", err)
 	}
 
-	err = cfg.writeNodeAnnotations(ctx)
+	err = c.writeNodeAnnotations(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to write node annotations %w", err)
 	}
@@ -49,30 +53,33 @@ func (cfg *ciliumConfig) WriteCRs(ctx context.Context, c client.Client) error {
 	return nil
 }
 
-func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c client.Client) error {
+func (c *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context) error {
 	existingPolicies := ciliumv2alpha1.CiliumBGPPeeringPolicyList{}
-	err := c.List(ctx, &existingPolicies)
+	err := c.client.List(ctx, &existingPolicies)
 	if err != nil {
 		return err
 	}
+
 	for _, existingPolicy := range existingPolicies.Items {
 		existingPolicy := existingPolicy
 		found := false
-		for _, peer := range cfg.Peers {
+
+		for _, peer := range c.base.Peers {
 			if fmt.Sprintf("%d", peer.ASN) == existingPolicy.Name {
 				found = true
 				break
 			}
 		}
+
 		if !found {
-			err := c.Delete(ctx, &existingPolicy)
+			err := c.client.Delete(ctx, &existingPolicy)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	for _, peer := range cfg.Peers {
+	for _, peer := range c.base.Peers {
 		bgpPeeringPolicy := &ciliumv2alpha1.CiliumBGPPeeringPolicy{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: ciliumv2alpha1.CustomResourceDefinitionGroup + "/" + ciliumv2alpha1.CustomResourceDefinitionVersion,
@@ -82,7 +89,8 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 				Name: fmt.Sprintf("%d", peer.ASN),
 			},
 		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, bgpPeeringPolicy, func() error {
+
+		res, err := controllerutil.CreateOrUpdate(ctx, c.client, bgpPeeringPolicy, func() error {
 			bgpPeeringPolicy.Spec = ciliumv2alpha1.CiliumBGPPeeringPolicySpec{
 				NodeSelector: convertNodeSelector(&peer.NodeSelector),
 				VirtualRouters: []ciliumv2alpha1.CiliumBGPVirtualRouter{
@@ -114,6 +122,7 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 		if err != nil {
 			return err
 		}
+
 		if res != controllerutil.OperationResultNone {
 			klog.Infof("bgppeer: %v", res)
 		}
@@ -122,30 +131,33 @@ func (cfg *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context, c cl
 	return nil
 }
 
-func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c client.Client) error {
+func (c *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context) error {
 	existingPools := ciliumv2alpha1.CiliumLoadBalancerIPPoolList{}
-	err := c.List(ctx, &existingPools)
+	err := c.client.List(ctx, &existingPools)
 	if err != nil {
 		return err
 	}
+
 	for _, existingPool := range existingPools.Items {
 		existingPool := existingPool
 		found := false
-		for _, pool := range cfg.AddressPools {
+
+		for _, pool := range c.base.AddressPools {
 			if pool.Name == existingPool.Name {
 				found = true
 				break
 			}
 		}
+
 		if !found {
-			err := c.Delete(ctx, &existingPool)
+			err := c.client.Delete(ctx, &existingPool)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	for _, pool := range cfg.AddressPools {
+	for _, pool := range c.base.AddressPools {
 		ipPool := &ciliumv2alpha1.CiliumLoadBalancerIPPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: ciliumv2alpha1.CustomResourceDefinitionGroup + "/" + ciliumv2alpha1.CustomResourceDefinitionVersion,
@@ -155,7 +167,8 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 				Name: pool.Name,
 			},
 		}
-		res, err := controllerutil.CreateOrUpdate(ctx, c, ipPool, func() error {
+
+		res, err := controllerutil.CreateOrUpdate(ctx, c.client, ipPool, func() error {
 			cidrs := make([]ciliumv2alpha1.CiliumLoadBalancerIPPoolIPBlock, 0)
 			for _, cidr := range pool.CIDRs {
 				ipPoolBlock := ciliumv2alpha1.CiliumLoadBalancerIPPoolIPBlock{
@@ -171,6 +184,7 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 		if err != nil {
 			return err
 		}
+
 		if res != controllerutil.OperationResultNone {
 			klog.Infof("ipaddresspool: %v", res)
 		}
@@ -179,25 +193,29 @@ func (cfg *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context, c c
 	return nil
 }
 
-func (cfg *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
-	nodes, err := kubernetes.GetNodes(ctx, cfg.k8sClient)
+func (c *ciliumConfig) writeNodeAnnotations(ctx context.Context) error {
+	nodes, err := kubernetes.GetNodes(ctx, c.k8sClient)
 	if err != nil {
 		return fmt.Errorf("failed to write node annotations: %w", err)
 	}
+
 	backoff := wait.Backoff{
 		Steps:    20,
 		Duration: 50 * time.Millisecond,
 		Jitter:   1.0,
 	}
+
 	for _, n := range nodes {
-		asn, err := cfg.GetASNFromNodeLabels(n)
+		asn, err := getASNFromNodeLabels(n)
 		if err != nil {
 			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
 		}
+
 		annotations := map[string]string{
 			fmt.Sprintf("cilium.io/bgp-virtual-router.%d", asn): "router-id=127.0.0.1",
 		}
-		err = kubernetes.UpdateNodeAnnotationsWithBackoff(ctx, cfg.k8sClient, n.Name, annotations, backoff)
+
+		err = kubernetes.UpdateNodeAnnotationsWithBackoff(ctx, c.k8sClient, n.Name, annotations, backoff)
 		if err != nil {
 			return fmt.Errorf("failed to write node annotations for node %s: %w", n.Name, err)
 		}

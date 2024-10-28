@@ -67,3 +67,12 @@ func NodeNamesOfNodes(nodes []v1.Node) string {
 	}
 	return strings.Join(nn, ",")
 }
+
+func NodeAddress(node v1.Node) (string, error) {
+	for _, a := range node.Status.Addresses {
+		if a.Type == v1.NodeInternalIP {
+			return a.Address, nil
+		}
+	}
+	return "", fmt.Errorf("unable to determine node address")
+}
