@@ -57,7 +57,7 @@ func (h *Housekeeper) Run() {
 func (h *Housekeeper) watchNodes() {
 	klog.Info("start watching nodes")
 	watchlist := cache.NewListWatchFromClient(h.k8sClient.CoreV1().RESTClient(), "nodes", "", fields.Everything())
-	_, controller := cache.NewInformer(
+	_, controller := cache.NewInformer( // nolint:staticcheck
 		watchlist,
 		&v1.Node{},
 		time.Second*0,

@@ -22,12 +22,12 @@ const (
 )
 
 type metalLBConfig struct {
-	base   *baseConfig
+	Base   *baseConfig
 	client client.Client
 }
 
 func newMetalLBConfig(base *baseConfig, c client.Client) *metalLBConfig {
-	return &metalLBConfig{base: base, client: c}
+	return &metalLBConfig{Base: base, client: c}
 }
 
 func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
@@ -40,7 +40,7 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		existingPeer := existingPeer
 		found := false
 
-		for _, peer := range m.base.Peers {
+		for _, peer := range m.Base.Peers {
 			if fmt.Sprintf("peer-%d", peer.ASN) == existingPeer.Name {
 				found = true
 				break
@@ -55,7 +55,7 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		}
 	}
 
-	for _, peer := range m.base.Peers {
+	for _, peer := range m.Base.Peers {
 		bgpPeer := &metallbv1beta2.BGPPeer{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta2",
@@ -94,7 +94,7 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 	}
 	for _, existingPool := range addressPoolList.Items {
 		found := false
-		for _, pool := range m.base.AddressPools {
+		for _, pool := range m.Base.AddressPools {
 			if pool.Name == existingPool.Name {
 				found = true
 				break
@@ -108,7 +108,7 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		}
 	}
 
-	for _, pool := range m.base.AddressPools {
+	for _, pool := range m.Base.AddressPools {
 		ipAddressPool := &metallbv1beta1.IPAddressPool{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "metallb.io/v1beta1",
@@ -137,7 +137,7 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		}
 	}
 
-	for _, pool := range m.base.AddressPools {
+	for _, pool := range m.Base.AddressPools {
 		bgpAdvertisementList := metallbv1beta1.BGPAdvertisementList{}
 		err = m.client.List(ctx, &bgpAdvertisementList, client.InNamespace(metallbNamespace))
 		if err != nil {
@@ -147,7 +147,7 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		for _, existingAdvertisement := range bgpAdvertisementList.Items {
 			existingAdvertisement := existingAdvertisement
 			found := false
-			for _, pool := range m.base.AddressPools {
+			for _, pool := range m.Base.AddressPools {
 				if pool.Name == existingAdvertisement.Name {
 					found = true
 					break

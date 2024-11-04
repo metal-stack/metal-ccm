@@ -86,7 +86,7 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 			},
 			existing: addressPools{},
 			want: addressPools{
-				addressPool{
+				"my-pool-static": addressPool{
 					Name:       "my-pool-static",
 					Protocol:   bgpProtocol,
 					AutoAssign: pointer.Pointer(false),
@@ -102,13 +102,13 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
 			},
 			existing: addressPools{
-				addressPool{
+				"my-pool-ephemeral": addressPool{
 					Name:       "my-pool-ephemeral",
 					Protocol:   bgpProtocol,
 					AutoAssign: pointer.Pointer(false),
 					CIDRs:      []string{"192.168.2.1/32"},
 				},
-				addressPool{
+				"my-pool-static": addressPool{
 					Name:       "my-pool-static",
 					Protocol:   bgpProtocol,
 					AutoAssign: pointer.Pointer(false),
@@ -116,13 +116,13 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 				},
 			},
 			want: addressPools{
-				addressPool{
+				"my-pool-ephemeral": addressPool{
 					Name:       "my-pool-ephemeral",
 					Protocol:   bgpProtocol,
 					AutoAssign: pointer.Pointer(false),
 					CIDRs:      []string{"192.168.2.1/32"},
 				},
-				addressPool{
+				"my-pool-static": addressPool{
 					Name:       "my-pool-static",
 					Protocol:   bgpProtocol,
 					AutoAssign: pointer.Pointer(false),
@@ -133,13 +133,13 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			newPool, err := tt.existing.addPoolIP(tt.poolName, tt.ip)
+			err := tt.existing.addPoolIP(tt.poolName, tt.ip)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
 				t.Errorf("error = %v", diff)
 				return
 			}
 
-			if diff := cmp.Diff(newPool, tt.want); diff != "" {
+			if diff := cmp.Diff(tt.existing, tt.want); diff != "" {
 				t.Errorf("diff = %v", diff)
 			}
 		})

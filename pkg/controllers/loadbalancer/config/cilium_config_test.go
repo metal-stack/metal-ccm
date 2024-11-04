@@ -42,7 +42,7 @@ func TestCiliumConfig(t *testing.T) {
 			want: &ciliumConfig{
 				base: &baseConfig{
 					AddressPools: addressPools{
-						{
+						"internet-ephemeral": {
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -85,7 +85,7 @@ func TestCiliumConfig(t *testing.T) {
 			want: &ciliumConfig{
 				base: &baseConfig{
 					AddressPools: addressPools{
-						{
+						"internet-ephemeral": {
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -139,7 +139,7 @@ func TestCiliumConfig(t *testing.T) {
 			want: &ciliumConfig{
 				base: &baseConfig{
 					AddressPools: addressPools{
-						{
+						"internet-ephemeral": {
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -148,7 +148,7 @@ func TestCiliumConfig(t *testing.T) {
 								"84.1.1.2/32",
 							},
 						},
-						{
+						"internet-static": {
 							Name:       "internet-static",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -241,7 +241,7 @@ func TestCiliumConfig(t *testing.T) {
 			want: &ciliumConfig{
 				base: &baseConfig{
 					AddressPools: addressPools{
-						{
+						"internet-ephemeral": {
 							Name:       "internet-ephemeral",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -250,7 +250,7 @@ func TestCiliumConfig(t *testing.T) {
 								"84.1.1.2/32",
 							},
 						},
-						{
+						"internet-static": {
 							Name:       "internet-static",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -258,7 +258,7 @@ func TestCiliumConfig(t *testing.T) {
 								"84.1.1.3/32",
 							},
 						},
-						{
+						"shared-storage-network-static": {
 							Name:       "shared-storage-network-static",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -266,7 +266,7 @@ func TestCiliumConfig(t *testing.T) {
 								"10.131.44.2/32",
 							},
 						},
-						{
+						"mpls-network-static": {
 							Name:       "mpls-network-static",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -274,7 +274,7 @@ func TestCiliumConfig(t *testing.T) {
 								"100.127.130.2/32",
 							},
 						},
-						{
+						"mpls-network-ephemeral": {
 							Name:       "mpls-network-ephemeral",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
@@ -282,7 +282,7 @@ func TestCiliumConfig(t *testing.T) {
 								"100.127.130.3/32",
 							},
 						},
-						{
+						"dmz-network-static": {
 							Name:       "dmz-network-static",
 							Protocol:   "bgp",
 							AutoAssign: pointer.Pointer(false),
