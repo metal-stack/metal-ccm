@@ -17,8 +17,14 @@ func BuildClusterServiceFQNTag(clusterID string, namespace, serviceName string) 
 //
 //	cluster.metal-stack.io/id/namespace/service=<clusterid>/namespace/servicename
 func IsMemberOfCluster(tag, clusterID string) bool {
-	if strings.HasPrefix(tag, t.ClusterID) && strings.Contains(tag, "="+clusterID+"/") {
-		return true
+	if strings.HasPrefix(tag, t.ClusterID) {
+		parts := strings.Split(tag, "=")
+		if len(parts) != 2 {
+			return false
+		}
+		if strings.HasPrefix(parts[1], clusterID) {
+			return true
+		}
 	}
 	return false
 }
