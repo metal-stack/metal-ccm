@@ -82,6 +82,8 @@ func (h *Housekeeper) watchNodes() error {
 				oldNode := oldObj.(*v1.Node)
 				newNode := newObj.(*v1.Node)
 
+				klog.Info("node was updated")
+
 				oldTunnelAddress, _ := kubernetes.NodeAddress(*oldNode)
 				newTunnelAddress, err := kubernetes.NodeAddress(*newNode)
 				if err != nil {
