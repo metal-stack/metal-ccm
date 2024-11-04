@@ -150,7 +150,12 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	c.loadBalancer.MetalService = ms
 	c.zones.MetalService = ms
 
-	go housekeeper.Run()
+	go func() {
+		err := housekeeper.Run()
+		if err != nil {
+			klog.Fatalf("unable to start houskeeper: %v", err)
+		}
+	}()
 }
 
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.

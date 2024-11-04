@@ -6,7 +6,8 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -46,21 +47,24 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 }
 
 // Run runs the housekeeper...
-func (h *Housekeeper) Run() {
+func (h *Housekeeper) Run() error {
 	h.startTagSynching()
 	h.startLoadBalancerConfigSynching()
 	h.startSSHKeysSynching()
-	h.watchNodes()
+	err := h.watchNodes()
+	if err != nil {
+		return err
+	}
 	h.runHealthCheck()
+	return nil
 }
 
-func (h *Housekeeper) watchNodes() {
+func (h *Housekeeper) watchNodes() error {
 	klog.Info("start watching nodes")
-	watchlist := cache.NewListWatchFromClient(h.k8sClient.CoreV1().RESTClient(), "nodes", "", fields.Everything())
-	_, controller := cache.NewInformer( // nolint:staticcheck
-		watchlist,
-		&v1.Node{},
-		time.Second*0,
+
+	informerFactory := informers.NewSharedInformerFactory(h.k8sClient, time.Second*30)
+	nodeInformer := informerFactory.Core().V1().Nodes()
+	_, err := nodeInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				if time.Since(h.lastTagSync) < SyncTagsMinimalInterval {
@@ -103,5 +107,10 @@ func (h *Housekeeper) watchNodes() {
 			},
 		},
 	)
-	go controller.Run(h.stop)
+	if err != nil {
+		return err
+	}
+	informerFactory.Start(wait.NeverStop)
+	go informerFactory.WaitForCacheSync(wait.NeverStop)
+	return nil
 }
