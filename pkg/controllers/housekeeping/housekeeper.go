@@ -47,20 +47,24 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 }
 
 // Run runs the housekeeper...
-func (h *Housekeeper) Run() {
+func (h *Housekeeper) Run() error {
 	h.startTagSynching()
 	h.startLoadBalancerConfigSynching()
 	h.startSSHKeysSynching()
-	h.watchNodes()
+	err := h.watchNodes()
+	if err != nil {
+		return err
+	}
 	h.runHealthCheck()
+	return nil
 }
 
-func (h *Housekeeper) watchNodes() {
+func (h *Housekeeper) watchNodes() error {
 	klog.Info("start watching nodes")
 
 	informerFactory := informers.NewSharedInformerFactory(h.k8sClient, time.Second*30)
 	nodeInformer := informerFactory.Core().V1().Nodes()
-	nodeInformer.Informer().AddEventHandler(
+	_, err := nodeInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				if time.Since(h.lastTagSync) < SyncTagsMinimalInterval {
@@ -103,7 +107,10 @@ func (h *Housekeeper) watchNodes() {
 			},
 		},
 	)
+	if err != nil {
+		return err
+	}
 	informerFactory.Start(wait.NeverStop)
-	// TODO: does this block ?
-	informerFactory.WaitForCacheSync(wait.NeverStop)
+	go informerFactory.WaitForCacheSync(wait.NeverStop)
+	return nil
 }
