@@ -6,7 +6,8 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -56,11 +57,10 @@ func (h *Housekeeper) Run() {
 
 func (h *Housekeeper) watchNodes() {
 	klog.Info("start watching nodes")
-	watchlist := cache.NewListWatchFromClient(h.k8sClient.CoreV1().RESTClient(), "nodes", "", fields.Everything())
-	_, controller := cache.NewInformer( // nolint:staticcheck
-		watchlist,
-		&v1.Node{},
-		time.Second*0,
+
+	informerFactory := informers.NewSharedInformerFactory(h.k8sClient, time.Second*30)
+	nodeInformer := informerFactory.Core().V1().Nodes()
+	nodeInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				if time.Since(h.lastTagSync) < SyncTagsMinimalInterval {
@@ -103,5 +103,6 @@ func (h *Housekeeper) watchNodes() {
 			},
 		},
 	)
-	go controller.Run(h.stop)
+	informerFactory.Start(wait.NeverStop)
+	informerFactory.WaitForCacheSync(wait.NeverStop)
 }
