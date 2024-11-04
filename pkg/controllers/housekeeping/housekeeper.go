@@ -104,5 +104,6 @@ func (h *Housekeeper) watchNodes() {
 		},
 	)
 	informerFactory.Start(wait.NeverStop)
+	// TODO: does this block ?
 	informerFactory.WaitForCacheSync(wait.NeverStop)
 }
