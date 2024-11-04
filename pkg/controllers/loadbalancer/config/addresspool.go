@@ -22,7 +22,7 @@ type addressPool struct {
 	CIDRs      []string // It is assumed that only host addresses (/32 for ipv4 or /128 for ipv6) are used.
 }
 
-type addressPools []addressPool
+type addressPools map[string]addressPool
 
 func newBGPAddressPool(name string) addressPool {
 	return addressPool{
@@ -55,22 +55,20 @@ func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
 	return nil
 }
 
-func (as addressPools) addPoolIP(poolName string, ip *models.V1IPResponse) (addressPools, error) {
-	idx := slices.IndexFunc(as, func(a addressPool) bool {
-		return a.Name == poolName
-	})
+func (as addressPools) addPoolIP(poolName string, ip *models.V1IPResponse) error {
 
-	if idx < 0 {
-		as = append(as, newBGPAddressPool(poolName))
-		idx = 0
+	pool, ok := as[poolName]
+	if !ok {
+		as[poolName] = newBGPAddressPool(poolName)
+		pool = as[poolName]
 	}
 
-	err := as[idx].appendIP(ip)
+	err := pool.appendIP(ip)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return as, nil
+	as[poolName] = pool
+	return nil
 }
 
 func getPoolName(network string, ip *models.V1IPResponse) string {

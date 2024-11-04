@@ -73,7 +73,7 @@ func newBaseConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.
 
 func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) (addressPools, error) {
 	var (
-		pools addressPools
+		pools = addressPools{}
 		errs  []error
 	)
 
@@ -92,8 +92,7 @@ func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) (addr
 			poolName = getPoolName(net, ip)
 		)
 
-		var err error
-		pools, err = pools.addPoolIP(poolName, ip)
+		err := pools.addPoolIP(poolName, ip)
 		if err != nil {
 			errs = append(errs, err)
 		}

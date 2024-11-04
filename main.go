@@ -3,15 +3,20 @@ package main
 import (
 	"flag"
 	"io"
+	"os"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/cloud-provider/app"
 	"k8s.io/cloud-provider/options"
+	"k8s.io/cloud-provider/names"
+
 
 	cloudcontrollerconfig "k8s.io/cloud-provider/app/config"
 
+	"k8s.io/component-base/cli"
 	cliflag "k8s.io/component-base/cli/flag"
+
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
 	"k8s.io/klog/v2"
@@ -30,9 +35,6 @@ func main() {
 	opts.KubeCloudShared.CloudProvider.Name = constants.ProviderName
 
 	controllerInitializers := app.DefaultInitFuncConstructors
-	// remove unneeded controllers,
-	// TODO add once we support the route interface
-	delete(controllerInitializers, "route")
 	fss := cliflag.NamedFlagSets{
 		NormalizeNameFunc: cliflag.WordSepNormalizeFunc,
 	}
@@ -40,12 +42,11 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
-	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, nil, fss, wait.NeverStop)
+	command := app.NewCloudControllerManagerCommand(opts, cloudInitializer, controllerInitializers, names.CCMControllerAliases(), fss, wait.NeverStop)
 
 	klog.Infof("starting version %s", v.V.String())
-	if err := command.Execute(); err != nil {
-		klog.Fatalf("error: %v", err)
-	}
+	code := cli.Run(command)
+	os.Exit(code)
 }
 func cloudInitializer(config *cloudcontrollerconfig.CompletedConfig) cloudprovider.Interface {
 	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
