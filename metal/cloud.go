@@ -83,7 +83,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
 	}
 
-	metalclient, err = metalgo.NewDriver(url, token, hmac)
+	metalclient, err = metalgo.NewDriver(url, token, hmac, metalgo.AuthType("Metal-Edit"))
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
