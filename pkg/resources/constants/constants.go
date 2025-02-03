@@ -5,6 +5,7 @@ const (
 	//nolint
 	MetalAuthTokenEnvVar              = "METAL_AUTH_TOKEN"
 	MetalAuthHMACEnvVar               = "METAL_AUTH_HMAC"
+	MetalAuthHMACAuthTypeEnvVar       = "METAL_AUTH_HMAC_AUTH_TYPE"
 	MetalProjectIDEnvVar              = "METAL_PROJECT_ID"
 	MetalPartitionIDEnvVar            = "METAL_PARTITION_ID"
 	MetalClusterIDEnvVar              = "METAL_CLUSTER_ID"

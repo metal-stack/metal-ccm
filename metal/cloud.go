@@ -43,6 +43,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	url := os.Getenv(constants.MetalAPIUrlEnvVar)
 	token := os.Getenv(constants.MetalAuthTokenEnvVar)
 	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
+	hmacAuthType := os.Getenv(constants.MetalAuthHMACAuthTypeEnvVar)
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
@@ -83,7 +84,11 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
 	}
 
-	metalclient, err = metalgo.NewDriver(url, token, hmac)
+	if hmacAuthType == "" {
+		hmacAuthType = "Metal-Admin"
+	}
+
+	metalclient, err = metalgo.NewDriver(url, token, hmac, metalgo.AuthType(hmacAuthType))
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
 	}
