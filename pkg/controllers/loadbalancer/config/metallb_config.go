@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
@@ -71,8 +72,8 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
 				MyASN:         peer.MyASN,
 				ASN:           peer.ASN,
-				HoldTime:      metav1.Duration{Duration: 90 * time.Second},
-				KeepaliveTime: metav1.Duration{Duration: 0 * time.Second},
+				HoldTime:      pointer.Pointer(metav1.Duration{Duration: 90 * time.Second}),
+				KeepaliveTime: pointer.Pointer(metav1.Duration{Duration: 0 * time.Second}),
 				Address:       peer.Address,
 				NodeSelectors: []metav1.LabelSelector{peer.NodeSelector},
 			}
