@@ -115,14 +115,12 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		if err != nil {
 			return nil, err
 		}
-		for _, ip := range ips {
-			if ip.Ipaddress != nil && *ip.Ipaddress != fixedIP {
-				err = l.removeServiceTagFromIPs(ctx, serviceTag)
-				if err != nil {
-					return nil, err
-				}
-				break
-			}
+		otherIPs := slices.DeleteFunc(ips, func(ip *models.V1IPResponse) bool {
+			return ip.Ipaddress != nil && *ip.Ipaddress == fixedIP
+		})
+		err = l.removeServiceTagFromIPs(ctx, serviceTag, otherIPs)
+		if err != nil {
+			return nil, err
 		}
 
 		newIP, err := l.useIPInCluster(ctx, *ip, l.clusterID, *service)
@@ -233,7 +231,12 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	l.ipUpdateMutex.Lock()
 	defer l.ipUpdateMutex.Unlock()
 
-	err := l.removeServiceTagFromIPs(ctx, serviceTag)
+	ips, err := l.MetalService.FindProjectIPsWithTag(ctx, l.projectID, serviceTag)
+	if err != nil {
+		return err
+	}
+
+	err = l.removeServiceTagFromIPs(ctx, serviceTag, ips)
 	if err != nil {
 		return err
 	}
@@ -246,12 +249,7 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	return nil
 }
 
-func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, serviceTag string) error {
-	ips, err := l.MetalService.FindProjectIPsWithTag(ctx, l.projectID, serviceTag)
-	if err != nil {
-		return err
-	}
-
+func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, serviceTag string, ips []*models.V1IPResponse) error {
 	for _, ip := range ips {
 		ip := ip
 		err := retrygo.Do(
