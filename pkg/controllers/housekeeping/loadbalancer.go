@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	syncLoadBalancerInterval         = 1 * time.Minute
-	syncLoadBalancerMinimalInternval = 5 * time.Second
+	syncLoadBalancerInterval        = 1 * time.Minute
+	syncLoadBalancerMinimalInterval = 5 * time.Second
 )
 
 func (h *Housekeeper) startLoadBalancerConfigSynching() {
@@ -18,7 +18,7 @@ func (h *Housekeeper) startLoadBalancerConfigSynching() {
 }
 
 func (h *Housekeeper) updateLoadBalancerConfig() error {
-	if time.Since(h.lastLoadBalancerConfigSync) < syncLoadBalancerMinimalInternval {
+	if time.Since(h.lastLoadBalancerConfigSync) < syncLoadBalancerMinimalInterval {
 		return nil
 	}
 	nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)

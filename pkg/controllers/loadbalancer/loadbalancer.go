@@ -107,6 +107,22 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		if err != nil {
 			return nil, err
 		}
+
+		serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, service.GetNamespace(), service.GetName())
+
+		// remove the service tag from other previous ip addresses in case the service had an ip address before
+		ips, err := l.MetalService.FindProjectIPsWithTag(ctx, l.projectID, serviceTag)
+		if err != nil {
+			return nil, err
+		}
+		otherIPs := slices.DeleteFunc(ips, func(ip *models.V1IPResponse) bool {
+			return ip.Ipaddress != nil && *ip.Ipaddress == fixedIP
+		})
+		err = l.removeServiceTagFromIPs(ctx, serviceTag, otherIPs)
+		if err != nil {
+			return nil, err
+		}
+
 		newIP, err := l.useIPInCluster(ctx, *ip, l.clusterID, *service)
 		if err != nil {
 			klog.Errorf("could not associate fixed ip:%s, err: %v", fixedIP, err)
@@ -220,6 +236,20 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 		return err
 	}
 
+	err = l.removeServiceTagFromIPs(ctx, serviceTag, ips)
+	if err != nil {
+		return err
+	}
+
+	// we do not update the metallb config here because then the metallb controller will report a stale config
+	// this is because the service gets deleted after updating the metallb config map
+	//
+	// therefore, we let the housekeeping update the config map
+
+	return nil
+}
+
+func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, serviceTag string, ips []*models.V1IPResponse) error {
 	for _, ip := range ips {
 		ip := ip
 		err := retrygo.Do(
@@ -254,12 +284,6 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 			return err
 		}
 	}
-
-	// we do not update the metallb config here because then the metallb controller will report a stale config
-	// this is because the service gets deleted after updating the metallb config map
-	//
-	// therefore, we let the housekeeping update the config map
-
 	return nil
 }
 
