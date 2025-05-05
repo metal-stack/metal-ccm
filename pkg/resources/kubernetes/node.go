@@ -33,12 +33,29 @@ func UpdateNodeLabelsWithBackoff(ctx context.Context, client clientset.Interface
 		}
 
 		for key, value := range labels {
-			node.Labels[key] = value
+			node.Labels[key] = sanitizeLabelValue(value)
 		}
 
 		_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		return err
 	})
+}
+
+// Labels must match: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?
+func sanitizeLabelValue(value string) string {
+	const whitelist = "-_.0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	var str strings.Builder
+	str.Grow(len(value))
+
+	for _, ch := range value {
+		if strings.ContainsRune(whitelist, ch) {
+			_, _ = str.WriteRune(ch)
+		} else {
+			_, _ = str.WriteRune('_')
+		}
+	}
+	return str.String()
 }
 
 // UpdateNodeAnnotationsWithBackoff updates labels on a given node with a given backoff retry.
