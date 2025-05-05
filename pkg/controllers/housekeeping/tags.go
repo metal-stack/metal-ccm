@@ -46,7 +46,6 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 	}
 
 	for _, n := range nodes {
-		n := n
 		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
 		if !ok {
@@ -76,7 +75,8 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 
 			err = h.ms.UpdateMachineTags(m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
 			if err != nil {
-				return err
+				klog.Warningf("unable to update machine tags of node %q, ignoring", n.Name)
+				continue
 			}
 			klog.Infof("added cluster tag %q to machine %q", h.clusterID, *m.ID)
 		}
