@@ -41,7 +41,6 @@ func UpdateNodeLabelsWithBackoff(ctx context.Context, client clientset.Interface
 	})
 }
 
-// Labels must match: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?
 func sanitizeLabelValue(value string) string {
 	const whitelist = "-_.0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
