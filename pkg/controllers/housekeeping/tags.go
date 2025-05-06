@@ -77,7 +77,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 
 			err = h.ms.UpdateMachineTags(m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
 			if err != nil {
-				errs = append(errs, fmt.Errorf("unable to update machine tags of node %q", n.Name))
+				errs = append(errs, fmt.Errorf("unable to update machine tags of node %q, due %w", n.Name, err))
 				continue
 			}
 			klog.Infof("added cluster tag %q to machine %q", h.clusterID, *m.ID)
