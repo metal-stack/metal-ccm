@@ -2,6 +2,7 @@ package housekeeping
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -45,8 +46,8 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 		Jitter:   1.0,
 	}
 
+	var errs []error
 	for _, n := range nodes {
-		n := n
 		nodeName := n.Name
 		tags, ok := machineTags[nodeName]
 		if !ok {
@@ -76,14 +77,15 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 
 			err = h.ms.UpdateMachineTags(m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
 			if err != nil {
-				return err
+				errs = append(errs, fmt.Errorf("unable to update machine tags of node %q", n.Name))
+				continue
 			}
 			klog.Infof("added cluster tag %q to machine %q", h.clusterID, *m.ID)
 		}
 	}
 	h.lastTagSync = time.Now()
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // getMachineTags returns all machine tags within the shoot.
