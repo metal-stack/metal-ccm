@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/metal-stack/metal-go/api/models"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -38,7 +37,7 @@ type baseConfig struct {
 	AddressPools addressPools
 }
 
-func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, c client.Client, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
+func New(loadBalancerType LoadBalancerType, ips []*apiv2.IP, nws sets.Set[string], nodes []v1.Node, c client.Client, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
 	bc, err := newBaseConfig(ips, nws, nodes)
 	if err != nil {
 		return nil, err
@@ -54,7 +53,7 @@ func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets
 	}
 }
 
-func newBaseConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node) (*baseConfig, error) {
+func newBaseConfig(ips []*apiv2.IP, nws sets.Set[string], nodes []v1.Node) (*baseConfig, error) {
 	pools, err := computeAddressPools(ips, nws)
 	if err != nil {
 		return nil, err
@@ -71,28 +70,31 @@ func newBaseConfig(ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.
 	}, nil
 }
 
-func computeAddressPools(ips []*models.V1IPResponse, nws sets.Set[string]) (addressPools, error) {
+func computeAddressPools(ips []*apiv2.IP, nws sets.Set[string]) (addressPools, error) {
 	var (
 		pools = addressPools{}
 		errs  []error
 	)
 
 	for _, ip := range ips {
-		if ip.Networkid == nil {
-			return nil, fmt.Errorf("ip has no network id set: %s", pointer.SafeDeref(ip.Ipaddress))
+		if ip.Network == "" {
+			return nil, fmt.Errorf("ip has no network id set: %s", ip.Ip)
 		}
 
-		if !nws.Has(*ip.Networkid) {
-			klog.Infof("skipping ip %q: not part of cluster networks", *ip.Ipaddress)
+		if !nws.Has(ip.Network) {
+			klog.Infof("skipping ip %q: not part of cluster networks", ip.Ip)
 			continue
 		}
 
 		var (
-			net      = *ip.Networkid
-			poolName = getPoolName(net, ip)
+			net = ip.Network
 		)
+		poolName, err := getPoolName(net, ip)
+		if err != nil {
+			return nil, err
+		}
 
-		err := pools.addPoolIP(poolName, ip)
+		err = pools.addPoolIP(poolName, ip)
 		if err != nil {
 			errs = append(errs, err)
 		}

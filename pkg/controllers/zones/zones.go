@@ -42,8 +42,8 @@ func (z ZonesController) GetZoneByProviderID(ctx context.Context, providerID str
 
 	// TODO: check if failureDomain == Partition
 	return cloudprovider.Zone{
-		FailureDomain: *machine.Partition.ID,
-		Region:        getRegionFromPartitionID(machine.Partition.ID),
+		FailureDomain: machine.Partition.Id,
+		Region:        getRegionFromPartitionID(machine.Partition.Id),
 	}, nil
 }
 
@@ -58,14 +58,14 @@ func (z ZonesController) GetZoneByNodeName(ctx context.Context, nodeName types.N
 
 	// TODO: check if failureDomain == Partition
 	return cloudprovider.Zone{
-		FailureDomain: *machine.Partition.ID,
-		Region:        getRegionFromPartitionID(machine.Partition.ID),
+		FailureDomain: machine.Partition.Id,
+		Region:        getRegionFromPartitionID(machine.Partition.Id),
 	}, nil
 }
 
 // getRegionFromPartitionID extracts the region from a given partitionID
-func getRegionFromPartitionID(partitionID *string) string {
+func getRegionFromPartitionID(partitionID string) string {
 	// if partitionID contains a hyphen, return part before first hyphen as region, otherwise return partitionID
-	split := strings.Split(*partitionID, "-")
+	split := strings.Split(partitionID, "-")
 	return split[0]
 }

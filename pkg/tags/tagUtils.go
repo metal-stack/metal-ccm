@@ -8,8 +8,10 @@ import (
 )
 
 // BuildClusterServiceFQNTag returns the ClusterServiceFQN tag populated with the given arguments.
-func BuildClusterServiceFQNTag(clusterID string, namespace, serviceName string) string {
-	return fmt.Sprintf("%s=%s/%s/%s", t.ClusterServiceFQN, clusterID, namespace, serviceName)
+func BuildClusterServiceFQNLabel(clusterID string, namespace, serviceName string) map[string]string {
+	return map[string]string{
+		t.ClusterServiceFQN: fmt.Sprintf("%s/%s/%s", clusterID, namespace, serviceName),
+	}
 }
 
 // IsMemberOfCluster returns true of the given tag is a cluster-tag and clusterID matches.

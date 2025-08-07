@@ -1,13 +1,15 @@
 package metal
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-lib/pkg/healthstatus"
+	"connectrpc.com/connect"
+	metalclient "github.com/metal-stack/api/go/client"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 
 	"github.com/metal-stack/metal-ccm/pkg/controllers/housekeeping"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/instances"
@@ -30,7 +32,7 @@ import (
 )
 
 var (
-	metalclient metalgo.Client
+	apiv2client metalclient.Client
 )
 
 type cloud struct {
@@ -41,9 +43,8 @@ type cloud struct {
 
 func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	url := os.Getenv(constants.MetalAPIUrlEnvVar)
-	token := os.Getenv(constants.MetalAuthTokenEnvVar)
-	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
-	hmacAuthType := os.Getenv(constants.MetalAuthHMACAuthTypeEnvVar)
+	token := os.Getenv(constants.MetalAPITokenEnvVar)
+
 	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
 	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
 	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
@@ -80,25 +81,23 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q is required", constants.MetalAPIUrlEnvVar)
 	}
 
-	if (token == "") == (hmac == "") {
-		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
-	}
-
-	if hmacAuthType == "" {
-		hmacAuthType = "Metal-Admin"
-	}
-
-	metalclient, err = metalgo.NewDriver(url, token, hmac, metalgo.AuthType(hmacAuthType))
+	apiv2client, err = metalclient.New(&metalclient.DialConfig{
+		BaseURL: url,
+		Token:   token,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
+		return nil, fmt.Errorf("unable to create metal apiserver client %w", err)
 	}
 
-	resp, err := metalclient.Health().Health(nil, nil)
+	resp, err := apiv2client.Apiv2().Health().Get(context.Background(), connect.NewRequest(&apiv2.HealthServiceGetRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
-	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status != string(healthstatus.HealthStatusHealthy) {
-		return nil, fmt.Errorf("metal-api not healthy, restarting")
+
+	for _, svc := range resp.Msg.Health.Services {
+		if svc.Status == apiv2.ServiceStatus_SERVICE_STATUS_UNHEALTHY {
+			return nil, fmt.Errorf("metal-apiserver service:%s not healthy, restarting", svc.Name)
+		}
 	}
 
 	instancesController := instances.New(defaultExternalNetworkID)
@@ -146,8 +145,8 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 		klog.Fatalf("unable to create k8s client: %v", err)
 	}
 
-	housekeeper := housekeeping.New(metalclient, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
-	ms := metal.New(metalclient, k8sClientSet, projectID)
+	housekeeper := housekeeping.New(apiv2client, stop, c.loadBalancer, k8sClientSet, projectID, sshPublicKey, clusterID)
+	ms := metal.New(apiv2client, k8sClientSet, projectID)
 
 	c.instances.MetalService = ms
 	c.loadBalancer.K8sClientSet = k8sClientSet

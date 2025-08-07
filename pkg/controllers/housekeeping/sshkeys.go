@@ -50,17 +50,17 @@ func (h *Housekeeper) syncSSHKeys() error {
 			continue
 		}
 
-		if slices.Contains(m.Allocation.SSHPubKeys, h.sshPublicKey) {
-			klog.Infof("machine %q has already actual ssh public keys", *m.Allocation.Hostname)
+		if slices.Contains(m.Allocation.SshPublicKeys, h.sshPublicKey) {
+			klog.Infof("machine %q has already actual ssh public keys", m.Allocation.Hostname)
 			continue
 		}
 
 		_, err = h.client.Machine().UpdateMachine(machine.NewUpdateMachineParams().WithBody(&models.V1MachineUpdateRequest{
-			ID:         m.ID,
+			ID:         &m.Uuid,
 			SSHPubKeys: []string{h.sshPublicKey},
 		}), nil)
 		if err != nil {
-			klog.Errorf("unable to update ssh public keys for machine %q %v", *m.Allocation.Hostname, err)
+			klog.Errorf("unable to update ssh public keys for machine %q %v", m.Allocation.Hostname, err)
 			continue
 		}
 	}

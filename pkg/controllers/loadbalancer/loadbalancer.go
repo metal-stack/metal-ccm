@@ -7,15 +7,15 @@ import (
 	"strings"
 	"sync"
 
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-ccm/pkg/controllers/loadbalancer/config"
 	"github.com/metal-stack/metal-ccm/pkg/tags"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
-	"github.com/metal-stack/metal-go/api/models"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,32 +103,32 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 		l.ipUpdateMutex.Lock()
 		defer l.ipUpdateMutex.Unlock()
 
-		ip, err := l.MetalService.FindProjectIP(ctx, l.projectID, fixedIP)
+		ip, err := l.MetalService.FindProjectIP(ctx, fixedIP)
 		if err != nil {
 			return nil, err
 		}
 
-		serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, service.GetNamespace(), service.GetName())
+		serviceTag := tags.BuildClusterServiceFQNLabel(l.clusterID, service.GetNamespace(), service.GetName())
 
 		// remove the service tag from other previous ip addresses in case the service had an ip address before
-		ips, err := l.MetalService.FindProjectIPsWithTag(ctx, l.projectID, serviceTag)
+		ips, err := l.MetalService.FindProjectIPsWithTag(ctx, serviceTag)
 		if err != nil {
 			return nil, err
 		}
-		otherIPs := slices.DeleteFunc(ips, func(ip *models.V1IPResponse) bool {
-			return ip.Ipaddress != nil && *ip.Ipaddress == fixedIP
+		otherIPs := slices.DeleteFunc(ips, func(ip *apiv2.IP) bool {
+			return ip.Ip == fixedIP
 		})
 		err = l.removeServiceTagFromIPs(ctx, serviceTag, otherIPs)
 		if err != nil {
 			return nil, err
 		}
 
-		newIP, err := l.useIPInCluster(ctx, *ip, l.clusterID, *service)
+		newIP, err := l.useIPInCluster(ctx, ip, l.clusterID, *service)
 		if err != nil {
 			klog.Errorf("could not associate fixed ip:%s, err: %v", fixedIP, err)
 			return nil, err
 		}
-		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: *newIP.Ipaddress})
+		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: newIP.Ip})
 		return &v1.LoadBalancerStatus{Ingress: ingressStatus}, nil
 	}
 
@@ -160,9 +160,10 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 		// clearing tags before release
 		// we can do this because here we know that we freshly acquired a new IP that's not used for anything else
-		_, err2 := l.MetalService.UpdateIP(ctx, &models.V1IPUpdateRequest{
-			Ipaddress: &ip,
-			Tags:      []string{},
+		_, err2 := l.MetalService.UpdateIP(ctx, &apiv2.IPServiceUpdateRequest{
+			Ip:      ip,
+			Project: l.projectID,
+			Tags:    []string{},
 		})
 		if err2 != nil {
 			klog.Errorf("error during ip rollback occurred: %v", err2)
@@ -249,29 +250,30 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 	return nil
 }
 
-func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, serviceTag string, ips []*models.V1IPResponse) error {
+func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, serviceTag string, ips []*apiv2.IP) error {
 	for _, ip := range ips {
 		ip := ip
 		err := retrygo.Do(
 			func() error {
-				newTags, delete := l.removeServiceTag(*ip, serviceTag)
+				newTags, delete := l.removeServiceTag(ip, serviceTag)
 
-				if *ip.Type == models.V1IPBaseTypeEphemeral && delete {
-					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", *ip.Ipaddress, ip.Tags)
+				if ip.Type == apiv2.IPType_IP_TYPE_EPHEMERAL && delete {
+					klog.Infof("freeing unused ephemeral ip: %s, tags: %s", ip.Ip, ip.Tags)
 
-					err := l.MetalService.FreeIP(ctx, *ip.Ipaddress)
+					err := l.MetalService.FreeIP(ctx, ip.Ip)
 					if err != nil {
-						return fmt.Errorf("unable to delete ip %s: %w", *ip.Ipaddress, err)
+						return fmt.Errorf("unable to delete ip %s: %w", ip.Ip, err)
 					}
 
 					return nil
 				}
 
-				klog.Infof("removing service reference tag %s from ip: %q, old tags: %s, new tags: %s", serviceTag, pointer.SafeDeref(ip.Ipaddress), ip.Tags, newTags)
+				klog.Infof("removing service reference tag %s from ip: %q, old tags: %s, new tags: %s", serviceTag, ip.Ip, ip.Tags, newTags)
 
-				_, err := l.MetalService.UpdateIP(ctx, &models.V1IPUpdateRequest{
-					Ipaddress: ip.Ipaddress,
-					Tags:      newTags,
+				_, err := l.MetalService.UpdateIP(ctx, &apiv2.IPServiceUpdateRequest{
+					Ip:      ip.Ip,
+					Project: l.projectID,
+					Tags:    newTags,
 				})
 				if err != nil {
 					return fmt.Errorf("could not update ip with new tags: %w", err)
@@ -288,7 +290,7 @@ func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, se
 }
 
 // removes the service tag and checks whether it is the last service tag.
-func (l *LoadBalancerController) removeServiceTag(ip models.V1IPResponse, serviceTag string) ([]string, bool) {
+func (l *LoadBalancerController) removeServiceTag(ip *apiv2.IP, serviceTag string) ([]string, bool) {
 	newTags := slices.DeleteFunc(ip.Tags, func(tag string) bool {
 		return tag == serviceTag
 	})
@@ -311,7 +313,7 @@ func (l *LoadBalancerController) UpdateLoadBalancerConfig(ctx context.Context, n
 	return nil
 }
 
-func (l *LoadBalancerController) useIPInCluster(ctx context.Context, ip models.V1IPResponse, clusterID string, s v1.Service) (*models.V1IPResponse, error) {
+func (l *LoadBalancerController) useIPInCluster(ctx context.Context, ip *apiv2.IP, clusterID string, s v1.Service) (*apiv2.IP, error) {
 	tm := tag.NewTagMap(ip.Tags)
 
 	if _, ok := tm.Value(tag.MachineID); ok {
@@ -321,13 +323,18 @@ func (l *LoadBalancerController) useIPInCluster(ctx context.Context, ip models.V
 		return nil, fmt.Errorf("ip is used for egress purposes, can not use it for a service, ip tags: %v", ip.Tags)
 	}
 
-	serviceTag := tags.BuildClusterServiceFQNTag(clusterID, s.GetNamespace(), s.GetName())
+	serviceTag := tags.BuildClusterServiceFQNLabel(clusterID, s.GetNamespace(), s.GetName())
 	newTags := ip.Tags
 	newTags = append(newTags, serviceTag)
-	klog.Infof("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", *ip.Ipaddress, ip.Tags, newTags)
-	iu := &models.V1IPUpdateRequest{
-		Ipaddress: ip.Ipaddress,
-		Tags:      newTags,
+	klog.Infof("use fixed ip in cluster, ip %s, oldTags: %v, newTags: %v", ip.Ip, ip.Tags, newTags)
+	iu := &apiv2.IPServiceUpdateRequest{
+		Project: l.projectID,
+		Ip:      ip.Ip,
+		Labels: &apiv2.UpdateLabels{
+			Update: &apiv2.Labels{
+				Labels: newTags,
+			},
+		},
 	}
 	resp, err := l.MetalService.UpdateIP(ctx, iu)
 	return resp, err
@@ -349,18 +356,18 @@ func (l *LoadBalancerController) acquireIP(ctx context.Context, service *v1.Serv
 func (l *LoadBalancerController) acquireIPFromSpecificNetwork(ctx context.Context, service *v1.Service, addressPoolName string) (string, error) {
 	nwID := strings.TrimSuffix(addressPoolName, "-"+models.V1IPBaseTypeEphemeral)
 	nwID = strings.TrimSuffix(nwID, "-"+models.V1IPBaseTypeEphemeral)
-	ip, err := l.MetalService.AllocateIP(ctx, *service, constants.IPPrefix, l.projectID, nwID, l.clusterID)
+	ip, err := l.MetalService.AllocateIP(ctx, *service, constants.IPPrefix, nwID, l.clusterID)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire IPs for project %q in network %q: %w", l.projectID, nwID, err)
 	}
 
-	klog.Infof("acquired ip in network %q: %v", nwID, *ip.Ipaddress)
+	klog.Infof("acquired ip in network %q: %v", nwID, ip.Ip)
 
-	return *ip.Ipaddress, nil
+	return ip.Ip, nil
 }
 
 func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, nodes []v1.Node) error {
-	ips, err := l.MetalService.FindClusterIPs(ctx, l.projectID, l.clusterID)
+	ips, err := l.MetalService.FindClusterIPs(ctx, l.clusterID)
 	if err != nil {
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}

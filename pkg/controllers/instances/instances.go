@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-ccm/pkg/resources/metal"
-
-	"github.com/metal-stack/metal-go/api/models"
-	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,22 +51,22 @@ func (i *InstancesController) NodeAddressesByProviderID(ctx context.Context, pro
 	return nodeAddresses(machine, i.defaultExternalNetwork)
 }
 
-func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork string) ([]v1.NodeAddress, error) {
+func nodeAddresses(machine *apiv2.Machine, defaultExternalNetwork string) ([]v1.NodeAddress, error) {
 	if machine == nil || machine.Allocation == nil {
 		return nil, nil
 	}
 
 	var addresses []v1.NodeAddress
 	for _, nw := range machine.Allocation.Networks {
-		if nw == nil || nw.Networktype == nil {
+		if nw.NetworkType == apiv2.NetworkType_NETWORK_TYPE_UNSPECIFIED {
 			continue
 		}
 		// The primary private network either shared or unshared
-		if *nw.Networktype == mn.PrivatePrimaryUnshared || *nw.Networktype == mn.PrivatePrimaryShared {
+		if nw.NetworkType == apiv2.NetworkType_NETWORK_TYPE_CHILD || nw.NetworkType == apiv2.NetworkType_NETWORK_TYPE_CHILD_SHARED {
 			if len(nw.Ips) == 0 {
 				continue
 			}
-			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: *machine.Allocation.Hostname})
+			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeHostName, Address: machine.Allocation.Hostname})
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: nw.Ips[0]})
 			continue
 		}
@@ -78,7 +76,7 @@ func nodeAddresses(machine *models.V1MachineResponse, defaultExternalNetwork str
 			continue
 		}
 
-		if *nw.Networkid == defaultExternalNetwork {
+		if nw.Network == defaultExternalNetwork {
 			for _, ip := range nw.Ips {
 				addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: ip})
 			}
@@ -96,7 +94,7 @@ func (i *InstancesController) InstanceID(ctx context.Context, nodeName types.Nod
 		return "", err
 	}
 
-	return *machine.ID, nil
+	return machine.Uuid, nil
 }
 
 // InstanceType returns the type of the specified instance.
@@ -107,7 +105,7 @@ func (i *InstancesController) InstanceType(ctx context.Context, nodeName types.N
 		return "", err
 	}
 
-	return *machine.Size.ID, nil
+	return machine.Size.Id, nil
 }
 
 // InstanceTypeByProviderID returns the type of the specified instance.
@@ -118,7 +116,7 @@ func (i *InstancesController) InstanceTypeByProviderID(ctx context.Context, prov
 		return "", err
 	}
 
-	return *machine.Size.ID, nil
+	return machine.Size.Id, nil
 }
 
 // AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all machines.
@@ -210,8 +208,8 @@ func (i *InstancesController) InstanceMetadata(ctx context.Context, node *v1.Nod
 		return nil, err
 	}
 	md := &cloudprovider.InstanceMetadata{
-		InstanceType:  *machine.Size.ID,
-		ProviderID:    fmt.Sprintf("metal://%s/%s", *machine.Partition.ID, *machine.ID),
+		InstanceType:  machine.Size.Id,
+		ProviderID:    fmt.Sprintf("metal://%s/%s", machine.Partition.Id, machine.Uuid),
 		NodeAddresses: nas,
 	}
 	return md, nil

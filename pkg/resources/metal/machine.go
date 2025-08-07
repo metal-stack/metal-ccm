@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	clientset "k8s.io/client-go/kubernetes"
 
-	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-go/api/client/machine"
-	"github.com/metal-stack/metal-go/api/models"
+	metalclient "github.com/metal-stack/api/go/client"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 
 	"github.com/metal-stack/metal-lib/pkg/cache"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,56 +22,63 @@ import (
 )
 
 type MetalService struct {
-	client                 metalgo.Client
+	client                 metalclient.Client
 	k8sclient              clientset.Interface
-	machineByUUIDCache     *cache.Cache[string, *models.V1MachineResponse]
-	machineByHostnameCache *cache.Cache[string, *models.V1MachineResponse]
+	machineByUUIDCache     *cache.Cache[string, *apiv2.Machine]
+	machineByHostnameCache *cache.Cache[string, *apiv2.Machine]
+	project                string
 }
 
-func New(client metalgo.Client, k8sclient clientset.Interface, projectID string) *MetalService {
-	machineByUUIDCache := cache.New(time.Minute, func(ctx context.Context, id string) (*models.V1MachineResponse, error) {
-		resp, err := client.Machine().FindMachine(machine.NewFindMachineParams().WithContext(ctx).WithID(id), nil)
+func New(client metalclient.Client, k8sclient clientset.Interface, projectID string) *MetalService {
+	machineByUUIDCache := cache.New(time.Minute, func(ctx context.Context, id string) (*apiv2.Machine, error) {
+		resp, err := client.Apiv2().Machine().Get(ctx, connect.NewRequest(&apiv2.MachineServiceGetRequest{
+			Uuid:    id,
+			Project: projectID,
+		}))
 		if err != nil {
 			return nil, err
 		}
 
-		if resp.Payload.Allocation == nil {
+		if resp.Msg.Machine.Allocation == nil {
 			return nil, fmt.Errorf("machine %q is not allocated", id)
 		}
-		if resp.Payload.Allocation.Project == nil {
-			return nil, fmt.Errorf("machine %q allocation does not have a project", id)
-		}
-		if *resp.Payload.Allocation.Project != projectID {
+		if resp.Msg.Machine.Allocation.Project != projectID {
 			return nil, fmt.Errorf("machine %q is allocated in the wrong project: %q", id, projectID)
 		}
 
-		return resp.Payload, nil
+		return resp.Msg.Machine, nil
 	})
-	machineByHostnameCache := cache.New(time.Minute, func(ctx context.Context, hostname string) (*models.V1MachineResponse, error) {
-		resp, err := client.Machine().FindMachines(machine.NewFindMachinesParams().WithContext(ctx).WithBody(&models.V1MachineFindRequest{
-			AllocationHostname: hostname,
-			AllocationProject:  projectID,
-		}), nil)
+	machineByHostnameCache := cache.New(time.Minute, func(ctx context.Context, hostname string) (*apiv2.Machine, error) {
+		resp, err := client.Apiv2().Machine().List(ctx, connect.NewRequest(&apiv2.MachineServiceListRequest{
+			Project: projectID,
+			Query: &apiv2.MachineQuery{
+				Allocation: &apiv2.MachineAllocationQuery{
+					Hostname: &hostname,
+					Project:  &projectID,
+				},
+			},
+		}))
 		if err != nil {
 			return nil, err
 		}
-		if len(resp.Payload) != 1 {
+		if len(resp.Msg.Machines) != 1 {
 			return nil, fmt.Errorf("not exactly one machine was found for hostname:%q", hostname)
 		}
-		return resp.Payload[0], nil
+		return resp.Msg.Machines[0], nil
 	})
 	ms := &MetalService{
 		client:                 client,
 		k8sclient:              k8sclient,
 		machineByUUIDCache:     machineByUUIDCache,
 		machineByHostnameCache: machineByHostnameCache,
+		project:                projectID,
 	}
 	return ms
 }
 
 // GetMachinesFromNodes gets metal machines from K8s nodes.
-func (ms *MetalService) GetMachinesFromNodes(ctx context.Context, nodes []v1.Node) ([]*models.V1MachineResponse, error) {
-	var mm []*models.V1MachineResponse
+func (ms *MetalService) GetMachinesFromNodes(ctx context.Context, nodes []v1.Node) ([]*apiv2.Machine, error) {
+	var mm []*apiv2.Machine
 	for _, n := range nodes {
 		m, err := ms.GetMachineFromProviderID(ctx, n.Spec.ProviderID)
 		if err != nil {
@@ -84,7 +91,7 @@ func (ms *MetalService) GetMachinesFromNodes(ctx context.Context, nodes []v1.Nod
 }
 
 // GetMachineFromNodeName returns a machine where hostname matches the kubernetes node.Name.
-func (ms *MetalService) GetMachineFromNodeName(ctx context.Context, nodeName types.NodeName) (*models.V1MachineResponse, error) {
+func (ms *MetalService) GetMachineFromNodeName(ctx context.Context, nodeName types.NodeName) (*apiv2.Machine, error) {
 	node, err := ms.k8sclient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -93,7 +100,7 @@ func (ms *MetalService) GetMachineFromNodeName(ctx context.Context, nodeName typ
 }
 
 // GetMachineFromProviderID uses providerID to get the machine id and returns the machine.
-func (ms *MetalService) GetMachineFromProviderID(ctx context.Context, providerID string) (*models.V1MachineResponse, error) {
+func (ms *MetalService) GetMachineFromProviderID(ctx context.Context, providerID string) (*apiv2.Machine, error) {
 	id, err := decodeMachineIDFromProviderID(providerID)
 	if err != nil {
 		return nil, err
@@ -108,9 +115,9 @@ func (ms *MetalService) GetMachineFromProviderID(ctx context.Context, providerID
 }
 
 // GetMachineFromNode try providerID first, otherwise node.Name to fetch the machine.
-func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (*models.V1MachineResponse, error) {
+func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (*apiv2.Machine, error) {
 	var (
-		machine *models.V1MachineResponse
+		machine *apiv2.Machine
 		err     error
 	)
 	if node == nil {
@@ -134,15 +141,11 @@ func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (
 }
 
 // UpdateMachineTags sets the machine tags.
-func (ms *MetalService) UpdateMachineTags(m *string, tags []string) error {
-	if m == nil {
-		return fmt.Errorf("machine is nil")
-	}
-
-	_, err := ms.client.Machine().UpdateMachine(machine.NewUpdateMachineParams().WithBody(&models.V1MachineUpdateRequest{
-		ID:   m,
+func (ms *MetalService) UpdateMachineTags(ctx context.Context, m string, tags []string) error {
+	_, err := ms.client.Apiv2().Machine().Update(ctx, connect.NewRequest(&apiv2.MachineServiceUpdateRequest{
+		Uuid: m,
 		Tags: tags,
-	}), nil)
+	}))
 	if err != nil {
 		return err
 	}
