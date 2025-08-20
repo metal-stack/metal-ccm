@@ -143,8 +143,9 @@ func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (
 // UpdateMachineTags sets the machine tags.
 func (ms *MetalService) UpdateMachineTags(ctx context.Context, m string, tags []string) error {
 	_, err := ms.client.Apiv2().Machine().Update(ctx, connect.NewRequest(&apiv2.MachineServiceUpdateRequest{
-		Uuid: m,
-		Tags: tags,
+		Uuid:    m,
+		Project: "", // FIXME project is required here
+		Tags:    tags,
 	}))
 	if err != nil {
 		return err
