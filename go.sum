@@ -172,8 +172,8 @@ github.com/mdlayher/netlink v1.7.2 h1:/UtM3ofJap7Vl4QWCPDGXY8d3GIY2UGSDbK+QWmY8/
 github.com/mdlayher/netlink v1.7.2/go.mod h1:xraEF7uJbxLhc5fpHL4cPe221LI2bdttWlU+ZGLfQSw=
 github.com/mdlayher/socket v0.5.0 h1:ilICZmJcQz70vrWVes1MFera4jGiWNocSkykwwoy3XI=
 github.com/mdlayher/socket v0.5.0/go.mod h1:WkcBFfvyG8QENs5+hfQPl1X6Jpd2yeLIYgrGFmJiJxI=
-github.com/metal-stack/api v0.0.12 h1:1mc+jOUEX8/0LmPWZNKfCkegnNQDsbXbTTkXKgoc0Rs=
-github.com/metal-stack/api v0.0.12/go.mod h1:uWv5i8YyjETpq8ioewHI/fFmvWxW8yrzC1e2q3rKbHo=
+github.com/metal-stack/api v0.0.13 h1:52vnhBmfKJ3JUZDP70oTwk8EhXGYpwJh3EUBgaN4Nn8=
+github.com/metal-stack/api v0.0.13/go.mod h1:uWv5i8YyjETpq8ioewHI/fFmvWxW8yrzC1e2q3rKbHo=
 github.com/metal-stack/metal-go v0.42.0 h1:IccaJufN8WeNbBYLI06A22vgM/EGfWW8dxQ0lNZvFkg=
 github.com/metal-stack/metal-go v0.42.0/go.mod h1:T0lbyrc+aHlI/GWAu2Og4Fmj4oaj5RD55736jBG0R8Y=
 github.com/metal-stack/metal-lib v0.23.3 h1:ZcouyuCXy2bMZn+CB0yx1JdAl8SEkfjmlzNLyrmD/kA=

@@ -1,10 +1,12 @@
 package housekeeping
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/metal-stack/metal-lib/pkg/healthstatus"
+	"connectrpc.com/connect"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"k8s.io/klog/v2"
 )
 
@@ -19,18 +21,26 @@ func (h *Housekeeper) runHealthCheck() {
 
 func (h *Housekeeper) checkMetalAPIHealth() error {
 	klog.Infof("checking metal-api health, total errors:%d", h.metalAPIErrors)
-	resp, err := h.client.Health().Health(nil, nil)
+	resp, err := h.client.Apiv2().Health().Get(context.Background(), connect.NewRequest(&apiv2.HealthServiceGetRequest{}))
 	if err != nil {
 		h.incrementAPIErrorAndPanic()
 		return err
 	}
 
-	if resp.Payload != nil && resp.Payload.Status != nil && *resp.Payload.Status == string(healthstatus.HealthStatusHealthy) {
-		h.resetAPIError()
-		return nil
+	var atleastOneServiceIsUnHealthy bool
+	for _, svc := range resp.Msg.Health.Services {
+		if svc.Status != apiv2.ServiceStatus_SERVICE_STATUS_HEALTHY {
+			atleastOneServiceIsUnHealthy = true
+		}
 	}
-	h.incrementAPIErrorAndPanic()
-	return fmt.Errorf("metal-api is not healthy since:%d times", h.metalAPIErrors)
+
+	if atleastOneServiceIsUnHealthy {
+		h.incrementAPIErrorAndPanic()
+		return fmt.Errorf("metal-api is not healthy since:%d times", h.metalAPIErrors)
+	}
+
+	h.resetAPIError()
+	return nil
 }
 
 func (h *Housekeeper) incrementAPIErrorAndPanic() {

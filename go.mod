@@ -1,8 +1,6 @@
 module github.com/metal-stack/metal-ccm
 
-go 1.24.0
-
-toolchain go1.24.4
+go 1.25
 
 require (
 	connectrpc.com/connect v1.18.1
@@ -10,7 +8,7 @@ require (
 	github.com/cilium/cilium v1.17.5
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/metal-stack/api v0.0.12
+	github.com/metal-stack/api v0.0.13
 	github.com/metal-stack/metal-go v0.42.0
 	github.com/metal-stack/metal-lib v0.23.3
 	github.com/metal-stack/v v1.0.3

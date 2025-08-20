@@ -6,11 +6,11 @@ import (
 
 	"slices"
 
+	"connectrpc.com/connect"
 	"k8s.io/klog/v2"
 
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-stack/metal-go/api/client/machine"
-	"github.com/metal-stack/metal-go/api/models"
 )
 
 const (
@@ -55,10 +55,11 @@ func (h *Housekeeper) syncSSHKeys() error {
 			continue
 		}
 
-		_, err = h.client.Machine().UpdateMachine(machine.NewUpdateMachineParams().WithBody(&models.V1MachineUpdateRequest{
-			ID:         &m.Uuid,
-			SSHPubKeys: []string{h.sshPublicKey},
-		}), nil)
+		_, err = h.client.Apiv2().Machine().Update(context.Background(), connect.NewRequest(&apiv2.MachineServiceUpdateRequest{
+			Uuid:          m.Uuid,
+			Project:       m.Allocation.Project,
+			SshPublicKeys: []string{h.sshPublicKey},
+		}))
 		if err != nil {
 			klog.Errorf("unable to update ssh public keys for machine %q %v", m.Allocation.Hostname, err)
 			continue
