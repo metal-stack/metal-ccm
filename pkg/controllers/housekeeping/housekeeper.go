@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	metalgo "github.com/metal-stack/metal-go"
+	metalclient "github.com/metal-stack/api/go/client"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
@@ -19,7 +19,7 @@ import (
 
 // Housekeeper periodically updates nodes and load balancers
 type Housekeeper struct {
-	client                     metalgo.Client
+	client                     metalclient.Client
 	stop                       <-chan struct{}
 	k8sClient                  clientset.Interface
 	ticker                     *tickerSyncer
@@ -33,7 +33,7 @@ type Housekeeper struct {
 }
 
 // New returns a new house keeper
-func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface, projectID string, sshPublicKey string, clusterID string) *Housekeeper {
+func New(metalClient metalclient.Client, stop <-chan struct{}, lbController *loadbalancer.LoadBalancerController, k8sClient clientset.Interface, projectID string, sshPublicKey string, clusterID string) *Housekeeper {
 	return &Housekeeper{
 		client:       metalClient,
 		stop:         stop,

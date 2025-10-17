@@ -7,7 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/api/go/enum"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
@@ -32,12 +33,12 @@ func newBGPAddressPool(name string) addressPool {
 	}
 }
 
-func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
-	if ip.Ipaddress == nil {
+func (pool *addressPool) appendIP(ip *apiv2.IP) error {
+	if ip.Ip == "" {
 		return errors.New("ip address is not set on ip")
 	}
 
-	parsed, err := netip.ParseAddr(*ip.Ipaddress)
+	parsed, err := netip.ParseAddr(ip.Ip)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func (pool *addressPool) appendIP(ip *models.V1IPResponse) error {
 	return nil
 }
 
-func (as addressPools) addPoolIP(poolName string, ip *models.V1IPResponse) error {
+func (as addressPools) addPoolIP(poolName string, ip *apiv2.IP) error {
 
 	pool, ok := as[poolName]
 	if !ok {
@@ -71,11 +72,15 @@ func (as addressPools) addPoolIP(poolName string, ip *models.V1IPResponse) error
 	return nil
 }
 
-func getPoolName(network string, ip *models.V1IPResponse) string {
-	poolType := models.V1IPBaseTypeEphemeral
-	if pointer.SafeDeref(ip.Type) == models.V1IPBaseTypeStatic {
-		poolType = models.V1IPBaseTypeStatic
+func getPoolName(network string, ip *apiv2.IP) (string, error) {
+	poolType := apiv2.IPType_IP_TYPE_EPHEMERAL
+	if ip.Type == apiv2.IPType_IP_TYPE_STATIC {
+		poolType = apiv2.IPType_IP_TYPE_STATIC
 	}
 
-	return fmt.Sprintf("%s-%s", strings.ToLower(network), poolType)
+	poolTypeString, err := enum.GetStringValue(poolType)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s-%s", strings.ToLower(network), *poolTypeString), nil
 }

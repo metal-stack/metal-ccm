@@ -8,9 +8,8 @@ import (
 
 	"k8s.io/klog/v2"
 
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-stack/metal-go/api/client/machine"
-	"github.com/metal-stack/metal-go/api/models"
 )
 
 const (
@@ -50,17 +49,18 @@ func (h *Housekeeper) syncSSHKeys() error {
 			continue
 		}
 
-		if slices.Contains(m.Allocation.SSHPubKeys, h.sshPublicKey) {
-			klog.Infof("machine %q has already actual ssh public keys", *m.Allocation.Hostname)
+		if slices.Contains(m.Allocation.SshPublicKeys, h.sshPublicKey) {
+			klog.Infof("machine %q has already actual ssh public keys", m.Allocation.Hostname)
 			continue
 		}
 
-		_, err = h.client.Machine().UpdateMachine(machine.NewUpdateMachineParams().WithBody(&models.V1MachineUpdateRequest{
-			ID:         m.ID,
-			SSHPubKeys: []string{h.sshPublicKey},
-		}), nil)
+		_, err = h.client.Apiv2().Machine().Update(context.Background(), &apiv2.MachineServiceUpdateRequest{
+			Uuid:          m.Uuid,
+			Project:       m.Allocation.Project,
+			SshPublicKeys: []string{h.sshPublicKey},
+		})
 		if err != nil {
-			klog.Errorf("unable to update ssh public keys for machine %q %v", *m.Allocation.Hostname, err)
+			klog.Errorf("unable to update ssh public keys for machine %q %v", m.Allocation.Hostname, err)
 			continue
 		}
 	}

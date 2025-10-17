@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/metal-stack/metal-go/api/models"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
@@ -12,7 +12,7 @@ func Test_addressPool_appendIP(t *testing.T) {
 	tests := []struct {
 		name     string
 		existing addressPool
-		ip       *models.V1IPResponse
+		ip       *apiv2.IP
 		want     addressPool
 		wantErr  error
 	}{
@@ -21,8 +21,8 @@ func Test_addressPool_appendIP(t *testing.T) {
 			existing: addressPool{
 				CIDRs: nil,
 			},
-			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("192.168.2.1"),
+			ip: &apiv2.IP{
+				Ip: "192.168.2.1",
 			},
 			want: addressPool{
 				CIDRs: []string{"192.168.2.1/32"},
@@ -33,8 +33,8 @@ func Test_addressPool_appendIP(t *testing.T) {
 			existing: addressPool{
 				CIDRs: []string{"192.168.2.1/32"},
 			},
-			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("192.168.2.1"),
+			ip: &apiv2.IP{
+				Ip: "192.168.2.1",
 			},
 			want: addressPool{
 				CIDRs: []string{"192.168.2.1/32"},
@@ -45,8 +45,8 @@ func Test_addressPool_appendIP(t *testing.T) {
 			existing: addressPool{
 				CIDRs: []string{"192.168.2.1/32"},
 			},
-			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("2001::7"),
+			ip: &apiv2.IP{
+				Ip: "2001::7",
 			},
 			want: addressPool{
 				CIDRs: []string{"192.168.2.1/32", "2001::7/128"},
@@ -72,7 +72,7 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 	tests := []struct {
 		name     string
 		poolName string
-		ip       *models.V1IPResponse
+		ip       *apiv2.IP
 		existing addressPools
 		want     addressPools
 		wantErr  error
@@ -80,9 +80,9 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 		{
 			name:     "append new pool",
 			poolName: "my-pool-static",
-			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("2001::7"),
-				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
+			ip: &apiv2.IP{
+				Ip:   "2001::7",
+				Type: apiv2.IPType_IP_TYPE_STATIC,
 			},
 			existing: addressPools{},
 			want: addressPools{
@@ -97,9 +97,9 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 		{
 			name:     "append to existing pool",
 			poolName: "my-pool-static",
-			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("2001::8"),
-				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
+			ip: &apiv2.IP{
+				Ip:   "2001::8",
+				Type: apiv2.IPType_IP_TYPE_STATIC,
 			},
 			existing: addressPools{
 				"my-pool-ephemeral": addressPool{

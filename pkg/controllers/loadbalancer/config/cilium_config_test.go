@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/metal-stack/metal-go/api/models"
+	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
@@ -17,7 +17,7 @@ func TestCiliumConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		nws     sets.Set[string]
-		ips     []*models.V1IPResponse
+		ips     []*apiv2.IP
 		nodes   []v1.Node
 		wantErr error
 		want    *ciliumConfig
@@ -25,16 +25,20 @@ func TestCiliumConfig(t *testing.T) {
 		{
 			name: "one ip acquired, no nodes",
 			nws:  testNetworks,
-			ips: []*models.V1IPResponse{
+			ips: []*apiv2.IP{
 				{
-					Ipaddress: pointer.Pointer("84.1.1.1"),
-					Name:      "acquired-before",
-					Networkid: pointer.Pointer("internet"),
-					Projectid: pointer.Pointer("project-a"),
-					Tags: []string{
-						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					Ip:      "84.1.1.1",
+					Name:    "acquired-before",
+					Network: "internet",
+					Project: "project-a",
+					Meta: &apiv2.Meta{
+						Labels: &apiv2.Labels{
+							Labels: map[string]string{
+								tag.ClusterID: "this-cluster",
+							},
+						},
 					},
-					Type: pointer.Pointer("ephemeral"),
+					Type: apiv2.IPType_IP_TYPE_EPHEMERAL,
 				},
 			},
 			nodes:   []v1.Node{},
@@ -58,7 +62,7 @@ func TestCiliumConfig(t *testing.T) {
 		{
 			name: "two ips acquired, no nodes",
 			nws:  testNetworks,
-			ips: []*models.V1IPResponse{
+			ips: []*apiv2.IP{
 				{
 					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",
@@ -102,7 +106,7 @@ func TestCiliumConfig(t *testing.T) {
 		{
 			name: "two ips acquired, one static ip, no nodes",
 			nws:  testNetworks,
-			ips: []*models.V1IPResponse{
+			ips: []*apiv2.IP{
 				{
 					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",
@@ -164,7 +168,7 @@ func TestCiliumConfig(t *testing.T) {
 		{
 			name: "connected to internet,storage,dmz and mpls, two ips acquired, one static ip, no nodes",
 			nws:  testNetworks,
-			ips: []*models.V1IPResponse{
+			ips: []*apiv2.IP{
 				{
 					Ipaddress: pointer.Pointer("84.1.1.1"),
 					Name:      "acquired-before",

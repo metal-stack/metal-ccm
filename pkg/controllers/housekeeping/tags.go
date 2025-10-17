@@ -30,7 +30,8 @@ func (h *Housekeeper) startTagSynching() {
 func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 	klog.Info("start syncing machine tags to node labels")
 
-	nodes, err := kubernetes.GetNodes(context.Background(), h.k8sClient)
+	ctx := context.Background()
+	nodes, err := kubernetes.GetNodes(ctx, h.k8sClient)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 			continue
 		}
 		labels := h.buildLabelsFromMachineTags(tags)
-		err := kubernetes.UpdateNodeLabelsWithBackoff(context.Background(), h.k8sClient, n.Name, labels, updateNodeSpecBackoff)
+		err := kubernetes.UpdateNodeLabelsWithBackoff(ctx, h.k8sClient, n.Name, labels, updateNodeSpecBackoff)
 		if err != nil {
 			klog.Warningf("tags syncher failed to update tags on node:%s: %v", nodeName, err)
 			continue
@@ -63,7 +64,7 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 
 		// check if machine has a cluster tag, if not add it
 		if machineClusterTag, found := metaltag.NewTagMap(tags).Value(metaltag.ClusterID); !found || machineClusterTag != h.clusterID {
-			m, err := h.ms.GetMachineFromNode(context.Background(), &n)
+			m, err := h.ms.GetMachineFromNode(ctx, &n)
 
 			if err != nil {
 				klog.Warningf("unable to get machine for node:%q, not updating machine %v", n.Name, err)
@@ -75,12 +76,12 @@ func (h *Housekeeper) syncMachineTagsToNodeLabels() error {
 				continue
 			}
 
-			err = h.ms.UpdateMachineTags(m.ID, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
+			err = h.ms.UpdateMachineTags(ctx, m.Uuid, append(tags, fmt.Sprintf("%s=%s", metaltag.ClusterID, h.clusterID)))
 			if err != nil {
 				errs = append(errs, fmt.Errorf("unable to update machine tags of node %q, due %w", n.Name, err))
 				continue
 			}
-			klog.Infof("added cluster tag %q to machine %q", h.clusterID, *m.ID)
+			klog.Infof("added cluster tag %q to machine %q", h.clusterID, m.Uuid)
 		}
 	}
 	h.lastTagSync = time.Now()
@@ -101,7 +102,7 @@ func (h *Housekeeper) getMachineTags(nodes []v1.Node) (map[string][]string, erro
 		if m.Allocation == nil {
 			continue
 		}
-		hostname := *m.Allocation.Hostname
+		hostname := m.Allocation.Hostname
 		machineTags[hostname] = m.Tags
 	}
 	return machineTags, nil
