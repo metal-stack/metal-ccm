@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
 	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 	"k8s.io/klog/v2"
 )
@@ -21,14 +20,14 @@ func (h *Housekeeper) runHealthCheck() {
 
 func (h *Housekeeper) checkMetalAPIHealth() error {
 	klog.Infof("checking metal-api health, total errors:%d", h.metalAPIErrors)
-	resp, err := h.client.Apiv2().Health().Get(context.Background(), connect.NewRequest(&apiv2.HealthServiceGetRequest{}))
+	resp, err := h.client.Apiv2().Health().Get(context.Background(), &apiv2.HealthServiceGetRequest{})
 	if err != nil {
 		h.incrementAPIErrorAndPanic()
 		return err
 	}
 
 	var atleastOneServiceIsUnHealthy bool
-	for _, svc := range resp.Msg.Health.Services {
+	for _, svc := range resp.Health.Services {
 		if svc.Status != apiv2.ServiceStatus_SERVICE_STATUS_HEALTHY {
 			atleastOneServiceIsUnHealthy = true
 		}

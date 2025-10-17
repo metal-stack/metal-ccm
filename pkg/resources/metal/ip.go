@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 
 	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
@@ -18,13 +17,13 @@ import (
 
 // FindClusterIPs returns the allowed IPs of the given cluster.
 func (ms *MetalService) FindClusterIPs(ctx context.Context, clusterID string) ([]*apiv2.IP, error) {
-	resp, err := ms.client.Apiv2().IP().List(ctx, connect.NewRequest(&apiv2.IPServiceListRequest{Project: ms.project}))
+	resp, err := ms.client.Apiv2().IP().List(ctx, &apiv2.IPServiceListRequest{Project: ms.project})
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*apiv2.IP{}
-	for _, i := range resp.Msg.Ips {
+	for _, i := range resp.Ips {
 		if i.Meta == nil || i.Meta.Labels == nil || i.Meta.Labels.Labels == nil {
 			continue
 		}
@@ -50,15 +49,15 @@ func (ms *MetalService) FindClusterIPs(ctx context.Context, clusterID string) ([
 
 // FindProjectIP returns the IP
 func (ms *MetalService) FindProjectIP(ctx context.Context, ip string) (*apiv2.IP, error) {
-	resp, err := ms.client.Apiv2().IP().Get(ctx, connect.NewRequest(&apiv2.IPServiceGetRequest{
+	resp, err := ms.client.Apiv2().IP().Get(ctx, &apiv2.IPServiceGetRequest{
 		Project: ms.project,
 		Ip:      ip,
-	}))
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Msg.Ip, nil
+	return resp.Ip, nil
 }
 
 // FindProjectIPsWithTag returns the IPs of the given project that also have the given tag.
@@ -75,17 +74,17 @@ func (ms *MetalService) FindProjectIPsWithTag(ctx context.Context, tagString str
 		},
 	}
 
-	resp, err := ms.client.Apiv2().IP().List(ctx, connect.NewRequest(req))
+	resp, err := ms.client.Apiv2().IP().List(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Msg.Ips, nil
+	return resp.Ips, nil
 }
 
 // FreeIP frees the given IP address.
 func (ms *MetalService) FreeIP(ctx context.Context, ip string) error {
-	_, err := ms.client.Apiv2().IP().Delete(ctx, connect.NewRequest(&apiv2.IPServiceDeleteRequest{Ip: ip, Project: ms.project}))
+	_, err := ms.client.Apiv2().IP().Delete(ctx, &apiv2.IPServiceDeleteRequest{Ip: ip, Project: ms.project})
 	if err != nil {
 		return err
 	}
@@ -109,20 +108,20 @@ func (ms *MetalService) AllocateIP(ctx context.Context, svc v1.Service, namePref
 		},
 	}
 
-	resp, err := ms.client.Apiv2().IP().Create(ctx, connect.NewRequest(req))
+	resp, err := ms.client.Apiv2().IP().Create(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Msg.Ip, nil
+	return resp.Ip, nil
 }
 
 // UpdateIP updates the given IP address.
 func (ms *MetalService) UpdateIP(ctx context.Context, body *apiv2.IPServiceUpdateRequest) (*apiv2.IP, error) {
-	resp, err := ms.client.Apiv2().IP().Update(ctx, connect.NewRequest(body))
+	resp, err := ms.client.Apiv2().IP().Update(ctx, body)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Msg.Ip, nil
+	return resp.Ip, nil
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
-	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
@@ -28,14 +27,18 @@ func TestCiliumConfig(t *testing.T) {
 			nws:  testNetworks,
 			ips: []*apiv2.IP{
 				{
-					Ipaddress: pointer.Pointer("84.1.1.1"),
-					Name:      "acquired-before",
-					Networkid: pointer.Pointer("internet"),
-					Projectid: pointer.Pointer("project-a"),
-					Tags: []string{
-						fmt.Sprintf("%s=%s", tag.ClusterID, "this-cluster"),
+					Ip:      "84.1.1.1",
+					Name:    "acquired-before",
+					Network: "internet",
+					Project: "project-a",
+					Meta: &apiv2.Meta{
+						Labels: &apiv2.Labels{
+							Labels: map[string]string{
+								tag.ClusterID: "this-cluster",
+							},
+						},
 					},
-					Type: pointer.Pointer("ephemeral"),
+					Type: apiv2.IPType_IP_TYPE_EPHEMERAL,
 				},
 			},
 			nodes:   []v1.Node{},

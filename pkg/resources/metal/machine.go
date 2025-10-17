@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	clientset "k8s.io/client-go/kubernetes"
 
@@ -31,25 +30,25 @@ type MetalService struct {
 
 func New(client metalclient.Client, k8sclient clientset.Interface, projectID string) *MetalService {
 	machineByUUIDCache := cache.New(time.Minute, func(ctx context.Context, id string) (*apiv2.Machine, error) {
-		resp, err := client.Apiv2().Machine().Get(ctx, connect.NewRequest(&apiv2.MachineServiceGetRequest{
+		resp, err := client.Apiv2().Machine().Get(ctx, &apiv2.MachineServiceGetRequest{
 			Uuid:    id,
 			Project: projectID,
-		}))
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		if resp.Msg.Machine.Allocation == nil {
+		if resp.Machine.Allocation == nil {
 			return nil, fmt.Errorf("machine %q is not allocated", id)
 		}
-		if resp.Msg.Machine.Allocation.Project != projectID {
+		if resp.Machine.Allocation.Project != projectID {
 			return nil, fmt.Errorf("machine %q is allocated in the wrong project: %q", id, projectID)
 		}
 
-		return resp.Msg.Machine, nil
+		return resp.Machine, nil
 	})
 	machineByHostnameCache := cache.New(time.Minute, func(ctx context.Context, hostname string) (*apiv2.Machine, error) {
-		resp, err := client.Apiv2().Machine().List(ctx, connect.NewRequest(&apiv2.MachineServiceListRequest{
+		resp, err := client.Apiv2().Machine().List(ctx, &apiv2.MachineServiceListRequest{
 			Project: projectID,
 			Query: &apiv2.MachineQuery{
 				Allocation: &apiv2.MachineAllocationQuery{
@@ -57,14 +56,14 @@ func New(client metalclient.Client, k8sclient clientset.Interface, projectID str
 					Project:  &projectID,
 				},
 			},
-		}))
+		})
 		if err != nil {
 			return nil, err
 		}
-		if len(resp.Msg.Machines) != 1 {
+		if len(resp.Machines) != 1 {
 			return nil, fmt.Errorf("not exactly one machine was found for hostname:%q", hostname)
 		}
-		return resp.Msg.Machines[0], nil
+		return resp.Machines[0], nil
 	})
 	ms := &MetalService{
 		client:                 client,
@@ -142,11 +141,11 @@ func (ms *MetalService) GetMachineFromNode(ctx context.Context, node *v1.Node) (
 
 // UpdateMachineTags sets the machine tags.
 func (ms *MetalService) UpdateMachineTags(ctx context.Context, m string, tags []string) error {
-	_, err := ms.client.Apiv2().Machine().Update(ctx, connect.NewRequest(&apiv2.MachineServiceUpdateRequest{
+	_, err := ms.client.Apiv2().Machine().Update(ctx, &apiv2.MachineServiceUpdateRequest{
 		Uuid:    m,
 		Project: "", // FIXME project is required here
 		Tags:    tags,
-	}))
+	})
 	if err != nil {
 		return err
 	}

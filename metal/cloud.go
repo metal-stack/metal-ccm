@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"connectrpc.com/connect"
 	metalclient "github.com/metal-stack/api/go/client"
 	apiv2 "github.com/metal-stack/api/go/metalstack/api/v2"
 
@@ -89,12 +88,12 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("unable to create metal apiserver client %w", err)
 	}
 
-	resp, err := apiv2client.Apiv2().Health().Get(context.Background(), connect.NewRequest(&apiv2.HealthServiceGetRequest{}))
+	resp, err := apiv2client.Apiv2().Health().Get(context.Background(), &apiv2.HealthServiceGetRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("metal-api health endpoint not reachable:%w", err)
 	}
 
-	for _, svc := range resp.Msg.Health.Services {
+	for _, svc := range resp.Health.Services {
 		if svc.Status == apiv2.ServiceStatus_SERVICE_STATUS_UNHEALTHY {
 			return nil, fmt.Errorf("metal-apiserver service:%s not healthy, restarting", svc.Name)
 		}
