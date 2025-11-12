@@ -1,9 +1,9 @@
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.25-trixie AS builder
 WORKDIR /work
 COPY . .
 RUN make
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=builder /work/bin/metal-cloud-controller-manager .
 
