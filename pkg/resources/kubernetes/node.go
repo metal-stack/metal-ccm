@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -32,9 +33,7 @@ func UpdateNodeLabelsWithBackoff(ctx context.Context, client clientset.Interface
 			return err
 		}
 
-		for key, value := range labels {
-			node.Labels[key] = value
-		}
+		maps.Copy(node.Labels, labels)
 
 		_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		return err
@@ -50,9 +49,7 @@ func UpdateNodeAnnotationsWithBackoff(ctx context.Context, client clientset.Inte
 			return err
 		}
 
-		for key, value := range annotations {
-			node.Annotations[key] = value
-		}
+		maps.Copy(node.Annotations, annotations)
 
 		_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		return err

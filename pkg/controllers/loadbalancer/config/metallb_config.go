@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
@@ -38,7 +37,6 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		return err
 	}
 	for _, existingPeer := range bgpPeerList.Items {
-		existingPeer := existingPeer
 		found := false
 
 		for _, peer := range m.Base.Peers {
@@ -72,8 +70,8 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 			bgpPeer.Spec = metallbv1beta2.BGPPeerSpec{
 				MyASN:         peer.MyASN,
 				ASN:           peer.ASN,
-				HoldTime:      pointer.Pointer(metav1.Duration{Duration: 90 * time.Second}),
-				KeepaliveTime: pointer.Pointer(metav1.Duration{Duration: 0 * time.Second}),
+				HoldTime:      new(metav1.Duration{Duration: 90 * time.Second}),
+				KeepaliveTime: new(metav1.Duration{Duration: 0 * time.Second}),
 				Address:       peer.Address,
 				NodeSelectors: []metav1.LabelSelector{peer.NodeSelector},
 			}
@@ -146,7 +144,6 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		}
 
 		for _, existingAdvertisement := range bgpAdvertisementList.Items {
-			existingAdvertisement := existingAdvertisement
 			found := false
 			for _, pool := range m.Base.AddressPools {
 				if pool.Name == existingAdvertisement.Name {
