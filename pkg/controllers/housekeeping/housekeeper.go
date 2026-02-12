@@ -66,7 +66,7 @@ func (h *Housekeeper) watchNodes() error {
 	nodeInformer := informerFactory.Core().V1().Nodes()
 	_, err := nodeInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				if time.Since(h.lastTagSync) < SyncTagsMinimalInterval {
 					return
 				}
@@ -78,7 +78,7 @@ func (h *Housekeeper) watchNodes() error {
 				}
 				klog.Info("labels synched successfully")
 			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			UpdateFunc: func(oldObj any, newObj any) {
 				oldNode := oldObj.(*v1.Node)
 				newNode := newObj.(*v1.Node)
 

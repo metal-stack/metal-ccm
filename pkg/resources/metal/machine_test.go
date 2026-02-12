@@ -50,7 +50,6 @@ func Test_decodeMachineIDFromProviderID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decodeMachineIDFromProviderID(tt.providerID)
 			if (err != nil) != tt.wantErr {

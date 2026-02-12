@@ -28,7 +28,7 @@ func newBGPAddressPool(name string) addressPool {
 	return addressPool{
 		Name:       name,
 		Protocol:   bgpProtocol,
-		AutoAssign: pointer.Pointer(false),
+		AutoAssign: new(false),
 	}
 }
 

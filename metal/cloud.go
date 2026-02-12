@@ -57,7 +57,7 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		additionalNetworksString = os.Getenv(constants.MetalAdditionalNetworks)
 		additionalNetworks       []string
 	)
-	for _, n := range strings.Split(additionalNetworksString, ",") {
+	for n := range strings.SplitSeq(additionalNetworksString, ",") {
 		n := strings.TrimSpace(n)
 		if n != "" {
 			additionalNetworks = append(additionalNetworks, n)
