@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-go/api/models"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func Test_addressPool_appendIP(t *testing.T) {
@@ -22,7 +21,7 @@ func Test_addressPool_appendIP(t *testing.T) {
 				CIDRs: nil,
 			},
 			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("192.168.2.1"),
+				Ipaddress: new("192.168.2.1"),
 			},
 			want: addressPool{
 				CIDRs: []string{"192.168.2.1/32"},
@@ -34,7 +33,7 @@ func Test_addressPool_appendIP(t *testing.T) {
 				CIDRs: []string{"192.168.2.1/32"},
 			},
 			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("192.168.2.1"),
+				Ipaddress: new("192.168.2.1"),
 			},
 			want: addressPool{
 				CIDRs: []string{"192.168.2.1/32"},
@@ -46,7 +45,7 @@ func Test_addressPool_appendIP(t *testing.T) {
 				CIDRs: []string{"192.168.2.1/32"},
 			},
 			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("2001::7"),
+				Ipaddress: new("2001::7"),
 			},
 			want: addressPool{
 				CIDRs: []string{"192.168.2.1/32", "2001::7/128"},
@@ -81,15 +80,15 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 			name:     "append new pool",
 			poolName: "my-pool-static",
 			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("2001::7"),
-				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
+				Ipaddress: new("2001::7"),
+				Type:      new(models.V1IPResponseTypeStatic),
 			},
 			existing: addressPools{},
 			want: addressPools{
 				"my-pool-static": addressPool{
 					Name:       "my-pool-static",
 					Protocol:   bgpProtocol,
-					AutoAssign: pointer.Pointer(false),
+					AutoAssign: new(false),
 					CIDRs:      []string{"2001::7/128"},
 				},
 			},
@@ -98,20 +97,20 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 			name:     "append to existing pool",
 			poolName: "my-pool-static",
 			ip: &models.V1IPResponse{
-				Ipaddress: pointer.Pointer("2001::8"),
-				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
+				Ipaddress: new("2001::8"),
+				Type:      new(models.V1IPResponseTypeStatic),
 			},
 			existing: addressPools{
 				"my-pool-ephemeral": addressPool{
 					Name:       "my-pool-ephemeral",
 					Protocol:   bgpProtocol,
-					AutoAssign: pointer.Pointer(false),
+					AutoAssign: new(false),
 					CIDRs:      []string{"192.168.2.1/32"},
 				},
 				"my-pool-static": addressPool{
 					Name:       "my-pool-static",
 					Protocol:   bgpProtocol,
-					AutoAssign: pointer.Pointer(false),
+					AutoAssign: new(false),
 					CIDRs:      []string{"2001::7/128"},
 				},
 			},
@@ -119,13 +118,13 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 				"my-pool-ephemeral": addressPool{
 					Name:       "my-pool-ephemeral",
 					Protocol:   bgpProtocol,
-					AutoAssign: pointer.Pointer(false),
+					AutoAssign: new(false),
 					CIDRs:      []string{"192.168.2.1/32"},
 				},
 				"my-pool-static": addressPool{
 					Name:       "my-pool-static",
 					Protocol:   bgpProtocol,
-					AutoAssign: pointer.Pointer(false),
+					AutoAssign: new(false),
 					CIDRs:      []string{"2001::7/128", "2001::8/128"},
 				},
 			},

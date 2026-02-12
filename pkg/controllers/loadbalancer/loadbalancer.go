@@ -251,7 +251,6 @@ func (l *LoadBalancerController) EnsureLoadBalancerDeleted(ctx context.Context, 
 
 func (l *LoadBalancerController) removeServiceTagFromIPs(ctx context.Context, serviceTag string, ips []*models.V1IPResponse) error {
 	for _, ip := range ips {
-		ip := ip
 		err := retrygo.Do(
 			func() error {
 				newTags, delete := l.removeServiceTag(*ip, serviceTag)

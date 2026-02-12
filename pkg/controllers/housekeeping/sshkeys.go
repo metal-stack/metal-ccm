@@ -37,7 +37,6 @@ func (h *Housekeeper) syncSSHKeys() error {
 	}
 
 	for _, n := range nodes {
-		n := n
 		m, err := h.ms.GetMachineFromNode(context.Background(), &n)
 
 		if err != nil {

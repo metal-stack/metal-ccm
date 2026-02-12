@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-ccm/pkg/resources/kubernetes"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,7 +60,6 @@ func (c *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context) error 
 	}
 
 	for _, existingPolicy := range existingPolicies.Items {
-		existingPolicy := existingPolicy
 		found := false
 
 		for _, peer := range c.base.Peers {
@@ -96,7 +94,7 @@ func (c *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context) error 
 				VirtualRouters: []ciliumv2alpha1.CiliumBGPVirtualRouter{
 					{
 						LocalASN:      int64(peer.MyASN),
-						ExportPodCIDR: pointer.Pointer(true),
+						ExportPodCIDR: new(true),
 						Neighbors: []ciliumv2alpha1.CiliumBGPNeighbor{
 							{
 								PeerAddress:     "127.0.0.1/32",
@@ -105,7 +103,7 @@ func (c *ciliumConfig) writeCiliumBGPPeeringPolicies(ctx context.Context) error 
 							},
 						},
 						// A NotIn match expression with a dummy key and value have to be used to announce ALL services.
-						ServiceSelector: pointer.Pointer(slimv1.LabelSelector{
+						ServiceSelector: new(slimv1.LabelSelector{
 							MatchExpressions: []slimv1.LabelSelectorRequirement{
 								{
 									Key:      ciliumv2alpha1.BGPLoadBalancerClass,
@@ -139,7 +137,6 @@ func (c *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context) error
 	}
 
 	for _, existingPool := range existingPools.Items {
-		existingPool := existingPool
 		found := false
 
 		for _, pool := range c.base.AddressPools {
