@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-go/api/models"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func Test_addressPool_appendIP(t *testing.T) {
@@ -82,7 +81,7 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 			poolName: "my-pool-static",
 			ip: &models.V1IPResponse{
 				Ipaddress: new("2001::7"),
-				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
+				Type:      new(models.V1IPResponseTypeStatic),
 			},
 			existing: addressPools{},
 			want: addressPools{
@@ -99,7 +98,7 @@ func Test_addressPools_addPoolIP(t *testing.T) {
 			poolName: "my-pool-static",
 			ip: &models.V1IPResponse{
 				Ipaddress: new("2001::8"),
-				Type:      pointer.Pointer(models.V1IPResponseTypeStatic),
+				Type:      new(models.V1IPResponseTypeStatic),
 			},
 			existing: addressPools{
 				"my-pool-ephemeral": addressPool{

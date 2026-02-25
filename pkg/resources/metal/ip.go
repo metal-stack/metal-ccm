@@ -7,7 +7,6 @@ import (
 	"github.com/metal-stack/metal-ccm/pkg/tags"
 
 	metalip "github.com/metal-stack/metal-go/api/client/ip"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-go/api/models"
@@ -106,7 +105,7 @@ func (ms *MetalService) AllocateIP(ctx context.Context, svc v1.Service, namePref
 		Name:      fmt.Sprintf("%s%s", namePrefix, name.String()[:5]),
 		Projectid: &project,
 		Networkid: &network,
-		Type:      pointer.Pointer(models.V1IPBaseTypeEphemeral),
+		Type:      new(models.V1IPBaseTypeEphemeral),
 		Tags:      []string{tags.BuildClusterServiceFQNTag(clusterID, svc.GetNamespace(), svc.GetName())},
 	}
 
