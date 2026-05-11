@@ -10,8 +10,11 @@ export CGO_ENABLED := 0
 BINARY := metal-cloud-controller-manager
 MAINMODULE := github.com/metal-stack/metal-ccm
 
+.PHONY: all
+all: test build
+
 .PHONY: build
-build: test
+build:
 	go build \
 		-trimpath \
 		-tags netgo \

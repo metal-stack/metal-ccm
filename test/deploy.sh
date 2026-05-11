@@ -27,7 +27,7 @@ docker build -f Dockerfile.echo -t metalpod/test:echo .
 cd ..
 
 make clean gofmt bin/metal-cloud-controller-manager
-docker build -f Dockerfile.local --no-cache -t metalpod/metal-ccm:v0.0.1 .
+docker build -f Dockerfile --no-cache -t metalpod/metal-ccm:v0.0.1 .
 
 echo "apiVersion: v1
 kind: Secret

@@ -209,10 +209,10 @@ github.com/mdlayher/netlink v1.7.2 h1:/UtM3ofJap7Vl4QWCPDGXY8d3GIY2UGSDbK+QWmY8/
 github.com/mdlayher/netlink v1.7.2/go.mod h1:xraEF7uJbxLhc5fpHL4cPe221LI2bdttWlU+ZGLfQSw=
 github.com/mdlayher/socket v0.5.0 h1:ilICZmJcQz70vrWVes1MFera4jGiWNocSkykwwoy3XI=
 github.com/mdlayher/socket v0.5.0/go.mod h1:WkcBFfvyG8QENs5+hfQPl1X6Jpd2yeLIYgrGFmJiJxI=
-github.com/metal-stack/metal-go v0.43.0 h1:uODD0YCwnAYzyvFxWNakZrymBoMz1FAvP5hkhsR83VQ=
-github.com/metal-stack/metal-go v0.43.0/go.mod h1:GSfXrAj55LGsUSMHWGDsmq5n056NG0yb1JM8bgfvKOw=
-github.com/metal-stack/metal-lib v0.24.0 h1:wvQQPWIXcA2tP+I6zAHUNdtVLLJfQnnV9yG2SoqUkz4=
-github.com/metal-stack/metal-lib v0.24.0/go.mod h1:oITaqj/BtB9vDKM66jCXkeA+4D0eTZElgIKal5vtiNY=
+github.com/metal-stack/metal-go v0.43.1 h1:pPkABQKbx5FaUFNzHIjSDKTj7jP4vXusEiaRK697EN0=
+github.com/metal-stack/metal-go v0.43.1/go.mod h1:GSfXrAj55LGsUSMHWGDsmq5n056NG0yb1JM8bgfvKOw=
+github.com/metal-stack/metal-lib v0.24.1 h1:hpXEGkIQVQW7FyLCfe2F24Ww/Q/sNBWJ3hfY57OUZMM=
+github.com/metal-stack/metal-lib v0.24.1/go.mod h1:4ZJ7nlZJBngMskA2NhMHrNEHayw3a6xfUtP6xCjOjC0=
 github.com/metal-stack/security v0.9.6 h1:q+JbfFis/G2IuyKky2btmDmO0Y2GQ47p7lmzOi80kMY=
 github.com/metal-stack/security v0.9.6/go.mod h1:HBwf4y3E4VLJPG6vNW1ynlrym46cENDtzIoN9c7uxFI=
 github.com/metal-stack/v v1.0.3 h1:Sh2oBlnxrCUD+mVpzfC8HiqL045YWkxs0gpTvkjppqs=
@@ -416,8 +416,8 @@ google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57 h1:
 google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57/go.mod h1:kSJwQxqmFXeo79zOmbrALdflXQeAYcUbgS7PbpMknCY=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 h1:mWPCjDEyshlQYzBpMNHaEof6UX1PmHcaUODUywQ0uac=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57/go.mod h1:j9x/tPzZkyxcgEFkiKEEGxfvyumM01BEtsW8xzOahRQ=
-google.golang.org/grpc v1.79.1 h1:zGhSi45ODB9/p3VAawt9a+O/MULLl9dpizzNNpq7flY=
-google.golang.org/grpc v1.79.1/go.mod h1:KmT0Kjez+0dde/v2j9vzwoAScgEPx/Bw1CYChhHLrHQ=
+google.golang.org/grpc v1.79.3 h1:sybAEdRIEtvcD68Gx7dmnwjZKlyfuc61Dyo9pGXXkKE=
+google.golang.org/grpc v1.79.3/go.mod h1:KmT0Kjez+0dde/v2j9vzwoAScgEPx/Bw1CYChhHLrHQ=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
