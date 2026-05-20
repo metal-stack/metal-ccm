@@ -40,21 +40,6 @@ spec:
           - "--cloud-provider=metal"
           - "--leader-elect=false"
           - "--allow-untagged-cloud=true"
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 10268
-            scheme: HTTP
-          initialDelaySeconds: 15
-          failureThreshold: 60
-          periodSeconds: 60
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 10268
-            scheme: HTTP
-          initialDelaySeconds: 5
-          periodSeconds: 60
         resources:
           requests:
             cpu: 100m

@@ -26,6 +26,7 @@ type Housekeeper struct {
 	lbController               *loadbalancer.LoadBalancerController
 	lastTagSync                time.Time
 	lastLoadBalancerConfigSync time.Time
+	metalAPIErrors             int32
 	ms                         *metal.MetalService
 	sshPublicKey               string
 	clusterID                  string
@@ -47,8 +48,6 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 
 // Run runs the housekeeper...
 func (h *Housekeeper) Run() error {
-	h.startProbeServer()
-
 	h.startTagSynching()
 	h.startLoadBalancerConfigSynching()
 	h.startSSHKeysSynching()
@@ -56,6 +55,7 @@ func (h *Housekeeper) Run() error {
 	if err != nil {
 		return err
 	}
+	h.runHealthCheck()
 	return nil
 }
 
