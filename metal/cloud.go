@@ -40,14 +40,13 @@ type cloud struct {
 }
 
 func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
-	url := os.Getenv(constants.MetalAPIUrlEnvVar)
-	token := os.Getenv(constants.MetalAuthTokenEnvVar)
-	hmac := os.Getenv(constants.MetalAuthHMACEnvVar)
-	hmacAuthType := os.Getenv(constants.MetalAuthHMACAuthTypeEnvVar)
-	projectID := os.Getenv(constants.MetalProjectIDEnvVar)
-	partitionID := os.Getenv(constants.MetalPartitionIDEnvVar)
-	clusterID := os.Getenv(constants.MetalClusterIDEnvVar)
-	defaultExternalNetworkID := os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
+	var (
+		projectID                = os.Getenv(constants.MetalProjectIDEnvVar)
+		partitionID              = os.Getenv(constants.MetalPartitionIDEnvVar)
+		clusterID                = os.Getenv(constants.MetalClusterIDEnvVar)
+		defaultExternalNetworkID = os.Getenv(constants.MetalDefaultExternalNetworkEnvVar)
+	)
+
 	loadbalancerType, err := config.LoadBalancerTypeFromString(os.Getenv(constants.Loadbalancer))
 	if err != nil {
 		return nil, err
@@ -76,21 +75,9 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q is required", constants.MetalClusterIDEnvVar)
 	}
 
-	if url == "" {
-		return nil, fmt.Errorf("environment variable %q is required", constants.MetalAPIUrlEnvVar)
-	}
-
-	if (token == "") == (hmac == "") {
-		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
-	}
-
-	if hmacAuthType == "" {
-		hmacAuthType = "Metal-Admin"
-	}
-
-	metalclient, err = metalgo.NewDriver(url, token, hmac, metalgo.AuthType(hmacAuthType))
+	metalclient, err = NewMetalClient()
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
+		return nil, err
 	}
 
 	resp, err := metalclient.Health().Health(nil, nil)
@@ -111,6 +98,34 @@ func NewCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		zones:        zonesController,
 		loadBalancer: loadBalancerController,
 	}, nil
+}
+
+func NewMetalClient() (metalgo.Client, error) {
+	var (
+		url          = os.Getenv(constants.MetalAPIUrlEnvVar)
+		token        = os.Getenv(constants.MetalAuthTokenEnvVar)
+		hmac         = os.Getenv(constants.MetalAuthHMACEnvVar)
+		hmacAuthType = os.Getenv(constants.MetalAuthHMACAuthTypeEnvVar)
+	)
+
+	if url == "" {
+		return nil, fmt.Errorf("environment variable %q is required", constants.MetalAPIUrlEnvVar)
+	}
+
+	if (token == "") == (hmac == "") {
+		return nil, fmt.Errorf("environment variable %q or %q is required", constants.MetalAuthTokenEnvVar, constants.MetalAuthHMACEnvVar)
+	}
+
+	if hmacAuthType == "" {
+		hmacAuthType = "Metal-Admin"
+	}
+
+	m, err := metalgo.NewDriver(url, token, hmac, metalgo.AuthType(hmacAuthType))
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize metal ccm:%w", err)
+	}
+
+	return m, nil
 }
 
 // Initialize provides the cloud with a kubernetes client builder and may spawn goroutines

@@ -26,7 +26,6 @@ type Housekeeper struct {
 	lbController               *loadbalancer.LoadBalancerController
 	lastTagSync                time.Time
 	lastLoadBalancerConfigSync time.Time
-	metalAPIErrors             int32
 	ms                         *metal.MetalService
 	sshPublicKey               string
 	clusterID                  string
@@ -55,7 +54,6 @@ func (h *Housekeeper) Run() error {
 	if err != nil {
 		return err
 	}
-	h.runHealthCheck()
 	return nil
 }
 
