@@ -40,6 +40,21 @@ spec:
           - "--cloud-provider=metal"
           - "--leader-elect=false"
           - "--allow-untagged-cloud=true"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10258
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          failureThreshold: 60
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            # The ccm only exposes healthz. Should work fine for indicating a functional state
+            path: /healthz
+            port: 10258
+            scheme: HTTPS
+          periodSeconds: 60
         resources:
           requests:
             cpu: 100m
