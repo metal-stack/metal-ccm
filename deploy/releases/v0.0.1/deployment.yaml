@@ -43,17 +43,17 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 10268
-            scheme: HTTP
+            port: 10258
+            scheme: HTTPS
           initialDelaySeconds: 15
           failureThreshold: 60
           periodSeconds: 60
         readinessProbe:
           httpGet:
-            path: /readyz
-            port: 10268
-            scheme: HTTP
-          initialDelaySeconds: 5
+            # The ccm only exposes healthz. Should work fine for indicating a functional state
+            path: /healthz
+            port: 10258
+            scheme: HTTPS
           periodSeconds: 60
         resources:
           requests:

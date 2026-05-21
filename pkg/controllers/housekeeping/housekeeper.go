@@ -47,8 +47,6 @@ func New(metalClient metalgo.Client, stop <-chan struct{}, lbController *loadbal
 
 // Run runs the housekeeper...
 func (h *Housekeeper) Run() error {
-	h.startProbeServer()
-
 	h.startTagSynching()
 	h.startLoadBalancerConfigSynching()
 	h.startSSHKeysSynching()

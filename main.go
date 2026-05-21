@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io"
 	"os"
@@ -8,19 +9,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/cloud-provider/app"
+	cloudcontrollerconfig "k8s.io/cloud-provider/app/config"
 	"k8s.io/cloud-provider/names"
 	"k8s.io/cloud-provider/options"
-
-	cloudcontrollerconfig "k8s.io/cloud-provider/app/config"
 
 	"k8s.io/component-base/cli"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
+	genericcontrollermanager "k8s.io/controller-manager/app"
+	"k8s.io/controller-manager/controller"
 	"k8s.io/klog/v2"
 
 	"github.com/metal-stack/metal-ccm/metal"
+	"github.com/metal-stack/metal-ccm/pkg/controllers/health"
 	"github.com/metal-stack/metal-ccm/pkg/resources/constants"
 	"github.com/metal-stack/v"
 	"github.com/spf13/pflag"
@@ -34,6 +37,21 @@ func main() {
 	opts.KubeCloudShared.CloudProvider.Name = constants.ProviderName
 
 	controllerInitializers := app.DefaultInitFuncConstructors
+	controllerInitializers["metal-health"] = app.ControllerInitFuncConstructor{
+		InitContext: app.ControllerInitContext{
+			ClientName: "metal-health-controller",
+		},
+		Constructor: func(initContext app.ControllerInitContext, completedConfig *cloudcontrollerconfig.CompletedConfig, cloud cloudprovider.Interface) app.InitFunc {
+			return func(ctx context.Context, controllerContext genericcontrollermanager.ControllerContext) (controller.Interface, bool, error) {
+				m, err := metal.NewMetalClient()
+				if err != nil {
+					return nil, false, err
+				}
+
+				return health.New(m), true, nil
+			}
+		},
+	}
 	fss := cliflag.NamedFlagSets{
 		NormalizeNameFunc: cliflag.WordSepNormalizeFunc,
 	}
