@@ -335,6 +335,7 @@ func (l *LoadBalancerController) useIPInCluster(ctx context.Context, ip models.V
 func (l *LoadBalancerController) acquireIP(ctx context.Context, service *v1.Service) (string, error) {
 	annotations := service.GetAnnotations()
 	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
+	deprecatedAddressPool, deprecatedok := annotations[constants.DeprecatedMetalLBSpecificAddressPool]
 	if !ok {
 		if l.defaultExternalNetworkID == "" {
 			return "", fmt.Errorf(`no default network for ip acquisition specified, acquire an ip for your cluster's project and specify it directly in "spec.loadBalancerIP"`)

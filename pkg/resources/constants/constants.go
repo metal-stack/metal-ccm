@@ -18,7 +18,8 @@ const (
 	ProviderName = "metal"
 
 	// FIXME this annotation is deprecated metallb.io should be used instead
-	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
+	DeprecatedMetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
+	MetalLBSpecificAddressPool           = "metallb.io/address-pool"
 
 	IPPrefix = "metallb-"
 
