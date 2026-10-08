@@ -296,7 +296,7 @@ func TestCiliumConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := New(LoadBalancerTypeCilium, tt.ips, tt.nws, tt.nodes, nil, nil)
+			cfg, err := New(LoadBalancerTypeCilium, tt.ips, tt.nws, tt.nodes, nil)
 			if diff := cmp.Diff(err, tt.wantErr); diff != "" {
 				t.Errorf("error = %v", diff)
 				return

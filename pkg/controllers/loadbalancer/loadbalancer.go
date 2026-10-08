@@ -364,7 +364,7 @@ func (l *LoadBalancerController) updateLoadBalancerConfig(ctx context.Context, n
 		return fmt.Errorf("could not find ips of this project's cluster: %w", err)
 	}
 
-	cfg, err := config.New(l.loadBalancerType, ips, l.additionalNetworks, nodes, l.K8sClient, l.K8sClientSet)
+	cfg, err := config.New(l.loadBalancerType, ips, l.additionalNetworks, nodes, l.K8sClient)
 	if err != nil {
 		return err
 	}

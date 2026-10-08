@@ -10,6 +10,7 @@ type peer struct {
 	MyASN        uint32
 	ASN          uint32
 	Address      string
+	NodeName     string
 	NodeSelector metav1.LabelSelector
 }
 
@@ -32,9 +33,10 @@ func newPeer(node v1.Node, asn int64) (*peer, error) {
 	return &peer{
 		// we can safely cast the asn to an uint32 because its max value is defined as such
 		// see: https://en.wikipedia.org/wiki/Autonomous_system_(Internet)
-		MyASN:   uint32(asn), // nolint:gosec
-		ASN:     uint32(asn), // nolint:gosec
-		Address: address,
+		MyASN:    uint32(asn), // nolint:gosec
+		ASN:      uint32(asn), // nolint:gosec
+		Address:  address,
+		NodeName: hostname,
 		NodeSelector: metav1.LabelSelector{
 			MatchExpressions: []metav1.LabelSelectorRequirement{
 				matchExpression,

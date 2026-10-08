@@ -507,7 +507,7 @@ func TestMetalLBConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := New(LoadBalancerTypeMetalLB, tt.ips, tt.nws, tt.nodes, nil, nil)
+			cfg, err := New(LoadBalancerTypeMetalLB, tt.ips, tt.nws, tt.nodes, nil)
 			if err != nil {
 				if diff := cmp.Diff(err.Error(), *tt.wantErrmessage); diff != "" {
 					t.Errorf("error = %v", diff)
