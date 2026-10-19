@@ -11,7 +11,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -38,7 +37,7 @@ type baseConfig struct {
 	AddressPools addressPools
 }
 
-func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, c client.Client, k8sClientSet clientset.Interface) (LoadBalancerConfig, error) {
+func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets.Set[string], nodes []v1.Node, c client.Client) (LoadBalancerConfig, error) {
 	bc, err := newBaseConfig(ips, nws, nodes)
 	if err != nil {
 		return nil, err
@@ -48,7 +47,7 @@ func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets
 	case LoadBalancerTypeMetalLB:
 		return newMetalLBConfig(bc, c), nil
 	case LoadBalancerTypeCilium:
-		return newCiliumConfig(bc, c, k8sClientSet), nil
+		return newCiliumConfig(bc, c), nil
 	default:
 		return nil, fmt.Errorf("unknown load balancer type: %s", loadBalancerType)
 	}
