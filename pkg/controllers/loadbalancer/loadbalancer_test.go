@@ -165,3 +165,68 @@ func TestFixedIPsFromService(t *testing.T) {
 	}
 }
 
+func TestAddressPoolFromService(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		want        string
+		wantOK      bool
+	}{
+		{
+			name:   "no annotation",
+			wantOK: false,
+		},
+		{
+			name:        "new annotation",
+			annotations: map[string]string{"metallb.io/address-pool": "network-a"},
+			want:        "network-a",
+			wantOK:      true,
+		},
+		{
+			name:        "deprecated annotation is honored for backwards compatibility",
+			annotations: map[string]string{"metallb.universe.tf/address-pool": "network-a"},
+			want:        "network-a",
+			wantOK:      true,
+		},
+		{
+			name: "new annotation takes precedence over deprecated one",
+			annotations: map[string]string{
+				"metallb.io/address-pool":          "network-new",
+				"metallb.universe.tf/address-pool": "network-old",
+			},
+			want:   "network-new",
+			wantOK: true,
+		},
+		{
+			name: "empty new annotation falls back to deprecated one",
+			annotations: map[string]string{
+				"metallb.io/address-pool":          "",
+				"metallb.universe.tf/address-pool": "network-old",
+			},
+			want:   "network-old",
+			wantOK: true,
+		},
+		{
+			name:        "empty new annotation and no deprecated one",
+			annotations: map[string]string{"metallb.io/address-pool": ""},
+			wantOK:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := &v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: tt.annotations,
+				},
+			}
+
+			got, gotOK := addressPoolFromService(service)
+			if got != tt.want {
+				t.Errorf("got = %q, want %q", got, tt.want)
+			}
+			if gotOK != tt.wantOK {
+				t.Errorf("gotOK = %v, want %v", gotOK, tt.wantOK)
+			}
+		})
+	}
+}

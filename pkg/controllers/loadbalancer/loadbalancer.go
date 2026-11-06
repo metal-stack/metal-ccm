@@ -369,12 +369,25 @@ func (l *LoadBalancerController) useIPInCluster(ctx context.Context, ip models.V
 	return resp, err
 }
 
-func (l *LoadBalancerController) acquireIP(ctx context.Context, service *v1.Service) (string, error) {
+// addressPoolFromService returns the metallb address pool that should be used for IP acquisition. It
+// is read from the metallb.io/address-pool annotation. For backwards compatibility the deprecated
+// metallb.universe.tf/address-pool annotation is honored as a fallback.
+func addressPoolFromService(service *v1.Service) (string, bool) {
 	annotations := service.GetAnnotations()
-	addressPool, ok := annotations[constants.MetalLBSpecificAddressPool]
+
+	if pool, ok := annotations[constants.MetalLBAddressPoolAnnotation]; ok && pool != "" {
+		return pool, true
+	}
+
+	pool, ok := annotations[constants.LegacyMetalLBAddressPoolAnnotation] //nolint:staticcheck // deprecated annotation, still honored for backwards compatibility
+	return pool, ok && pool != ""
+}
+
+func (l *LoadBalancerController) acquireIP(ctx context.Context, service *v1.Service) (string, error) {
+	addressPool, ok := addressPoolFromService(service)
 	if !ok {
 		if l.defaultExternalNetworkID == "" {
-			return "", fmt.Errorf(`no default network for ip acquisition specified, acquire an ip for your cluster's project and specify it directly in "spec.loadBalancerIP"`)
+			return "", fmt.Errorf("no default network for ip acquisition specified, acquire an ip for your cluster's project and specify it directly in the %q annotation", constants.MetalLBLoadBalancerIPs)
 		}
 
 		return l.acquireIPFromSpecificNetwork(ctx, service, l.defaultExternalNetworkID)
