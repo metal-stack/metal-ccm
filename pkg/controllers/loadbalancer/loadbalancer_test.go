@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-go/api/models"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestLoadBalancerController_removeServiceTag(t *testing.T) {
@@ -93,3 +96,72 @@ func TestLoadBalancerController_removeServiceTag(t *testing.T) {
 		})
 	}
 }
+
+func TestFixedIPsFromService(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		specIP      string
+		want        []string
+	}{
+		{
+			name: "no annotation and no spec ip",
+			want: nil,
+		},
+		{
+			name:        "single ip from annotation",
+			annotations: map[string]string{"metallb.io/loadBalancerIPs": "10.100.0.1"},
+			want:        []string{"10.100.0.1"},
+		},
+		{
+			name:        "multiple comma-separated ips from annotation",
+			annotations: map[string]string{"metallb.io/loadBalancerIPs": "10.100.0.1,10.100.0.2"},
+			want:        []string{"10.100.0.1", "10.100.0.2"},
+		},
+		{
+			name:        "ips with surrounding whitespace and trailing comma",
+			annotations: map[string]string{"metallb.io/loadBalancerIPs": " 10.100.0.1 , 10.100.0.2 ,"},
+			want:        []string{"10.100.0.1", "10.100.0.2"},
+		},
+		{
+			name:        "dual stack ipv4 and ipv6",
+			annotations: map[string]string{"metallb.io/loadBalancerIPs": "10.100.0.1,2001:db8::1"},
+			want:        []string{"10.100.0.1", "2001:db8::1"},
+		},
+		{
+			name:   "fallback to deprecated spec.loadBalancerIP",
+			specIP: "10.100.0.1",
+			want:   []string{"10.100.0.1"},
+		},
+		{
+			name:        "annotation takes precedence over deprecated spec.loadBalancerIP",
+			annotations: map[string]string{"metallb.io/loadBalancerIPs": "10.100.0.1"},
+			specIP:      "10.100.0.2",
+			want:        []string{"10.100.0.1"},
+		},
+		{
+			name:        "whitespace only annotation falls back to spec ip",
+			annotations: map[string]string{"metallb.io/loadBalancerIPs": "   "},
+			specIP:      "10.100.0.1",
+			want:        []string{"10.100.0.1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := &v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: tt.annotations,
+				},
+				Spec: v1.ServiceSpec{
+					LoadBalancerIP: tt.specIP,
+				},
+			}
+
+			got := fixedIPsFromService(service)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+

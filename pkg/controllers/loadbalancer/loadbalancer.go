@@ -85,6 +85,32 @@ func (l *LoadBalancerController) lbName(service *v1.Service) string {
 	return cloudprovider.DefaultLoadBalancerName(service)
 }
 
+// fixedIPsFromService returns the load balancer IP addresses that should be pinned to the given
+// service. They are read from the metallb.io/loadBalancerIPs annotation, which may contain multiple
+// comma-separated IP addresses. If the annotation is not set, the deprecated spec.loadBalancerIP
+// field is honored as a fallback.
+func fixedIPsFromService(service *v1.Service) []string {
+	annotation := strings.TrimSpace(service.GetAnnotations()[constants.MetalLBLoadBalancerIPs])
+	if annotation == "" {
+		if service.Spec.LoadBalancerIP != "" {
+			return []string{service.Spec.LoadBalancerIP}
+		}
+
+		return nil
+	}
+
+	var ips []string
+	for _, ip := range strings.Split(annotation, ",") {
+		ip = strings.TrimSpace(ip)
+		if ip == "" {
+			continue
+		}
+		ips = append(ips, ip)
+	}
+
+	return ips
+}
+
 // EnsureLoadBalancer ensures that the cluster is running a load balancer for service.
 // It creates a new load balancer or updates the existing one. Returns the status of the balancer.
 // Neither 'service' nor 'nodes' are modified.
@@ -98,37 +124,45 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 
 	ingressStatus := service.Status.LoadBalancer.Ingress
 
-	fixedIP := service.Spec.LoadBalancerIP
-	if fixedIP != "" {
+	fixedIPs := fixedIPsFromService(service)
+	if len(fixedIPs) > 0 {
 		l.ipUpdateMutex.Lock()
 		defer l.ipUpdateMutex.Unlock()
 
-		ip, err := l.MetalService.FindProjectIP(ctx, l.projectID, fixedIP)
-		if err != nil {
-			return nil, err
-		}
-
 		serviceTag := tags.BuildClusterServiceFQNTag(l.clusterID, service.GetNamespace(), service.GetName())
 
-		// remove the service tag from other previous ip addresses in case the service had an ip address before
+		// verify that all fixed ips are allocated in the project before changing any tags
+		fixedIPResponses := make([]*models.V1IPResponse, 0, len(fixedIPs))
+		for _, fixedIP := range fixedIPs {
+			ip, err := l.MetalService.FindProjectIP(ctx, l.projectID, fixedIP)
+			if err != nil {
+				return nil, err
+			}
+			fixedIPResponses = append(fixedIPResponses, ip)
+		}
+
+		// remove the service tag from other previous ip addresses in case the service had ip addresses before
 		ips, err := l.MetalService.FindProjectIPsWithTag(ctx, l.projectID, serviceTag)
 		if err != nil {
 			return nil, err
 		}
 		otherIPs := slices.DeleteFunc(ips, func(ip *models.V1IPResponse) bool {
-			return ip.Ipaddress != nil && *ip.Ipaddress == fixedIP
+			return ip.Ipaddress != nil && slices.Contains(fixedIPs, *ip.Ipaddress)
 		})
 		err = l.removeServiceTagFromIPs(ctx, serviceTag, otherIPs)
 		if err != nil {
 			return nil, err
 		}
 
-		newIP, err := l.useIPInCluster(ctx, *ip, l.clusterID, *service)
-		if err != nil {
-			klog.Errorf("could not associate fixed ip:%s, err: %v", fixedIP, err)
-			return nil, err
+		for _, ip := range fixedIPResponses {
+			newIP, err := l.useIPInCluster(ctx, *ip, l.clusterID, *service)
+			if err != nil {
+				klog.Errorf("could not associate fixed ip:%s, err: %v", pointer.SafeDeref(ip.Ipaddress), err)
+				return nil, err
+			}
+			ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: *newIP.Ipaddress})
 		}
-		ingressStatus = append(ingressStatus, v1.LoadBalancerIngress{IP: *newIP.Ipaddress})
+
 		return &v1.LoadBalancerStatus{Ingress: ingressStatus}, nil
 	}
 
@@ -184,7 +218,10 @@ func (l *LoadBalancerController) EnsureLoadBalancer(ctx context.Context, cluster
 			return err
 		}
 
-		s.Spec.LoadBalancerIP = ip
+		if s.Annotations == nil {
+			s.Annotations = map[string]string{}
+		}
+		s.Annotations[constants.MetalLBLoadBalancerIPs] = ip
 		_, err = l.K8sClientSet.CoreV1().Services(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
 		return err
 	})
