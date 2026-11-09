@@ -35,7 +35,7 @@ func TestCalicoConfigWriteCRs(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	utilruntime.Must(calicov3.AddToScheme(scheme))
+	utilruntime.Must(AddCalicoToScheme(scheme))
 
 	// a peering which was managed by metal-ccm before, but is not contained in the
 	// desired configuration anymore.
@@ -125,7 +125,7 @@ func TestCalicoConfigWriteCRsEmpty(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	utilruntime.Must(calicov3.AddToScheme(scheme))
+	utilruntime.Must(AddCalicoToScheme(scheme))
 
 	c := crfake.NewClientBuilder().WithScheme(scheme).Build()
 

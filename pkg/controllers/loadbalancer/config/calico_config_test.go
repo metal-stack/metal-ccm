@@ -8,8 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -217,5 +219,38 @@ func TestLoadBalancerTypeFromString(t *testing.T) {
 				t.Errorf("diff = %v", diff)
 			}
 		})
+	}
+}
+
+// the calico types are declared for the projectcalico.org/v3 group, but the kubernetes api server
+// only serves the calico custom resources in the crd.projectcalico.org/v1 group, unless the calico
+// api server is deployed as well. Therefore the types must be registered with the group the custom
+// resources are served in, otherwise the resources can not be written.
+func TestAddCalicoToScheme(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := AddCalicoToScheme(scheme); err != nil {
+		t.Fatalf("AddCalicoToScheme: %v", err)
+	}
+
+	objs := []runtime.Object{
+		&calicov3.BGPPeer{},
+		&calicov3.BGPPeerList{},
+		&calicov3.BGPConfiguration{},
+		&calicov3.BGPConfigurationList{},
+	}
+
+	for _, obj := range objs {
+		gvks, _, err := scheme.ObjectKinds(obj)
+		if err != nil {
+			t.Fatalf("ObjectKinds(%T): %v", obj, err)
+		}
+
+		if len(gvks) != 1 {
+			t.Fatalf("expected exactly one group version kind for %T, got %v", obj, gvks)
+		}
+
+		if gvks[0].Group != calicoAPIGroup || gvks[0].Version != calicoAPIVersion {
+			t.Errorf("group version kind of %T = %v, want group %q version %q", obj, gvks[0], calicoAPIGroup, calicoAPIVersion)
+		}
 	}
 }

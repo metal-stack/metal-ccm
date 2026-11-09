@@ -8,6 +8,8 @@ import (
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	"github.com/projectcalico/api/pkg/lib/numorstring"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -15,6 +17,15 @@ import (
 
 const (
 	LoadBalancerTypeCalico LoadBalancerType = "calico"
+
+	// calicoAPIGroup and calicoAPIVersion are the api group and version of the calico custom
+	// resources which are served by the kubernetes api server. The types of the
+	// github.com/projectcalico/api module are declared for the projectcalico.org/v3 group, which
+	// is only served if the calico api server is deployed. A default calico installation only
+	// provides the custom resources, therefore the calico types have to be registered with this
+	// group version.
+	calicoAPIGroup   = "crd.projectcalico.org"
+	calicoAPIVersion = "v1"
 
 	// bgpConfigurationName is the name of the default BGPConfiguration of a calico installation.
 	// Calico has only this one cluster wide default BGPConfiguration, so the load balancer ips have
@@ -31,6 +42,23 @@ const (
 	managedByLabelKey   = "app.kubernetes.io/managed-by"
 	managedByLabelValue = "metal-ccm"
 )
+
+// calicoGroupVersion is the group version of the calico custom resources, see calicoAPIGroup.
+var calicoGroupVersion = schema.GroupVersion{Group: calicoAPIGroup, Version: calicoAPIVersion}
+
+// AddCalicoToScheme registers the calico resources which are maintained by metal-ccm with the group
+// version the calico custom resources are served in, see calicoAPIGroup.
+func AddCalicoToScheme(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(calicoGroupVersion,
+		&calicov3.BGPPeer{},
+		&calicov3.BGPPeerList{},
+		&calicov3.BGPConfiguration{},
+		&calicov3.BGPConfigurationList{},
+	)
+	metav1.AddToGroupVersion(scheme, calicoGroupVersion)
+
+	return nil
+}
 
 type calicoConfig struct {
 	base   *baseConfig
@@ -75,7 +103,7 @@ func (c *calicoConfig) writeBGPConfiguration(ctx context.Context) error {
 
 	bgpConfiguration := &calicov3.BGPConfiguration{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: calicov3.GroupVersionCurrent,
+			APIVersion: calicoGroupVersion.String(),
 			Kind:       calicov3.KindBGPConfiguration,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -99,7 +127,8 @@ func (c *calicoConfig) writeBGPConfiguration(ctx context.Context) error {
 }
 
 // writeBGPPeers writes one BGPPeer per node, which tells calico to peer with the bgp daemon (frr)
-// running on the node itself.
+// running on the node itself. This requires calico >= v3.31, because the peering has to use the asn
+// of the machine as local asn, which is only supported by BGPPeer.spec.localASNumber.
 func (c *calicoConfig) writeBGPPeers(ctx context.Context) error {
 	existingPeers := calicov3.BGPPeerList{}
 	err := c.client.List(ctx, &existingPeers, client.MatchingLabels{managedByLabelKey: managedByLabelValue})
@@ -129,7 +158,7 @@ func (c *calicoConfig) writeBGPPeers(ctx context.Context) error {
 	for _, peer := range c.base.Peers {
 		bgpPeer := &calicov3.BGPPeer{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: calicov3.GroupVersionCurrent,
+				APIVersion: calicoGroupVersion.String(),
 				Kind:       calicov3.KindBGPPeer,
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -146,7 +175,12 @@ func (c *calicoConfig) writeBGPPeers(ctx context.Context) error {
 				Node:   peer.NodeName,
 				PeerIP: frrPeerAddress,
 				// the asn the machine is announcing, both ends of the peering use the same asn.
-				ASNumber:      numorstring.ASNumber(peer.ASN),
+				ASNumber: numorstring.ASNumber(peer.ASN),
+				// the peering is an internal one, so the node uses the asn of the machine as local
+				// asn as well. this field was added in calico v3.31, older installations prune it
+				// and fall back to the asn of the BGPConfiguration (64512 by default). In this case
+				// the peering with the frr daemon on the node is rejected and the load balancer ips
+				// are not announced.
 				LocalASNumber: new(numorstring.ASNumber(peer.MyASN)),
 				// the peering is a purely local one, therefore no source address must be configured.
 				SourceAddress: calicov3.SourceAddressNone,
