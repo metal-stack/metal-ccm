@@ -19,7 +19,7 @@ type LoadBalancerType string
 
 func LoadBalancerTypeFromString(lb string) (LoadBalancerType, error) {
 	switch l := LoadBalancerType(lb); l {
-	case LoadBalancerTypeCilium, LoadBalancerTypeMetalLB:
+	case LoadBalancerTypeCalico, LoadBalancerTypeCilium, LoadBalancerTypeMetalLB:
 		return l, nil
 	case LoadBalancerType(""): // our default if nothing  is specified is metallb
 		return LoadBalancerTypeMetalLB, nil
@@ -48,6 +48,8 @@ func New(loadBalancerType LoadBalancerType, ips []*models.V1IPResponse, nws sets
 		return newMetalLBConfig(bc, c), nil
 	case LoadBalancerTypeCilium:
 		return newCiliumConfig(bc, c), nil
+	case LoadBalancerTypeCalico:
+		return newCalicoConfig(bc, c), nil
 	default:
 		return nil, fmt.Errorf("unknown load balancer type: %s", loadBalancerType)
 	}
