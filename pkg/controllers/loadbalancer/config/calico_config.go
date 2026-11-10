@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"slices"
 
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
@@ -36,6 +37,15 @@ const (
 	// with this address to announce the load balancer ips to the metal-stack networking infrastructure.
 	frrPeerAddress = "127.0.0.1"
 
+	// bgpFilterName is the name of the BGPFilter which is referenced by all BGPPeers maintained by
+	// metal-ccm. It restricts the peering with the frr daemon on the node to the load balancer ips.
+	// It must exist before the first BGPPeer is written, otherwise calico peers without any filter.
+	bgpFilterName = "metal-ccm-bgp-filter"
+
+	// allIPv4 is used to match all ipv4 routes in a BGPFilter rule, because every ipv4 prefix is
+	// contained in 0.0.0.0/0.
+	allIPv4 = "0.0.0.0/0"
+
 	// managedByLabelKey and managedByLabelValue mark the BGPPeer resources which are maintained by
 	// metal-ccm. Peerings which are not labeled this way are managed by someone else and are left
 	// untouched by metal-ccm.
@@ -54,6 +64,8 @@ func AddCalicoToScheme(scheme *runtime.Scheme) error {
 		&calicov3.BGPPeerList{},
 		&calicov3.BGPConfiguration{},
 		&calicov3.BGPConfigurationList{},
+		&calicov3.BGPFilter{},
+		&calicov3.BGPFilterList{},
 	)
 	metav1.AddToGroupVersion(scheme, calicoGroupVersion)
 
@@ -70,7 +82,14 @@ func newCalicoConfig(base *baseConfig, c client.Client) *calicoConfig {
 }
 
 func (c *calicoConfig) WriteCRs(ctx context.Context) error {
-	err := c.writeBGPConfiguration(ctx)
+	// the bgp filter is written first, because the bgp peers refer to it. A peering without filter
+	// would import all routes announced by the frr daemon on the node, see writeBGPFilter.
+	err := c.writeBGPFilter(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to write bgpfilter resource %w", err)
+	}
+
+	err = c.writeBGPConfiguration(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to write bgpconfiguration resource %w", err)
 	}
@@ -81,6 +100,105 @@ func (c *calicoConfig) WriteCRs(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// writeBGPFilter writes the BGPFilter which is referenced by all BGPPeers maintained by metal-ccm.
+//
+// Peering calico with the frr daemon running on the node itself gives the cluster access to the
+// routing table of the metal-stack networking infrastructure, therefore the peering has to be
+// restricted in both directions:
+//
+// Import: frr announces all routes it knows about to calico, including the default route learned
+// from the leaf. Calico evaluates the import filter of node peers as "accept everything", so bird
+// imports these routes and programs them into the kernel routing table of the node. This breaks the
+// routing of the node itself and frr redistributes the routes back into the metal-stack networking
+// infrastructure, where they can poison the routing tables of other machines. Consequently no route
+// may be imported at all.
+//
+// Export: calico announces the load balancer ips, which are the only addresses of the cluster that
+// are supposed to be routed by the metal-stack networking infrastructure. The bgp filter is
+// evaluated before calico's own export logic, so accepting the load balancer ips and rejecting
+// everything else makes sure no address pool or workload route is announced to frr.
+func (c *calicoConfig) writeBGPFilter(ctx context.Context) error {
+	bgpFilter := &calicov3.BGPFilter{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: calicoGroupVersion.String(),
+			Kind:       calicov3.KindBGPFilter,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: bgpFilterName,
+		},
+	}
+
+	res, err := controllerutil.CreateOrUpdate(ctx, c.client, bgpFilter, func() error {
+		bgpFilter.Spec = calicov3.BGPFilterSpec{
+			ImportV4: rejectAllRules(),
+			// the accept rules have to be evaluated before the reject rule, otherwise no load
+			// balancer ip is announced at all.
+			ExportV4: append(acceptLoadBalancerIPRules(c.base.AddressPools), rejectAllRules()...),
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if res != controllerutil.OperationResultNone {
+		klog.Infof("bgpfilter %q: %v", bgpFilter.Name, res)
+	}
+
+	return nil
+}
+
+// acceptLoadBalancerIPRules returns one accept rule per load balancer ip which is currently acquired
+// by the cluster. Only ipv4 addresses are considered, because the peers written by metal-ccm are
+// ipv4 peerings, there is no peering with an ipv6 address of the frr daemon.
+func acceptLoadBalancerIPRules(pools addressPools) []calicov3.BGPFilterRuleV4 {
+	// the address pools are stored in a map, so the cidrs have to be sorted to get a deterministic result.
+	var cidrs []string
+	for _, pool := range pools {
+		for _, cidr := range pool.CIDRs {
+			prefix, err := netip.ParsePrefix(cidr)
+			if err != nil {
+				klog.Warningf("skipping cidr %q: %v", cidr, err)
+				continue
+			}
+
+			if !prefix.Addr().Is4() {
+				continue
+			}
+
+			cidrs = append(cidrs, prefix.String())
+		}
+	}
+	slices.Sort(cidrs)
+	cidrs = slices.Compact(cidrs)
+
+	rules := make([]calicov3.BGPFilterRuleV4, 0, len(cidrs))
+	for _, cidr := range cidrs {
+		rules = append(rules, calicov3.BGPFilterRuleV4{
+			CIDR: cidr,
+			// the match operator "In" matches all routes which are contained in the cidr,
+			// therefore a load balancer ip is only matched by its host route.
+			MatchOperator: calicov3.MatchOperatorIn,
+			Action:        calicov3.Accept,
+		})
+	}
+
+	return rules
+}
+
+// rejectAllRules returns a single rule which rejects every ipv4 route, including the default route.
+func rejectAllRules() []calicov3.BGPFilterRuleV4 {
+	return []calicov3.BGPFilterRuleV4{
+		{
+			CIDR: allIPv4,
+			// the match operator "In" matches all routes which are contained in the cidr,
+			// therefore 0.0.0.0/0 matches every ipv4 route.
+			MatchOperator: calicov3.MatchOperatorIn,
+			Action:        calicov3.Reject,
+		},
+	}
 }
 
 // writeBGPConfiguration configures calico to advertise the ips of the cluster address pools. Calico
@@ -184,6 +302,8 @@ func (c *calicoConfig) writeBGPPeers(ctx context.Context) error {
 				LocalASNumber: new(numorstring.ASNumber(peer.MyASN)),
 				// the peering is a purely local one, therefore no source address must be configured.
 				SourceAddress: calicov3.SourceAddressNone,
+				// restrict the peering to the load balancer ips, see writeBGPFilter.
+				Filters: []string{bgpFilterName},
 			}
 			return nil
 		})

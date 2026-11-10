@@ -237,6 +237,8 @@ func TestAddCalicoToScheme(t *testing.T) {
 		&calicov3.BGPPeerList{},
 		&calicov3.BGPConfiguration{},
 		&calicov3.BGPConfigurationList{},
+		&calicov3.BGPFilter{},
+		&calicov3.BGPFilterList{},
 	}
 
 	for _, obj := range objs {
