@@ -67,13 +67,9 @@ func (c *ciliumConfig) WriteCRs(ctx context.Context) error {
 // cluster configs of this cluster.
 func (c *ciliumConfig) writeCiliumBGPPeerConfig(ctx context.Context) error {
 	peerConfig := &ciliumv2.CiliumBGPPeerConfig{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
-			Kind:       ciliumv2.BGPPCKindDefinition,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: peerConfigName,
-		},
+		APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
+		Kind:       ciliumv2.BGPPCKindDefinition,
+		Name:       peerConfigName,
 	}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, c.client, peerConfig, func() error {
@@ -83,13 +79,13 @@ func (c *ciliumConfig) writeCiliumBGPPeerConfig(ctx context.Context) error {
 			},
 			Families: []ciliumv2.CiliumBGPFamilyWithAdverts{
 				{
-					CiliumBGPFamily: ciliumv2.CiliumBGPFamily{Afi: "ipv4", Safi: "unicast"},
+					Afi: "ipv4", Safi: "unicast",
 					Advertisements: &slimv1.LabelSelector{
 						MatchLabels: map[string]string{advertisementLabelKey: advertisementLabelValue},
 					},
 				},
 				{
-					CiliumBGPFamily: ciliumv2.CiliumBGPFamily{Afi: "ipv6", Safi: "unicast"},
+					Afi: "ipv6", Safi: "unicast",
 					Advertisements: &slimv1.LabelSelector{
 						MatchLabels: map[string]string{advertisementLabelKey: advertisementLabelValue},
 					},
@@ -113,14 +109,10 @@ func (c *ciliumConfig) writeCiliumBGPPeerConfig(ctx context.Context) error {
 // BGP peer config of this cluster.
 func (c *ciliumConfig) writeCiliumBGPAdvertisements(ctx context.Context) error {
 	advertisements := &ciliumv2.CiliumBGPAdvertisement{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
-			Kind:       ciliumv2.BGPAKindDefinition,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   advertisementName,
-			Labels: map[string]string{advertisementLabelKey: advertisementLabelValue},
-		},
+		APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
+		Kind:       ciliumv2.BGPAKindDefinition,
+		Name:       advertisementName,
+		Labels:     map[string]string{advertisementLabelKey: advertisementLabelValue},
 	}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, c.client, advertisements, func() error {
@@ -183,15 +175,11 @@ func (c *ciliumConfig) writeCiliumBGPClusterConfigs(ctx context.Context) error {
 
 	for _, peer := range c.base.Peers {
 		bgpClusterConfig := &ciliumv2.CiliumBGPClusterConfig{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
-				Kind:       ciliumv2.BGPCCKindDefinition,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				// the name of a bgp cluster config is the ASN of the metal-stack networking infrastructure
-				// the selected nodes are peering with.
-				Name: fmt.Sprintf("%d", peer.ASN),
-			},
+			APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
+			Kind:       ciliumv2.BGPCCKindDefinition,
+			// the name of a bgp cluster config is the ASN of the metal-stack networking infrastructure
+			// the selected nodes are peering with.
+			Name: fmt.Sprintf("%d", peer.ASN),
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, c.client, bgpClusterConfig, func() error {
@@ -257,13 +245,9 @@ func (c *ciliumConfig) writeCiliumLoadBalancerIPPools(ctx context.Context) error
 
 	for _, pool := range c.base.AddressPools {
 		ipPool := &ciliumv2.CiliumLoadBalancerIPPool{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
-				Kind:       ciliumv2.PoolKindDefinition,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: pool.Name,
-			},
+			APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
+			Kind:       ciliumv2.PoolKindDefinition,
+			Name:       pool.Name,
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, c.client, ipPool, func() error {
@@ -322,14 +306,10 @@ func (c *ciliumConfig) writeCiliumBGPNodeConfigOverrides(ctx context.Context) er
 
 	for _, peer := range c.base.Peers {
 		nodeConfigOverride := &ciliumv2.CiliumBGPNodeConfigOverride{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
-				Kind:       ciliumv2.BGPNCOKindDefinition,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				// the name of a ciliumbgpnodeconfigoverride must match the name of the node it belongs to.
-				Name: peer.NodeName,
-			},
+			APIVersion: ciliumv2.CustomResourceDefinitionGroup + "/" + ciliumv2.CustomResourceDefinitionVersion,
+			Kind:       ciliumv2.BGPNCOKindDefinition,
+			// the name of a ciliumbgpnodeconfigoverride must match the name of the node it belongs to.
+			Name: peer.NodeName,
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, c.client, nodeConfigOverride, func() error {

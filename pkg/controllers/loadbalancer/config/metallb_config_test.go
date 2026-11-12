@@ -9,7 +9,6 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -186,11 +185,9 @@ func TestMetalLBConfig(t *testing.T) {
 			},
 			nodes: []v1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-						Labels: map[string]string{
-							tag.MachineNetworkPrimaryASN: "abc",
-						},
+					Name: "node-1",
+					Labels: map[string]string{
+						tag.MachineNetworkPrimaryASN: "abc",
 					},
 				},
 			},
@@ -214,10 +211,8 @@ func TestMetalLBConfig(t *testing.T) {
 			},
 			nodes: []v1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "node-1",
-						Labels: nil,
-					},
+					Name:   "node-1",
+					Labels: nil,
 				},
 			},
 			wantErrmessage: new("node \"node-1\" misses label: machine.metal-stack.io/network.primary.asn"),
@@ -240,11 +235,9 @@ func TestMetalLBConfig(t *testing.T) {
 			},
 			nodes: []v1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-						Labels: map[string]string{
-							tag.MachineNetworkPrimaryASN: "42",
-						},
+					Name: "node-1",
+					Labels: map[string]string{
+						tag.MachineNetworkPrimaryASN: "42",
 					},
 				},
 			},
