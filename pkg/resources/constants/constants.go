@@ -17,8 +17,17 @@ const (
 
 	ProviderName = "metal"
 
-	// FIXME this annotation is deprecated metallb.io should be used instead
-	MetalLBSpecificAddressPool = "metallb.universe.tf/address-pool"
+	// MetalLBAddressPoolAnnotation is the metallb annotation used to select the address pool from
+	// which the load balancer IP is acquired.
+	MetalLBAddressPoolAnnotation = "metallb.io/address-pool"
+
+	// Deprecated: use MetalLBAddressPoolAnnotation instead. Kept for backwards compatibility.
+	LegacyMetalLBAddressPoolAnnotation = "metallb.universe.tf/address-pool"
+
+	// MetalLBLoadBalancerIPs is the metallb annotation used to pin the load balancer IPs to a
+	// service. It may contain multiple comma-separated IP addresses and replaces the deprecated
+	// spec.loadBalancerIP field.
+	MetalLBLoadBalancerIPs = "metallb.io/loadBalancerIPs"
 
 	IPPrefix = "metallb-"
 
