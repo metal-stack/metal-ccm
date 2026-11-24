@@ -56,14 +56,10 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 
 	for _, peer := range m.Base.Peers {
 		bgpPeer := &metallbv1beta2.BGPPeer{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "metallb.io/v1beta2",
-				Kind:       "BGPPeer",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("peer-%d", peer.ASN),
-				Namespace: metallbNamespace,
-			},
+			APIVersion: "metallb.io/v1beta2",
+			Kind:       "BGPPeer",
+			Name:       fmt.Sprintf("peer-%d", peer.ASN),
+			Namespace:  metallbNamespace,
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, m.client, bgpPeer, func() error {
@@ -109,14 +105,10 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 
 	for _, pool := range m.Base.AddressPools {
 		ipAddressPool := &metallbv1beta1.IPAddressPool{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "metallb.io/v1beta1",
-				Kind:       "IPAddressPool",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pool.Name,
-				Namespace: metallbNamespace,
-			},
+			APIVersion: "metallb.io/v1beta1",
+			Kind:       "IPAddressPool",
+			Name:       pool.Name,
+			Namespace:  metallbNamespace,
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, m.client, ipAddressPool, func() error {
@@ -160,14 +152,10 @@ func (m *metalLBConfig) WriteCRs(ctx context.Context) error {
 		}
 
 		bgpAdvertisement := &metallbv1beta1.BGPAdvertisement{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "metallb.io/v1beta1",
-				Kind:       "BGPAdvertisement",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pool.Name,
-				Namespace: metallbNamespace,
-			},
+			APIVersion: "metallb.io/v1beta1",
+			Kind:       "BGPAdvertisement",
+			Name:       pool.Name,
+			Namespace:  metallbNamespace,
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, m.client, bgpAdvertisement, func() error {

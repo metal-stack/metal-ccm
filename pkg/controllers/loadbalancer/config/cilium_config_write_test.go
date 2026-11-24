@@ -65,9 +65,9 @@ func TestCiliumConfigWriteCRs(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(ciliumv2.AddToScheme(scheme))
 
-	staleClusterConfig := &ciliumv2.CiliumBGPClusterConfig{ObjectMeta: metav1.ObjectMeta{Name: "99999"}}
-	staleOverride := &ciliumv2.CiliumBGPNodeConfigOverride{ObjectMeta: metav1.ObjectMeta{Name: "stale-node"}}
-	stalePool := &ciliumv2.CiliumLoadBalancerIPPool{ObjectMeta: metav1.ObjectMeta{Name: "stale-pool"}}
+	staleClusterConfig := &ciliumv2.CiliumBGPClusterConfig{Name: "99999"}
+	staleOverride := &ciliumv2.CiliumBGPNodeConfigOverride{Name: "stale-node"}
+	stalePool := &ciliumv2.CiliumLoadBalancerIPPool{Name: "stale-pool"}
 
 	c := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(staleClusterConfig, staleOverride, stalePool).Build()
 
@@ -92,12 +92,12 @@ func TestCiliumConfigWriteCRs(t *testing.T) {
 		GracefulRestart: &ciliumv2.CiliumBGPNeighborGracefulRestart{Enabled: true},
 		Families: []ciliumv2.CiliumBGPFamilyWithAdverts{
 			{
-				CiliumBGPFamily: ciliumv2.CiliumBGPFamily{Afi: "ipv4", Safi: "unicast"},
-				Advertisements:  &slimv1.LabelSelector{MatchLabels: wantAdvertisementLabels},
+				Afi: "ipv4", Safi: "unicast",
+				Advertisements: &slimv1.LabelSelector{MatchLabels: wantAdvertisementLabels},
 			},
 			{
-				CiliumBGPFamily: ciliumv2.CiliumBGPFamily{Afi: "ipv6", Safi: "unicast"},
-				Advertisements:  &slimv1.LabelSelector{MatchLabels: wantAdvertisementLabels},
+				Afi: "ipv6", Safi: "unicast",
+				Advertisements: &slimv1.LabelSelector{MatchLabels: wantAdvertisementLabels},
 			},
 		},
 	}
@@ -216,10 +216,8 @@ func TestCiliumConfigWriteCRs(t *testing.T) {
 func TestCiliumConfigPeersFromNodes(t *testing.T) {
 	nodes := []v1.Node{
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   testNodeA,
-				Labels: map[string]string{tag.MachineNetworkPrimaryASN: "70000"},
-			},
+			Name:   testNodeA,
+			Labels: map[string]string{tag.MachineNetworkPrimaryASN: "70000"},
 			Status: v1.NodeStatus{
 				Addresses: []v1.NodeAddress{
 					{Type: v1.NodeInternalIP, Address: "10.0.0.1"},
