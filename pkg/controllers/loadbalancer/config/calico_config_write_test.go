@@ -51,8 +51,20 @@ func TestCalicoConfigWriteCRs(t *testing.T) {
 			Name: "peer-4711",
 		},
 	}
+	// an already existing bgp configuration with the node to node mesh enabled and a field which
+	// is maintained by the calico installation. the mesh has to be disabled, the other field has
+	// to be kept.
+	existingBGPConfiguration := &calicov3.BGPConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: bgpConfigurationName,
+		},
+		Spec: calicov3.BGPConfigurationSpec{
+			LogSeverityScreen:     "Info",
+			NodeToNodeMeshEnabled: new(true),
+		},
+	}
 
-	c := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(stalePeer, foreignPeer).Build()
+	c := crfake.NewClientBuilder().WithScheme(scheme).WithObjects(existingBGPConfiguration, stalePeer, foreignPeer).Build()
 
 	cfg := newCalicoConfig(base, c)
 
@@ -73,7 +85,17 @@ func TestCalicoConfigWriteCRs(t *testing.T) {
 		{CIDR: "84.1.1.1/32"},
 		{CIDR: "84.1.1.2/32"},
 	}
-	if diff := cmp.Diff(wantBlocks, bgpConfiguration.Spec.ServiceLoadBalancerIPs, cmpopts.EquateEmpty()); diff != "" {
+	wantBGPConfigurationSpec := calicov3.BGPConfigurationSpec{
+		// a field maintained by the calico installation must not be changed
+		LogSeverityScreen: "Info",
+		// the metal-stack machines route the pod networks themselves, additional mesh peerings
+		// are not usable and would keep calico-node from becoming ready.
+		NodeToNodeMeshEnabled: new(false),
+		// frr occupies the default bgp port 179 on the node, see bgpListenPort.
+		ListenPort:             bgpListenPort,
+		ServiceLoadBalancerIPs: wantBlocks,
+	}
+	if diff := cmp.Diff(wantBGPConfigurationSpec, bgpConfiguration.Spec, cmpopts.EquateEmpty()); diff != "" {
 		t.Errorf("bgp configuration spec diff = %s", diff)
 	}
 
@@ -159,11 +181,17 @@ func TestCalicoConfigWriteCRsEmpty(t *testing.T) {
 
 	// even without any address pool and peer the default bgp configuration is created,
 	// this makes sure a leftover service load balancer ip block from a previous
-	// metal-ccm run is removed again.
+	// metal-ccm run is removed again. the node to node mesh has to be disabled and the
+	// listen port has to be set even if no peer exists.
 	bgpConfiguration := &calicov3.BGPConfiguration{}
 	requireGet(t, ctx, c, bgpConfigurationName, bgpConfiguration)
 
-	if diff := cmp.Diff([]calicov3.ServiceLoadBalancerIPBlock(nil), bgpConfiguration.Spec.ServiceLoadBalancerIPs, cmpopts.EquateEmpty()); diff != "" {
+	wantBGPConfigurationSpec := calicov3.BGPConfigurationSpec{
+		NodeToNodeMeshEnabled:  new(false),
+		ListenPort:             bgpListenPort,
+		ServiceLoadBalancerIPs: nil,
+	}
+	if diff := cmp.Diff(wantBGPConfigurationSpec, bgpConfiguration.Spec, cmpopts.EquateEmpty()); diff != "" {
 		t.Errorf("bgp configuration spec diff = %s", diff)
 	}
 

@@ -37,6 +37,13 @@ const (
 	// with this address to announce the load balancer ips to the metal-stack networking infrastructure.
 	frrPeerAddress = "127.0.0.1"
 
+	// bgpListenPort is the port calico's bgp daemon (bird) listens on. The standard bgp port 179
+	// cannot be used, because the frr daemon running on a metal-stack machine already listens
+	// there. If bird is unable to bind the port, all bgp protocols stay down with the error "No
+	// listening socket" and calico-node never becomes ready, even though the peering with frr
+	// itself would work.
+	bgpListenPort uint16 = 1790
+
 	// bgpFilterName is the name of the BGPFilter which is referenced by all BGPPeers maintained by
 	// metal-ccm. It restricts the peering with the frr daemon on the node to the load balancer ips.
 	// It must exist before the first BGPPeer is written, otherwise calico peers without any filter.
@@ -203,8 +210,9 @@ func rejectAllRules() []calicov3.BGPFilterRuleV4 {
 
 // writeBGPConfiguration configures calico to advertise the ips of the cluster address pools. Calico
 // only announces load balancer service ips which are contained in one of the specified cidr blocks.
-// All other fields of the default BGPConfiguration are not touched, because they are maintained by
-// the calico installation.
+// Additionally the node to node mesh is disabled and a non default listen port is configured, see
+// the comments in the update function. All other fields of the default BGPConfiguration are not
+// touched, because they are maintained by the calico installation.
 func (c *calicoConfig) writeBGPConfiguration(ctx context.Context) error {
 	// the address pools are stored in a map, so the cidrs have to be sorted to get a deterministic result.
 	var cidrs []string
@@ -230,6 +238,15 @@ func (c *calicoConfig) writeBGPConfiguration(ctx context.Context) error {
 	}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, c.client, bgpConfiguration, func() error {
+		// the node to node mesh must be disabled. metal-stack machines already run a bgp daemon
+		// (frr) which takes care of routing the pod networks through the metal-stack networking
+		// infrastructure, therefore calico only peers with the frr daemon on the node itself.
+		// Additionally calico evaluates the readiness of all configured peers, so mesh peerings
+		// which are not usable keep calico-node from becoming ready.
+		bgpConfiguration.Spec.NodeToNodeMeshEnabled = new(false)
+		// bird has to listen on a different port than 179, which is already in use by frr, see
+		// bgpListenPort.
+		bgpConfiguration.Spec.ListenPort = bgpListenPort
 		bgpConfiguration.Spec.ServiceLoadBalancerIPs = blocks
 		return nil
 	})
