@@ -156,6 +156,10 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	if err != nil {
 		klog.Fatalf("unable to add cilium v2 to scheme: %v", err)
 	}
+	err = config.AddCalicoToScheme(scheme)
+	if err != nil {
+		klog.Fatalf("unable to add calico to scheme: %v", err)
+	}
 	k8sClient, err := client.New(k8sRestConfig, client.Options{Scheme: scheme})
 	if err != nil {
 		klog.Fatalf("unable to create k8s client: %v", err)
